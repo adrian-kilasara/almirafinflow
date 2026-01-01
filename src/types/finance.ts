@@ -39,6 +39,7 @@ export interface Transaction {
   description?: string;
   date: string;
   notes?: string;
+  tags?: string[];
   is_recurring: boolean;
   created_at: string;
   updated_at: string;
@@ -77,6 +78,66 @@ export interface SavingsGoal {
   updated_at: string;
 }
 
+export interface TransactionRule {
+  id: string;
+  user_id: string;
+  name: string;
+  description_pattern: string;
+  category_id?: string;
+  tags: string[];
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface UserStreak {
+  id: string;
+  user_id: string;
+  current_streak: number;
+  longest_streak: number;
+  last_activity_date?: string;
+  total_transactions: number;
+  total_savings_added: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  requirement_type: string;
+  requirement_value: number;
+  created_at: string;
+}
+
+export interface UserBadge {
+  id: string;
+  user_id: string;
+  badge_id: string;
+  earned_at: string;
+  badge?: Badge;
+}
+
+export interface FinancialLesson {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  difficulty: string;
+  duration_minutes: number;
+  order_index: number;
+  created_at: string;
+}
+
+export interface UserLessonProgress {
+  id: string;
+  user_id: string;
+  lesson_id: string;
+  completed_at: string;
+}
+
 export interface FinancialSummary {
   totalBalance: number;
   totalIncome: number;
@@ -105,3 +166,7 @@ export const ACCOUNT_TYPE_ICONS: Record<AccountType, string> = {
   crypto: '₿',
   other: '💰',
 };
+
+export const BADGE_CATEGORIES = ['transactions', 'streaks', 'savings', 'budgets', 'accounts', 'health'] as const;
+
+export const LESSON_CATEGORIES = ['basics', 'budgeting', 'savings', 'security', 'investing', 'business', 'tracking'] as const;
