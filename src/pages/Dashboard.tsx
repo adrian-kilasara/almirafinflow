@@ -1,24 +1,43 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCurrency } from '@/lib/format';
 import { 
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
-  Plus, LogOut, Sparkles, Target, CreditCard
+  LogOut, Sparkles, Target, CreditCard, BarChart3,
+  Receipt, Folder, Menu
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
+import type { Account, Transaction, Category, Budget, SavingsGoal } from '@/types/finance';
+
+// Components
+import TransactionForm from '@/components/transactions/TransactionForm';
+import TransactionList from '@/components/transactions/TransactionList';
+import AccountForm from '@/components/accounts/AccountForm';
+import BudgetForm from '@/components/budgets/BudgetForm';
+import BudgetList from '@/components/budgets/BudgetList';
+import SavingsGoalForm from '@/components/savings/SavingsGoalForm';
+import CategoryForm from '@/components/categories/CategoryForm';
+import FinancialReports from '@/components/reports/FinancialReports';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Progress } from '@/components/ui/progress';
 
 export default function Dashboard() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [savingsGoals, setSavingsGoals] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
   const [aiTip, setAiTip] = useState<string>('');
   const [loadingTip, setLoadingTip] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -26,23 +45,27 @@ export default function Dashboard() {
     }
   }, [user, loading, navigate]);
 
+  const fetchData = useCallback(async () => {
+    const [accountsRes, transactionsRes, categoriesRes, budgetsRes, goalsRes] = await Promise.all([
+      supabase.from('accounts').select('*').order('created_at', { ascending: false }),
+      supabase.from('transactions').select('*').order('date', { ascending: false }),
+      supabase.from('categories').select('*').order('name'),
+      supabase.from('budgets').select('*').order('created_at', { ascending: false }),
+      supabase.from('savings_goals').select('*').order('created_at', { ascending: false }),
+    ]);
+    
+    if (accountsRes.data) setAccounts(accountsRes.data as Account[]);
+    if (transactionsRes.data) setTransactions(transactionsRes.data as Transaction[]);
+    if (categoriesRes.data) setCategories(categoriesRes.data as Category[]);
+    if (budgetsRes.data) setBudgets(budgetsRes.data as Budget[]);
+    if (goalsRes.data) setSavingsGoals(goalsRes.data as SavingsGoal[]);
+  }, []);
+
   useEffect(() => {
     if (user) {
       fetchData();
     }
-  }, [user]);
-
-  const fetchData = async () => {
-    const [accountsRes, transactionsRes, goalsRes] = await Promise.all([
-      supabase.from('accounts').select('*').order('created_at', { ascending: false }),
-      supabase.from('transactions').select('*').order('date', { ascending: false }).limit(10),
-      supabase.from('savings_goals').select('*').order('created_at', { ascending: false }),
-    ]);
-    
-    if (accountsRes.data) setAccounts(accountsRes.data);
-    if (transactionsRes.data) setTransactions(transactionsRes.data);
-    if (goalsRes.data) setSavingsGoals(goalsRes.data);
-  };
+  }, [user, fetchData]);
 
   const getFinancialTip = async () => {
     setLoadingTip(true);
@@ -53,6 +76,8 @@ export default function Dashboard() {
             totalBalance: accounts.reduce((sum, a) => sum + Number(a.balance), 0),
             accountCount: accounts.length,
             recentTransactions: transactions.length,
+            totalIncome: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
+            totalExpenses: transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0),
           },
           tipType: 'general',
         },
@@ -70,6 +95,7 @@ export default function Dashboard() {
   const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+  const netFlow = totalIncome - totalExpenses;
 
   const handleSignOut = async () => {
     await signOut();
@@ -84,178 +110,294 @@ export default function Dashboard() {
     );
   }
 
+  const navItems = [
+    { id: 'overview', label: 'Overview', icon: Wallet },
+    { id: 'transactions', label: 'Transactions', icon: Receipt },
+    { id: 'budgets', label: 'Budgets', icon: Folder },
+    { id: 'reports', label: 'Reports', icon: BarChart3 },
+  ];
+
+  const MobileNav = () => (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu className="w-5 h-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-64">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+            <Wallet className="w-5 h-5 text-primary" />
+          </div>
+          <h1 className="text-xl font-bold">FinanceFlow</h1>
+        </div>
+        <nav className="space-y-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  activeTab === item.id
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </SheetContent>
+    </Sheet>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <MobileNav />
             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
               <Wallet className="w-5 h-5 text-primary" />
             </div>
             <h1 className="text-xl font-bold">FinanceFlow</h1>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleSignOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-3">
+            <TransactionForm 
+              accounts={accounts} 
+              categories={categories} 
+              onSuccess={fetchData} 
+            />
+            <CategoryForm onSuccess={fetchData} />
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </Button>
+          </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 space-y-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card variant="glow" className="animate-fadeIn">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Balance</p>
-                  <p className="text-2xl font-bold font-mono mt-1">{formatCurrency(totalBalance)}</p>
-                </div>
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <Wallet className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <main className="container mx-auto px-4 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="hidden md:flex mb-8">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <TabsTrigger key={item.id} value={item.id} className="gap-2">
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
 
-          <Card variant="income" className="animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Income</p>
-                  <p className="text-2xl font-bold font-mono mt-1 text-income">{formatCurrency(totalIncome)}</p>
-                </div>
-                <div className="w-12 h-12 bg-income/10 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-income" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-8">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card variant="glow" className="animate-fadeIn">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Balance</p>
+                      <p className="text-2xl font-bold font-mono mt-1">{formatCurrency(totalBalance)}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                      <Wallet className="w-6 h-6 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card variant="expense" className="animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Expenses</p>
-                  <p className="text-2xl font-bold font-mono mt-1 text-expense">{formatCurrency(totalExpenses)}</p>
-                </div>
-                <div className="w-12 h-12 bg-expense/10 rounded-xl flex items-center justify-center">
-                  <TrendingDown className="w-6 h-6 text-expense" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              <Card variant="income" className="animate-fadeIn" style={{ animationDelay: '0.1s' }}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Income</p>
+                      <p className="text-2xl font-bold font-mono mt-1 text-income">{formatCurrency(totalIncome)}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-income/10 rounded-xl flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-income" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="animate-fadeIn" style={{ animationDelay: '0.3s' }}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Savings Goals</p>
-                  <p className="text-2xl font-bold font-mono mt-1">{savingsGoals.length}</p>
-                </div>
-                <div className="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center">
-                  <Target className="w-6 h-6 text-warning" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Card variant="expense" className="animate-fadeIn" style={{ animationDelay: '0.2s' }}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Expenses</p>
+                      <p className="text-2xl font-bold font-mono mt-1 text-expense">{formatCurrency(totalExpenses)}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-expense/10 rounded-xl flex items-center justify-center">
+                      <TrendingDown className="w-6 h-6 text-expense" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-        {/* AI Financial Tips */}
-        <Card variant="glass">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <CardTitle>AI Financial Advisor</CardTitle>
+              <Card className="animate-fadeIn" style={{ animationDelay: '0.3s' }}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Net Flow</p>
+                      <p className={`text-2xl font-bold font-mono mt-1 ${netFlow >= 0 ? 'text-income' : 'text-expense'}`}>
+                        {netFlow >= 0 ? '+' : ''}{formatCurrency(netFlow)}
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center">
+                      <Target className="w-6 h-6 text-warning" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-            <Button onClick={getFinancialTip} disabled={loadingTip} size="sm">
-              {loadingTip ? 'Thinking...' : 'Get Tips'}
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {aiTip ? (
-              <div className="prose prose-invert max-w-none text-sm text-muted-foreground whitespace-pre-wrap">
-                {aiTip}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                Click "Get Tips" to receive personalized 2026 financial advice based on your data.
-              </p>
-            )}
-          </CardContent>
-        </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Accounts */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5" />
-                Accounts
-              </CardTitle>
-              <Button size="sm" onClick={() => toast.info('Add account feature coming soon!')}>
-                <Plus className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {accounts.length > 0 ? (
-                <div className="space-y-3">
-                  {accounts.map((account) => (
-                    <div key={account.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{account.type === 'mobile_money' ? '📱' : '🏦'}</span>
-                        <div>
-                          <p className="font-medium">{account.name}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{account.type}</p>
+            {/* AI Financial Tips */}
+            <Card variant="glass">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  <CardTitle>AI Financial Advisor (2026)</CardTitle>
+                </div>
+                <Button onClick={getFinancialTip} disabled={loadingTip} size="sm">
+                  {loadingTip ? 'Thinking...' : 'Get Tips'}
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {aiTip ? (
+                  <div className="prose prose-invert max-w-none text-sm text-muted-foreground whitespace-pre-wrap">
+                    {aiTip}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    Click "Get Tips" to receive personalized 2026 financial advice based on your data.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Accounts */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5" />
+                    Accounts
+                  </CardTitle>
+                  <AccountForm onSuccess={fetchData} />
+                </CardHeader>
+                <CardContent>
+                  {accounts.length > 0 ? (
+                    <div className="space-y-3">
+                      {accounts.map((account) => (
+                        <div key={account.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl">{ACCOUNT_TYPE_ICONS[account.type] || '💰'}</span>
+                            <div>
+                              <p className="font-medium">{account.name}</p>
+                              <p className="text-xs text-muted-foreground capitalize">{account.type.replace('_', ' ')}</p>
+                            </div>
+                          </div>
+                          <p className="font-mono font-semibold">{formatCurrency(Number(account.balance), account.currency)}</p>
                         </div>
-                      </div>
-                      <p className="font-mono font-semibold">{formatCurrency(Number(account.balance), account.currency)}</p>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-8">No accounts yet. Add your first account!</p>
-              )}
-            </CardContent>
-          </Card>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">No accounts yet. Add your first account!</p>
+                  )}
+                </CardContent>
+              </Card>
 
-          {/* Savings Goals */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <PiggyBank className="w-5 h-5" />
-                Savings Goals
-              </CardTitle>
-              <Button size="sm" onClick={() => toast.info('Add goal feature coming soon!')}>
-                <Plus className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {savingsGoals.length > 0 ? (
-                <div className="space-y-3">
-                  {savingsGoals.map((goal) => (
-                    <div key={goal.id} className="p-3 rounded-lg bg-muted/50">
-                      <div className="flex justify-between mb-2">
-                        <p className="font-medium">{goal.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100)}%
-                        </p>
-                      </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-primary rounded-full transition-all"
-                          style={{ width: `${Math.min((Number(goal.current_amount) / Number(goal.target_amount)) * 100, 100)}%` }}
-                        />
-                      </div>
+              {/* Savings Goals */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <PiggyBank className="w-5 h-5" />
+                    Savings Goals
+                  </CardTitle>
+                  <SavingsGoalForm onSuccess={fetchData} />
+                </CardHeader>
+                <CardContent>
+                  {savingsGoals.length > 0 ? (
+                    <div className="space-y-3">
+                      {savingsGoals.map((goal) => {
+                        const percentage = Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100);
+                        return (
+                          <div key={goal.id} className="p-3 rounded-lg bg-muted/50">
+                            <div className="flex justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{goal.icon || '🎯'}</span>
+                                <p className="font-medium">{goal.name}</p>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {percentage}%
+                              </p>
+                            </div>
+                            <Progress value={percentage} className="h-2 mb-2" />
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>{formatCurrency(Number(goal.current_amount), goal.currency)}</span>
+                              <span>{formatCurrency(Number(goal.target_amount), goal.currency)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground text-center py-8">No savings goals yet. Start saving!</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">No savings goals yet. Start saving!</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Transactions Preview */}
+            <TransactionList 
+              transactions={transactions.slice(0, 5)} 
+              categories={categories}
+              accounts={accounts}
+              onRefresh={fetchData}
+            />
+          </TabsContent>
+
+          {/* Transactions Tab */}
+          <TabsContent value="transactions" className="space-y-6">
+            <TransactionList 
+              transactions={transactions} 
+              categories={categories}
+              accounts={accounts}
+              onRefresh={fetchData}
+            />
+          </TabsContent>
+
+          {/* Budgets Tab */}
+          <TabsContent value="budgets" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Folder className="w-5 h-5" />
+                Budget Tracking
+              </h2>
+              <BudgetForm categories={categories} onSuccess={fetchData} />
+            </div>
+            <BudgetList 
+              budgets={budgets} 
+              transactions={transactions}
+              categories={categories}
+            />
+          </TabsContent>
+
+          {/* Reports Tab */}
+          <TabsContent value="reports">
+            <FinancialReports 
+              transactions={transactions}
+              accounts={accounts}
+              categories={categories}
+            />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
