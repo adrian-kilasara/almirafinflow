@@ -9,11 +9,12 @@ import { formatCurrency } from '@/lib/format';
 import { 
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
   LogOut, Sparkles, Target, CreditCard, BarChart3,
-  Receipt, Folder, Menu
+  Receipt, Folder, Menu, Calendar, GraduationCap, 
+  Trophy, Heart, Settings, Bell
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
-import type { Account, Transaction, Category, Budget, SavingsGoal } from '@/types/finance';
+import type { Account, Transaction, Category, Budget, SavingsGoal, UserStreak } from '@/types/finance';
 
 // Components
 import TransactionForm from '@/components/transactions/TransactionForm';
@@ -23,7 +24,13 @@ import BudgetForm from '@/components/budgets/BudgetForm';
 import BudgetList from '@/components/budgets/BudgetList';
 import SavingsGoalForm from '@/components/savings/SavingsGoalForm';
 import CategoryForm from '@/components/categories/CategoryForm';
-import FinancialReports from '@/components/reports/FinancialReports';
+import EnhancedReports from '@/components/reports/EnhancedReports';
+import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
+import UserBadges from '@/components/gamification/UserBadges';
+import StreakTracker from '@/components/gamification/StreakTracker';
+import FinancialLessons from '@/components/education/FinancialLessons';
+import TransactionCalendar from '@/components/calendar/TransactionCalendar';
+import QuickActions from '@/components/dashboard/QuickActions';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
@@ -38,6 +45,9 @@ export default function Dashboard() {
   const [aiTip, setAiTip] = useState<string>('');
   const [loadingTip, setLoadingTip] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [currentStreak, setCurrentStreak] = useState<UserStreak | null>(null);
+  const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [transactionFormType, setTransactionFormType] = useState<'income' | 'expense' | 'transfer'>('expense');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -78,6 +88,8 @@ export default function Dashboard() {
             recentTransactions: transactions.length,
             totalIncome: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
             totalExpenses: transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0),
+            savingsGoalCount: savingsGoals.length,
+            currentStreak: currentStreak?.current_streak || 0,
           },
           tipType: 'general',
         },
@@ -92,20 +104,48 @@ export default function Dashboard() {
     }
   };
 
+  // Calculate financial metrics
   const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
   const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
   const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
   const netFlow = totalIncome - totalExpenses;
+  const totalSavings = savingsGoals.reduce((sum, g) => sum + Number(g.current_amount), 0);
+
+  // Health score calculation (simplified for badge checking)
+  const healthScore = Math.min(100, Math.round(
+    (accounts.length > 0 ? 20 : 0) +
+    (transactions.length >= 10 ? 20 : transactions.length * 2) +
+    (budgets.length > 0 ? 20 : 0) +
+    (savingsGoals.length > 0 ? 20 : 0) +
+    ((totalIncome > 0 && (totalIncome - totalExpenses) / totalIncome >= 0.2) ? 20 : 10)
+  ));
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
   };
 
+  const handleQuickAction = (type: 'income' | 'expense' | 'transfer' | 'savings' | 'export') => {
+    if (type === 'export') {
+      setActiveTab('reports');
+    } else if (type === 'savings') {
+      // Focus on savings section
+      setActiveTab('overview');
+    } else {
+      setTransactionFormType(type);
+      setShowTransactionForm(true);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-primary">Loading...</div>
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-2xl flex items-center justify-center animate-pulse">
+            <Wallet className="w-8 h-8 text-primary" />
+          </div>
+          <p className="text-muted-foreground">Loading FinFlow 2026...</p>
+        </div>
       </div>
     );
   }
@@ -113,8 +153,10 @@ export default function Dashboard() {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: Wallet },
     { id: 'transactions', label: 'Transactions', icon: Receipt },
+    { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'budgets', label: 'Budgets', icon: Folder },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
+    { id: 'learn', label: 'Learn', icon: GraduationCap },
   ];
 
   const MobileNav = () => (
@@ -124,12 +166,17 @@ export default function Dashboard() {
           <Menu className="w-5 h-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-64">
+      <SheetContent side="left" className="w-72">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-            <Wallet className="w-5 h-5 text-primary" />
+          <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center">
+            <Wallet className="w-6 h-6 text-primary-foreground" />
           </div>
-          <h1 className="text-xl font-bold">FinanceFlow</h1>
+          <div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              FinFlow
+            </h1>
+            <p className="text-xs text-muted-foreground">2026 Edition</p>
+          </div>
         </div>
         <nav className="space-y-2">
           {navItems.map((item) => {
@@ -150,39 +197,49 @@ export default function Dashboard() {
             );
           })}
         </nav>
+        <div className="absolute bottom-6 left-6 right-6">
+          <Button variant="outline" className="w-full" onClick={handleSignOut}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
       </SheetContent>
     </Sheet>
   );
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <MobileNav />
-            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-primary-foreground" />
             </div>
-            <h1 className="text-xl font-bold">FinanceFlow</h1>
+            <div className="hidden sm:block">
+              <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                FinFlow 2026
+              </h1>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <TransactionForm 
               accounts={accounts} 
               categories={categories} 
               onSuccess={fetchData} 
             />
             <CategoryForm onSuccess={fetchData} />
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Sign Out</span>
+            <Button variant="ghost" size="icon" className="hidden md:flex" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="hidden md:flex mb-8">
+          <TabsList className="hidden md:flex mb-6 bg-muted/50">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -195,166 +252,211 @@ export default function Dashboard() {
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-8">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <TabsContent value="overview" className="space-y-6">
+            {/* Quick Actions */}
+            <QuickActions
+              onAddIncome={() => handleQuickAction('income')}
+              onAddExpense={() => handleQuickAction('expense')}
+              onAddTransfer={() => handleQuickAction('transfer')}
+              onAddSavings={() => handleQuickAction('savings')}
+              onExport={() => handleQuickAction('export')}
+            />
+
+            {/* Streak Tracker */}
+            <StreakTracker 
+              transactions={transactions} 
+              onStreakUpdate={setCurrentStreak}
+            />
+
+            {/* Main Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card variant="glow" className="animate-fadeIn">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Total Balance</p>
-                      <p className="text-2xl font-bold font-mono mt-1">{formatCurrency(totalBalance)}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Net Worth</p>
+                      <p className="text-lg sm:text-2xl font-bold font-mono mt-1">{formatCurrency(totalBalance)}</p>
                     </div>
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                      <Wallet className="w-6 h-6 text-primary" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                      <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card variant="income" className="animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Income</p>
-                      <p className="text-2xl font-bold font-mono mt-1 text-income">{formatCurrency(totalIncome)}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Income</p>
+                      <p className="text-lg sm:text-2xl font-bold font-mono mt-1 text-income">{formatCurrency(totalIncome)}</p>
                     </div>
-                    <div className="w-12 h-12 bg-income/10 rounded-xl flex items-center justify-center">
-                      <TrendingUp className="w-6 h-6 text-income" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-income/10 rounded-xl flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-income" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card variant="expense" className="animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Expenses</p>
-                      <p className="text-2xl font-bold font-mono mt-1 text-expense">{formatCurrency(totalExpenses)}</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Expenses</p>
+                      <p className="text-lg sm:text-2xl font-bold font-mono mt-1 text-expense">{formatCurrency(totalExpenses)}</p>
                     </div>
-                    <div className="w-12 h-12 bg-expense/10 rounded-xl flex items-center justify-center">
-                      <TrendingDown className="w-6 h-6 text-expense" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-expense/10 rounded-xl flex items-center justify-center">
+                      <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-expense" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="animate-fadeIn" style={{ animationDelay: '0.3s' }}>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Net Flow</p>
-                      <p className={`text-2xl font-bold font-mono mt-1 ${netFlow >= 0 ? 'text-income' : 'text-expense'}`}>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Net Flow</p>
+                      <p className={`text-lg sm:text-2xl font-bold font-mono mt-1 ${netFlow >= 0 ? 'text-income' : 'text-expense'}`}>
                         {netFlow >= 0 ? '+' : ''}{formatCurrency(netFlow)}
                       </p>
                     </div>
-                    <div className="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center">
-                      <Target className="w-6 h-6 text-warning" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-warning/10 rounded-xl flex items-center justify-center">
+                      <Target className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* AI Financial Tips */}
-            <Card variant="glass">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  <CardTitle>AI Financial Advisor (2026)</CardTitle>
-                </div>
-                <Button onClick={getFinancialTip} disabled={loadingTip} size="sm">
-                  {loadingTip ? 'Thinking...' : 'Get Tips'}
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {aiTip ? (
-                  <div className="prose prose-invert max-w-none text-sm text-muted-foreground whitespace-pre-wrap">
-                    {aiTip}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    Click "Get Tips" to receive personalized 2026 financial advice based on your data.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            {/* Badges */}
+            <UserBadges
+              transactionCount={transactions.length}
+              accountCount={accounts.length}
+              budgetCount={budgets.length}
+              savingsGoalCount={savingsGoals.length}
+              currentStreak={currentStreak?.current_streak || 0}
+              totalSaved={totalSavings}
+              healthScore={healthScore}
+            />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Accounts */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5" />
-                    Accounts
-                  </CardTitle>
-                  <AccountForm onSuccess={fetchData} />
-                </CardHeader>
-                <CardContent>
-                  {accounts.length > 0 ? (
-                    <div className="space-y-3">
-                      {accounts.map((account) => (
-                        <div key={account.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                          <div className="flex items-center gap-3">
-                            <span className="text-2xl">{ACCOUNT_TYPE_ICONS[account.type] || '💰'}</span>
-                            <div>
-                              <p className="font-medium">{account.name}</p>
-                              <p className="text-xs text-muted-foreground capitalize">{account.type.replace('_', ' ')}</p>
-                            </div>
-                          </div>
-                          <p className="font-mono font-semibold">{formatCurrency(Number(account.balance), account.currency)}</p>
-                        </div>
-                      ))}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Financial Health Score */}
+              <div className="lg:col-span-1">
+                <FinancialHealthScore
+                  accounts={accounts}
+                  transactions={transactions}
+                  budgets={budgets}
+                  savingsGoals={savingsGoals}
+                />
+              </div>
+
+              {/* AI Tips & Accounts */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* AI Financial Tips */}
+                <Card variant="glass">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                      <CardTitle className="text-base">AI Financial Advisor</CardTitle>
                     </div>
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">No accounts yet. Add your first account!</p>
-                  )}
-                </CardContent>
-              </Card>
+                    <Button onClick={getFinancialTip} disabled={loadingTip} size="sm" variant="outline">
+                      {loadingTip ? 'Analyzing...' : 'Get Tips'}
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {aiTip ? (
+                      <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                        {aiTip}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">
+                        Click "Get Tips" to receive personalized 2026 financial advice based on your spending patterns.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
 
-              {/* Savings Goals */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <PiggyBank className="w-5 h-5" />
-                    Savings Goals
-                  </CardTitle>
-                  <SavingsGoalForm onSuccess={fetchData} />
-                </CardHeader>
-                <CardContent>
-                  {savingsGoals.length > 0 ? (
-                    <div className="space-y-3">
-                      {savingsGoals.map((goal) => {
-                        const percentage = Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100);
-                        return (
-                          <div key={goal.id} className="p-3 rounded-lg bg-muted/50">
-                            <div className="flex justify-between mb-2">
+                {/* Accounts & Savings Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Accounts */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <CreditCard className="w-4 h-4" />
+                        Accounts
+                      </CardTitle>
+                      <AccountForm onSuccess={fetchData} />
+                    </CardHeader>
+                    <CardContent>
+                      {accounts.length > 0 ? (
+                        <div className="space-y-2">
+                          {accounts.slice(0, 4).map((account) => (
+                            <div key={account.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
                               <div className="flex items-center gap-2">
-                                <span className="text-lg">{goal.icon || '🎯'}</span>
-                                <p className="font-medium">{goal.name}</p>
+                                <span className="text-lg">{ACCOUNT_TYPE_ICONS[account.type] || '💰'}</span>
+                                <div>
+                                  <p className="font-medium text-sm">{account.name}</p>
+                                  <p className="text-[10px] text-muted-foreground capitalize">{account.type.replace('_', ' ')}</p>
+                                </div>
                               </div>
-                              <p className="text-sm text-muted-foreground">
-                                {percentage}%
-                              </p>
+                              <p className="font-mono text-sm font-semibold">{formatCurrency(Number(account.balance), account.currency)}</p>
                             </div>
-                            <Progress value={percentage} className="h-2 mb-2" />
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>{formatCurrency(Number(goal.current_amount), goal.currency)}</span>
-                              <span>{formatCurrency(Number(goal.target_amount), goal.currency)}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">No savings goals yet. Start saving!</p>
-                  )}
-                </CardContent>
-              </Card>
+                          ))}
+                          {accounts.length > 4 && (
+                            <p className="text-xs text-center text-muted-foreground pt-2">
+                              +{accounts.length - 4} more accounts
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-6 text-sm">Add your first account!</p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Savings Goals */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <PiggyBank className="w-4 h-4" />
+                        Savings Goals
+                      </CardTitle>
+                      <SavingsGoalForm onSuccess={fetchData} />
+                    </CardHeader>
+                    <CardContent>
+                      {savingsGoals.length > 0 ? (
+                        <div className="space-y-3">
+                          {savingsGoals.slice(0, 3).map((goal) => {
+                            const percentage = Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100);
+                            return (
+                              <div key={goal.id} className="p-2 rounded-lg bg-muted/30">
+                                <div className="flex justify-between mb-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm">{goal.icon || '🎯'}</span>
+                                    <p className="font-medium text-sm">{goal.name}</p>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">{percentage}%</p>
+                                </div>
+                                <Progress value={percentage} className="h-1.5 mb-1" />
+                                <div className="flex justify-between text-[10px] text-muted-foreground">
+                                  <span>{formatCurrency(Number(goal.current_amount), goal.currency)}</span>
+                                  <span>{formatCurrency(Number(goal.target_amount), goal.currency)}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground text-center py-6 text-sm">Start saving today!</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </div>
 
-            {/* Recent Transactions Preview */}
+            {/* Recent Transactions */}
             <TransactionList 
               transactions={transactions.slice(0, 5)} 
               categories={categories}
@@ -371,6 +473,11 @@ export default function Dashboard() {
               accounts={accounts}
               onRefresh={fetchData}
             />
+          </TabsContent>
+
+          {/* Calendar Tab */}
+          <TabsContent value="calendar" className="space-y-6">
+            <TransactionCalendar transactions={transactions} />
           </TabsContent>
 
           {/* Budgets Tab */}
@@ -391,11 +498,17 @@ export default function Dashboard() {
 
           {/* Reports Tab */}
           <TabsContent value="reports">
-            <FinancialReports 
+            <EnhancedReports 
               transactions={transactions}
               accounts={accounts}
               categories={categories}
+              budgets={budgets}
             />
+          </TabsContent>
+
+          {/* Learn Tab */}
+          <TabsContent value="learn" className="space-y-6">
+            <FinancialLessons />
           </TabsContent>
         </Tabs>
       </main>
