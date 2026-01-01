@@ -56,6 +56,39 @@ export type Database = {
         }
         Relationships: []
       }
+      badges: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          icon: string
+          id?: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+        }
+        Relationships: []
+      }
       budgets: {
         Row: {
           amount: number
@@ -136,6 +169,39 @@ export type Database = {
           name?: string
           type?: Database["public"]["Enums"]["transaction_type"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      financial_lessons: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          difficulty: string
+          duration_minutes: number | null
+          id: string
+          order_index: number | null
+          title: string
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string
+          difficulty?: string
+          duration_minutes?: number | null
+          id?: string
+          order_index?: number | null
+          title: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          difficulty?: string
+          duration_minutes?: number | null
+          id?: string
+          order_index?: number | null
+          title?: string
         }
         Relationships: []
       }
@@ -241,6 +307,47 @@ export type Database = {
         }
         Relationships: []
       }
+      transaction_rules: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          description_pattern: string
+          id: string
+          is_active: boolean | null
+          name: string
+          tags: string[] | null
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          description_pattern: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          tags?: string[] | null
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          description_pattern?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          tags?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_rules_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           account_id: string
@@ -253,6 +360,7 @@ export type Database = {
           id: string
           is_recurring: boolean | null
           notes: string | null
+          tags: string[] | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
           user_id: string
@@ -268,6 +376,7 @@ export type Database = {
           id?: string
           is_recurring?: boolean | null
           notes?: string | null
+          tags?: string[] | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
           user_id: string
@@ -283,6 +392,7 @@ export type Database = {
           id?: string
           is_recurring?: boolean | null
           notes?: string | null
+          tags?: string[] | null
           type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
           user_id?: string
@@ -303,6 +413,100 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_lesson_progress: {
+        Row: {
+          completed_at: string
+          id: string
+          lesson_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          lesson_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          lesson_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "financial_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number | null
+          id: string
+          last_activity_date: string | null
+          longest_streak: number | null
+          total_savings_added: number | null
+          total_transactions: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
+          total_savings_added?: number | null
+          total_transactions?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
+          total_savings_added?: number | null
+          total_transactions?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
