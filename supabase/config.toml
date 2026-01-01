@@ -1,0 +1,4 @@
+project_id = "kcgnhpmbxspjcbxwgsqm"
+
+[functions.financial-tips]
+verify_jwt = true
