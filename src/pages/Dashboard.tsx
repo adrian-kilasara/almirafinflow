@@ -82,16 +82,55 @@ export default function Dashboard() {
   const getFinancialTip = async () => {
     setLoadingTip(true);
     try {
+      // Calculate comprehensive metrics from real data
+      const incomeTotal = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+      const expenseTotal = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+      const savingsRate = incomeTotal > 0 ? ((incomeTotal - expenseTotal) / incomeTotal) * 100 : 0;
+      
+      // Get spending by category
+      const categorySpending: Record<string, number> = {};
+      transactions.filter(t => t.type === 'expense').forEach(t => {
+        const cat = categories.find(c => c.id === t.category_id);
+        const catName = cat?.name || 'Uncategorized';
+        categorySpending[catName] = (categorySpending[catName] || 0) + Number(t.amount);
+      });
+      
+      // Budget performance
+      const budgetPerformance = budgets.map(b => {
+        const spent = transactions
+          .filter(t => t.type === 'expense' && t.category_id === b.category_id)
+          .reduce((sum, t) => sum + Number(t.amount), 0);
+        return {
+          name: b.name,
+          budgeted: Number(b.amount),
+          spent,
+          overBudget: spent > Number(b.amount),
+        };
+      });
+      
+      // Savings goals progress
+      const goalsProgress = savingsGoals.map(g => ({
+        name: g.name,
+        targetAmount: Number(g.target_amount),
+        currentAmount: Number(g.current_amount),
+        percentage: (Number(g.current_amount) / Number(g.target_amount)) * 100,
+      }));
+
       const { data, error } = await supabase.functions.invoke('financial-tips', {
         body: {
           financialData: {
             totalBalance: accounts.reduce((sum, a) => sum + Number(a.balance), 0),
             accountCount: accounts.length,
-            recentTransactions: transactions.length,
-            totalIncome: transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0),
-            totalExpenses: transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0),
-            savingsGoalCount: savingsGoals.length,
+            transactionCount: transactions.length,
+            totalIncome: incomeTotal,
+            totalExpenses: expenseTotal,
+            netCashFlow: incomeTotal - expenseTotal,
+            savingsRate: savingsRate.toFixed(1),
+            categorySpending,
+            budgetPerformance,
+            goalsProgress,
             currentStreak: currentStreak?.current_streak || 0,
+            healthScore,
           },
           tipType: 'general',
         },
@@ -100,7 +139,7 @@ export default function Dashboard() {
       if (error) throw error;
       setAiTip(data.tips);
     } catch (error: any) {
-      toast.error('Failed to get financial tip');
+      toast.error(error.message || 'Failed to get financial tip');
     } finally {
       setLoadingTip(false);
     }
@@ -127,12 +166,9 @@ export default function Dashboard() {
     navigate('/auth');
   };
 
-  const handleQuickAction = (type: 'income' | 'expense' | 'transfer' | 'savings' | 'export') => {
+  const handleQuickAction = (type: 'income' | 'expense' | 'transfer' | 'export') => {
     if (type === 'export') {
       setActiveTab('reports');
-    } else if (type === 'savings') {
-      // Focus on savings section
-      setActiveTab('overview');
     } else {
       setTransactionFormType(type);
       setShowTransactionForm(true);
@@ -259,7 +295,6 @@ export default function Dashboard() {
               onAddIncome={() => handleQuickAction('income')}
               onAddExpense={() => handleQuickAction('expense')}
               onAddTransfer={() => handleQuickAction('transfer')}
-              onAddSavings={() => handleQuickAction('savings')}
               onExport={() => handleQuickAction('export')}
             />
 

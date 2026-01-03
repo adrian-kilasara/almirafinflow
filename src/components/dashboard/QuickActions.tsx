@@ -1,14 +1,9 @@
-import { Button } from '@/components/ui/button';
-import { 
-  Plus, Download, TrendingUp, TrendingDown, 
-  ArrowLeftRight, PiggyBank, Wallet
-} from 'lucide-react';
+import { TrendingUp, TrendingDown, ArrowLeftRight, Download } from 'lucide-react';
 
 interface QuickActionsProps {
   onAddIncome: () => void;
   onAddExpense: () => void;
   onAddTransfer: () => void;
-  onAddSavings: () => void;
   onExport: () => void;
 }
 
@@ -16,7 +11,6 @@ export default function QuickActions({
   onAddIncome,
   onAddExpense,
   onAddTransfer,
-  onAddSavings,
   onExport,
 }: QuickActionsProps) {
   const actions = [
@@ -40,13 +34,6 @@ export default function QuickActions({
       onClick: onAddTransfer,
       color: 'text-primary',
       bgColor: 'bg-primary/10 hover:bg-primary/20',
-    },
-    { 
-      label: 'Add Savings', 
-      icon: PiggyBank, 
-      onClick: onAddSavings,
-      color: 'text-warning',
-      bgColor: 'bg-warning/10 hover:bg-warning/20',
     },
     { 
       label: 'Export', 

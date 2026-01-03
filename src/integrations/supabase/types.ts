@@ -262,6 +262,57 @@ export type Database = {
         }
         Relationships: []
       }
+      savings_allocations: {
+        Row: {
+          account_id: string
+          allocated_at: string
+          amount: number
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          id: string
+          notes: string | null
+          savings_goal_id: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          allocated_at?: string
+          amount: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          id?: string
+          notes?: string | null
+          savings_goal_id: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          allocated_at?: string
+          amount?: number
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          id?: string
+          notes?: string | null
+          savings_goal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "savings_allocations_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "savings_allocations_savings_goal_id_fkey"
+            columns: ["savings_goal_id"]
+            isOneToOne: false
+            referencedRelation: "savings_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       savings_goals: {
         Row: {
           color: string | null
@@ -513,7 +564,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      recalculate_savings_goal_amount: {
+        Args: { _goal_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       account_type:
