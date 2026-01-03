@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,21 +31,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { MoreHorizontal, Pencil, Trash2, Plus, CheckCircle, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
-import { format, differenceInDays } from 'date-fns';
-import type { SavingsGoal } from '@/types/finance';
+import { differenceInDays } from 'date-fns';
+import type { SavingsGoal, Account } from '@/types/finance';
 
 const editSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   target_amount: z.string().min(1, 'Target is required').refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Must be positive'),
-  current_amount: z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, 'Must be valid'),
   target_date: z.string().optional(),
 });
 
 const addFundsSchema = z.object({
   amount: z.string().min(1, 'Amount is required').refine(val => !isNaN(Number(val)) && Number(val) > 0, 'Must be positive'),
+  account_id: z.string().min(1, 'Select an account'),
+  notes: z.string().optional(),
 });
 
 type EditFormData = z.infer<typeof editSchema>;
@@ -60,20 +69,33 @@ export default function SavingsGoalCard({ goal, onRefresh }: SavingsGoalCardProp
   const [editOpen, setEditOpen] = useState(false);
   const [addFundsOpen, setAddFundsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const fetchAccounts = async () => {
+    const { data } = await supabase
+      .from('accounts')
+      .select('*')
+      .eq('is_active', true)
+      .order('name');
+    if (data) setAccounts(data as Account[]);
+  };
 
   const editForm = useForm<EditFormData>({
     resolver: zodResolver(editSchema),
     defaultValues: {
       name: goal.name,
       target_amount: String(goal.target_amount),
-      current_amount: String(goal.current_amount),
       target_date: goal.target_date || '',
     },
   });
 
   const addFundsForm = useForm<AddFundsFormData>({
     resolver: zodResolver(addFundsSchema),
-    defaultValues: { amount: '' },
+    defaultValues: { amount: '', account_id: '', notes: '' },
   });
 
   const percentage = Math.min((Number(goal.current_amount) / Number(goal.target_amount)) * 100, 100);
@@ -83,17 +105,16 @@ export default function SavingsGoalCard({ goal, onRefresh }: SavingsGoalCardProp
   const handleEdit = async (data: EditFormData) => {
     setLoading(true);
     try {
-      const newCurrentAmount = Number(data.current_amount);
       const newTargetAmount = Number(data.target_amount);
+      const isCompleted = Number(goal.current_amount) >= newTargetAmount;
       
       const { error } = await supabase
         .from('savings_goals')
         .update({
           name: data.name,
           target_amount: newTargetAmount,
-          current_amount: newCurrentAmount,
           target_date: data.target_date || null,
-          is_completed: newCurrentAmount >= newTargetAmount,
+          is_completed: isCompleted,
         })
         .eq('id', goal.id);
 
@@ -111,19 +132,51 @@ export default function SavingsGoalCard({ goal, onRefresh }: SavingsGoalCardProp
   const handleAddFunds = async (data: AddFundsFormData) => {
     setLoading(true);
     try {
-      const newAmount = Number(goal.current_amount) + Number(data.amount);
-      const isCompleted = newAmount >= Number(goal.target_amount);
-      
-      const { error } = await supabase
-        .from('savings_goals')
-        .update({
-          current_amount: newAmount,
-          is_completed: isCompleted,
-        })
-        .eq('id', goal.id);
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
 
-      if (error) throw error;
-      toast.success(isCompleted ? '🎉 Goal completed!' : 'Funds added successfully');
+      const amount = Number(data.amount);
+      const selectedAccount = accounts.find(a => a.id === data.account_id);
+      
+      if (!selectedAccount) throw new Error('Account not found');
+      if (Number(selectedAccount.balance) < amount) {
+        throw new Error('Insufficient balance in selected account');
+      }
+
+      // Insert savings allocation (trigger will update savings_goals.current_amount)
+      const { error: allocError } = await supabase
+        .from('savings_allocations')
+        .insert({
+          user_id: userData.user.id,
+          savings_goal_id: goal.id,
+          account_id: data.account_id,
+          amount: amount,
+          currency: goal.currency,
+          notes: data.notes || null,
+        });
+
+      if (allocError) throw allocError;
+
+      // Debit the account
+      const { error: accountError } = await supabase
+        .from('accounts')
+        .update({ balance: Number(selectedAccount.balance) - amount })
+        .eq('id', data.account_id);
+
+      if (accountError) throw accountError;
+
+      // Check if goal is now completed
+      const newAmount = Number(goal.current_amount) + amount;
+      if (newAmount >= Number(goal.target_amount)) {
+        await supabase
+          .from('savings_goals')
+          .update({ is_completed: true })
+          .eq('id', goal.id);
+        toast.success('🎉 Goal completed!');
+      } else {
+        toast.success('Funds allocated successfully');
+      }
+
       setAddFundsOpen(false);
       addFundsForm.reset();
       onRefresh();
@@ -209,7 +262,7 @@ export default function SavingsGoalCard({ goal, onRefresh }: SavingsGoalCardProp
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Goal?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will permanently delete this savings goal.
+                          This will permanently delete this savings goal and all associated allocations.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -252,15 +305,12 @@ export default function SavingsGoalCard({ goal, onRefresh }: SavingsGoalCardProp
                 <p className="text-xs text-destructive">{editForm.formState.errors.name.message}</p>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Target Amount</Label>
-                <Input type="number" step="0.01" {...editForm.register('target_amount')} />
-              </div>
-              <div className="space-y-2">
-                <Label>Current Amount</Label>
-                <Input type="number" step="0.01" {...editForm.register('current_amount')} />
-              </div>
+            <div className="space-y-2">
+              <Label>Target Amount</Label>
+              <Input type="number" step="0.01" {...editForm.register('target_amount')} />
+              {editForm.formState.errors.target_amount && (
+                <p className="text-xs text-destructive">{editForm.formState.errors.target_amount.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Target Date</Label>
@@ -279,7 +329,7 @@ export default function SavingsGoalCard({ goal, onRefresh }: SavingsGoalCardProp
         </DialogContent>
       </Dialog>
 
-      {/* Add Funds Dialog */}
+      {/* Add Funds Dialog - Now requires account selection */}
       <Dialog open={addFundsOpen} onOpenChange={setAddFundsOpen}>
         <DialogContent>
           <DialogHeader>
@@ -287,11 +337,33 @@ export default function SavingsGoalCard({ goal, onRefresh }: SavingsGoalCardProp
           </DialogHeader>
           <form onSubmit={addFundsForm.handleSubmit(handleAddFunds)} className="space-y-4">
             <div className="space-y-2">
+              <Label>From Account</Label>
+              <Select onValueChange={(value) => addFundsForm.setValue('account_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select source account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name} ({formatCurrency(Number(account.balance), account.currency)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {addFundsForm.formState.errors.account_id && (
+                <p className="text-xs text-destructive">{addFundsForm.formState.errors.account_id.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
               <Label>Amount ({goal.currency})</Label>
               <Input type="number" step="0.01" placeholder="0.00" {...addFundsForm.register('amount')} />
               {addFundsForm.formState.errors.amount && (
                 <p className="text-xs text-destructive">{addFundsForm.formState.errors.amount.message}</p>
               )}
+            </div>
+            <div className="space-y-2">
+              <Label>Notes (optional)</Label>
+              <Textarea placeholder="Add a note..." rows={2} {...addFundsForm.register('notes')} />
             </div>
             <p className="text-sm text-muted-foreground">
               Current: {formatCurrency(Number(goal.current_amount), goal.currency)} • 
@@ -303,7 +375,7 @@ export default function SavingsGoalCard({ goal, onRefresh }: SavingsGoalCardProp
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Add Funds
+                Allocate Funds
               </Button>
             </div>
           </form>
