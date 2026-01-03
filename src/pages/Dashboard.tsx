@@ -20,9 +20,11 @@ import type { Account, Transaction, Category, Budget, SavingsGoal, UserStreak } 
 import TransactionForm from '@/components/transactions/TransactionForm';
 import TransactionList from '@/components/transactions/TransactionList';
 import AccountForm from '@/components/accounts/AccountForm';
+import AccountCard from '@/components/accounts/AccountCard';
 import BudgetForm from '@/components/budgets/BudgetForm';
-import BudgetList from '@/components/budgets/BudgetList';
+import BudgetCard from '@/components/budgets/BudgetCard';
 import SavingsGoalForm from '@/components/savings/SavingsGoalForm';
+import SavingsGoalCard from '@/components/savings/SavingsGoalCard';
 import CategoryForm from '@/components/categories/CategoryForm';
 import EnhancedReports from '@/components/reports/EnhancedReports';
 import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
@@ -31,6 +33,7 @@ import StreakTracker from '@/components/gamification/StreakTracker';
 import FinancialLessons from '@/components/education/FinancialLessons';
 import TransactionCalendar from '@/components/calendar/TransactionCalendar';
 import QuickActions from '@/components/dashboard/QuickActions';
+import TransactionRulesManager from '@/components/rules/TransactionRulesManager';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
@@ -152,9 +155,10 @@ export default function Dashboard() {
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: Wallet },
+    { id: 'accounts', label: 'Accounts', icon: CreditCard },
     { id: 'transactions', label: 'Transactions', icon: Receipt },
-    { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'budgets', label: 'Budgets', icon: Folder },
+    { id: 'savings', label: 'Savings', icon: PiggyBank },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
     { id: 'learn', label: 'Learn', icon: GraduationCap },
   ];
@@ -230,6 +234,9 @@ export default function Dashboard() {
               onSuccess={fetchData} 
             />
             <CategoryForm onSuccess={fetchData} />
+            <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
+              <Settings className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="icon" className="hidden md:flex" onClick={handleSignOut}>
               <LogOut className="w-4 h-4" />
             </Button>
@@ -465,19 +472,41 @@ export default function Dashboard() {
             />
           </TabsContent>
 
+          {/* Accounts Tab */}
+          <TabsContent value="accounts" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <CreditCard className="w-5 h-5" />
+                Your Accounts
+              </h2>
+              <AccountForm onSuccess={fetchData} />
+            </div>
+            {accounts.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {accounts.map((account) => (
+                  <AccountCard key={account.id} account={account} onRefresh={fetchData} />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No accounts yet</p>
+                  <p className="text-sm">Add your bank accounts, mobile money, and cash</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           {/* Transactions Tab */}
           <TabsContent value="transactions" className="space-y-6">
+            <TransactionRulesManager categories={categories} onRulesChange={fetchData} />
             <TransactionList 
               transactions={transactions} 
               categories={categories}
               accounts={accounts}
               onRefresh={fetchData}
             />
-          </TabsContent>
-
-          {/* Calendar Tab */}
-          <TabsContent value="calendar" className="space-y-6">
-            <TransactionCalendar transactions={transactions} />
           </TabsContent>
 
           {/* Budgets Tab */}
@@ -489,11 +518,53 @@ export default function Dashboard() {
               </h2>
               <BudgetForm categories={categories} onSuccess={fetchData} />
             </div>
-            <BudgetList 
-              budgets={budgets} 
-              transactions={transactions}
-              categories={categories}
-            />
+            {budgets.length > 0 ? (
+              <div className="space-y-4">
+                {budgets.map((budget) => (
+                  <BudgetCard 
+                    key={budget.id} 
+                    budget={budget} 
+                    transactions={transactions}
+                    categories={categories}
+                    onRefresh={fetchData} 
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <Folder className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No budgets set</p>
+                  <p className="text-sm">Create a budget to track your spending</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Savings Tab */}
+          <TabsContent value="savings" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <PiggyBank className="w-5 h-5" />
+                Savings Goals
+              </h2>
+              <SavingsGoalForm onSuccess={fetchData} />
+            </div>
+            {savingsGoals.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {savingsGoals.map((goal) => (
+                  <SavingsGoalCard key={goal.id} goal={goal} onRefresh={fetchData} />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <PiggyBank className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No savings goals yet</p>
+                  <p className="text-sm">Start saving for your dreams</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Reports Tab */}
