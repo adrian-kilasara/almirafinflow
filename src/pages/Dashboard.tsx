@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useSettings } from '@/hooks/useSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,15 +10,13 @@ import { formatCurrency } from '@/lib/format';
 import { 
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
   LogOut, Sparkles, Target, CreditCard, BarChart3,
-  Receipt, Folder, Menu, Calendar, GraduationCap, 
-  Trophy, Heart, Settings, Bell
+  Receipt, Folder, Menu, GraduationCap, Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
-import type { Account, Transaction, Category, Budget, SavingsGoal, UserStreak } from '@/types/finance';
+import type { Account, Transaction, Category, Budget, SavingsGoal, UserStreak, TransactionType } from '@/types/finance';
 
 // Components
-import TransactionForm from '@/components/transactions/TransactionForm';
 import TransactionList from '@/components/transactions/TransactionList';
 import AccountForm from '@/components/accounts/AccountForm';
 import AccountCard from '@/components/accounts/AccountCard';
@@ -31,9 +30,9 @@ import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import UserBadges from '@/components/gamification/UserBadges';
 import StreakTracker from '@/components/gamification/StreakTracker';
 import FinancialLessons from '@/components/education/FinancialLessons';
-import TransactionCalendar from '@/components/calendar/TransactionCalendar';
 import QuickActions from '@/components/dashboard/QuickActions';
 import TransactionRulesManager from '@/components/rules/TransactionRulesManager';
+import FloatingTransactionForm from '@/components/transactions/FloatingTransactionForm';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
@@ -228,11 +227,6 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <TransactionForm 
-              accounts={accounts} 
-              categories={categories} 
-              onSuccess={fetchData} 
-            />
             <CategoryForm onSuccess={fetchData} />
             <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
               <Settings className="w-4 h-4" />
@@ -583,6 +577,13 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Centered Floating Action Button */}
+      <FloatingTransactionForm
+        accounts={accounts}
+        categories={categories}
+        onSuccess={fetchData}
+      />
     </div>
   );
 }
