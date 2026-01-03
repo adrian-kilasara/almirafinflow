@@ -1,7 +1,19 @@
 import { CurrencyCode, CURRENCY_SYMBOLS } from '@/types/finance';
 
-export function formatCurrency(amount: number, currency: CurrencyCode = 'KES'): string {
-  const symbol = CURRENCY_SYMBOLS[currency];
+// Global currency for system-wide formatting
+let globalCurrency: CurrencyCode = 'KES';
+
+export function setGlobalCurrency(currency: CurrencyCode): void {
+  globalCurrency = currency;
+}
+
+export function getGlobalCurrency(): CurrencyCode {
+  return globalCurrency;
+}
+
+export function formatCurrency(amount: number, currency?: CurrencyCode): string {
+  const useCurrency = currency || globalCurrency;
+  const symbol = CURRENCY_SYMBOLS[useCurrency];
   const formattedNumber = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,

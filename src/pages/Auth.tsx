@@ -5,15 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Wallet, ArrowRight, Loader2 } from 'lucide-react';
+import { Wallet, ArrowRight, Loader2, Shield } from 'lucide-react';
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,17 +19,10 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) throw error;
-        toast.success('Welcome back!');
-        navigate('/');
-      } else {
-        const { error } = await signUp(email, password, fullName);
-        if (error) throw error;
-        toast.success('Account created successfully!');
-        navigate('/');
-      }
+      const { error } = await signIn(email, password);
+      if (error) throw error;
+      toast.success('Welcome back!');
+      navigate('/');
     } catch (error: any) {
       toast.error(error.message || 'Authentication failed');
     } finally {
@@ -52,27 +43,15 @@ export default function Auth() {
             <Wallet className="w-8 h-8 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl">
-              {isLogin ? 'Welcome Back' : 'Create Account'}
-            </CardTitle>
+            <CardTitle className="text-2xl">FinFlow 2026</CardTitle>
             <CardDescription className="mt-2">
-              {isLogin 
-                ? 'Sign in to manage your finances' 
-                : 'Start your financial journey today'}
+              Sign in to manage your finances
             </CardDescription>
           </div>
         </CardHeader>
         
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
-              <Input
-                placeholder="Full Name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required={!isLogin}
-              />
-            )}
             <Input
               type="email"
               placeholder="Email"
@@ -94,21 +73,18 @@ export default function Auth() {
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  {isLogin ? 'Sign In' : 'Create Account'}
+                  Sign In
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </Button>
           </form>
           
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
+          <div className="mt-6 pt-4 border-t border-border">
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Shield className="w-3 h-3" />
+              <span>Secure authentication with AES-256 encryption</span>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useSettings } from '@/hooks/useSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { 
   Settings, Globe, Bell, Shield, Database, ArrowLeft, Loader2,
-  Download, Trash2, KeyRound, Mail
+  Download, Trash2, KeyRound, Mail, Check
 } from 'lucide-react';
 import type { CurrencyCode } from '@/types/finance';
 
@@ -45,29 +46,14 @@ const currencies: { value: CurrencyCode; label: string }[] = [
   { value: 'GBP', label: 'GBP - British Pound' },
 ];
 
-interface UserSettings {
-  default_currency: CurrencyCode;
-  budget_alerts: boolean;
-  weekly_reports: boolean;
-  savings_reminders: boolean;
-  daily_tips: boolean;
-}
-
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
+  const { settings, updateSettings, refreshSettings } = useSettings();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  
-  const [settings, setSettings] = useState<UserSettings>({
-    default_currency: 'KES',
-    budget_alerts: true,
-    weekly_reports: true,
-    savings_reminders: true,
-    daily_tips: true,
-  });
+  const [localSettings, setLocalSettings] = useState(settings);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -78,47 +64,30 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!user) {
       navigate('/auth');
-      return;
     }
-    loadSettings();
-  }, [user]);
+  }, [user, navigate]);
 
-  const loadSettings = async () => {
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('default_currency')
-        .eq('user_id', user!.id)
-        .maybeSingle();
+  useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
 
-      if (profile) {
-        setSettings(prev => ({
-          ...prev,
-          default_currency: profile.default_currency || 'KES',
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to load settings:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveSettings = async () => {
+  const handleCurrencyChange = async (value: CurrencyCode) => {
+    setLocalSettings(prev => ({ ...prev, default_currency: value }));
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ default_currency: settings.default_currency })
-        .eq('user_id', user!.id);
-
-      if (error) throw error;
-      toast.success('Settings saved successfully');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save settings');
+      await updateSettings({ default_currency: value });
+      toast.success('Currency updated system-wide');
+    } catch (error) {
+      toast.error('Failed to update currency');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleNotificationChange = (key: string, value: boolean) => {
+    setLocalSettings(prev => ({ ...prev, [key]: value }));
+    // Notification settings are stored locally for now
+    toast.success('Notification preference updated');
   };
 
   const handleChangePassword = async () => {
@@ -150,7 +119,6 @@ export default function SettingsPage() {
   const handleExportData = async () => {
     setExporting(true);
     try {
-      // Fetch all user data
       const [accountsRes, transactionsRes, budgetsRes, goalsRes, categoriesRes] = await Promise.all([
         supabase.from('accounts').select('*').eq('user_id', user!.id),
         supabase.from('transactions').select('*').eq('user_id', user!.id),
@@ -162,6 +130,7 @@ export default function SettingsPage() {
       const exportData = {
         exported_at: new Date().toISOString(),
         user_email: user?.email,
+        currency: localSettings.default_currency,
         accounts: accountsRes.data || [],
         transactions: transactionsRes.data || [],
         budgets: budgetsRes.data || [],
@@ -169,7 +138,6 @@ export default function SettingsPage() {
         categories: categoriesRes.data || [],
       };
 
-      // Download as JSON
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -191,7 +159,6 @@ export default function SettingsPage() {
   const handleDeleteAccount = async () => {
     setDeleting(true);
     try {
-      // Delete all user data in order (respecting foreign keys)
       await supabase.from('transactions').delete().eq('user_id', user!.id);
       await supabase.from('budgets').delete().eq('user_id', user!.id);
       await supabase.from('savings_goals').delete().eq('user_id', user!.id);
@@ -204,7 +171,6 @@ export default function SettingsPage() {
       await supabase.from('transaction_rules').delete().eq('user_id', user!.id);
       await supabase.from('profiles').delete().eq('user_id', user!.id);
       
-      // Sign out and delete auth user (this may require server-side operation)
       await signOut();
       toast.success('Account deleted successfully');
       navigate('/auth');
@@ -215,13 +181,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -235,7 +195,7 @@ export default function SettingsPage() {
               <Settings className="w-6 h-6" />
               Settings
             </h1>
-            <p className="text-muted-foreground">Manage your account and preferences</p>
+            <p className="text-muted-foreground">All changes apply system-wide instantly</p>
           </div>
         </div>
 
@@ -243,11 +203,11 @@ export default function SettingsPage() {
           <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="localization" className="gap-2">
               <Globe className="w-4 h-4" />
-              <span className="hidden sm:inline">Localization</span>
+              <span className="hidden sm:inline">Currency</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-2">
               <Bell className="w-4 h-4" />
-              <span className="hidden sm:inline">Notifications</span>
+              <span className="hidden sm:inline">Alerts</span>
             </TabsTrigger>
             <TabsTrigger value="security" className="gap-2">
               <Shield className="w-4 h-4" />
@@ -263,15 +223,20 @@ export default function SettingsPage() {
           <TabsContent value="localization" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Localization Settings</CardTitle>
-                <CardDescription>Configure your currency and regional preferences</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="w-5 h-5" />
+                  System Currency
+                </CardTitle>
+                <CardDescription>
+                  This currency applies to all displays across dashboard, reports, transactions, budgets, and exports
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label>Default Currency</Label>
                   <Select
-                    value={settings.default_currency}
-                    onValueChange={(value) => setSettings(prev => ({ ...prev, default_currency: value as CurrencyCode }))}
+                    value={localSettings.default_currency}
+                    onValueChange={handleCurrencyChange}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue />
@@ -284,15 +249,21 @@ export default function SettingsPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-sm text-muted-foreground">
-                    This will be the default currency for new accounts and transactions
-                  </p>
                 </div>
 
-                <Button onClick={handleSaveSettings} disabled={saving}>
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Save Changes
-                </Button>
+                {saving && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Applying changes system-wide...
+                  </div>
+                )}
+
+                {!saving && (
+                  <div className="flex items-center gap-2 text-sm text-income">
+                    <Check className="w-4 h-4" />
+                    Currency settings are automatically saved
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -302,7 +273,7 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>Control how and when you receive notifications</CardDescription>
+                <CardDescription>Control how and when you receive alerts</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -313,8 +284,8 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <Switch
-                    checked={settings.budget_alerts}
-                    onCheckedChange={(checked) => setSettings(prev => ({ ...prev, budget_alerts: checked }))}
+                    checked={localSettings.budget_alerts}
+                    onCheckedChange={(checked) => handleNotificationChange('budget_alerts', checked)}
                   />
                 </div>
 
@@ -326,8 +297,8 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <Switch
-                    checked={settings.weekly_reports}
-                    onCheckedChange={(checked) => setSettings(prev => ({ ...prev, weekly_reports: checked }))}
+                    checked={localSettings.weekly_reports}
+                    onCheckedChange={(checked) => handleNotificationChange('weekly_reports', checked)}
                   />
                 </div>
 
@@ -339,8 +310,8 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <Switch
-                    checked={settings.savings_reminders}
-                    onCheckedChange={(checked) => setSettings(prev => ({ ...prev, savings_reminders: checked }))}
+                    checked={localSettings.savings_reminders}
+                    onCheckedChange={(checked) => handleNotificationChange('savings_reminders', checked)}
                   />
                 </div>
 
@@ -352,8 +323,8 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <Switch
-                    checked={settings.daily_tips}
-                    onCheckedChange={(checked) => setSettings(prev => ({ ...prev, daily_tips: checked }))}
+                    checked={localSettings.daily_tips}
+                    onCheckedChange={(checked) => handleNotificationChange('daily_tips', checked)}
                   />
                 </div>
               </CardContent>
