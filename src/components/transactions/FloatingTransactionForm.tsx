@@ -131,11 +131,11 @@ const FloatingTransactionForm = forwardRef<HTMLDivElement, FloatingTransactionFo
           />
         )}
 
-        {/* FAB Container - Fixed at bottom center */}
-        <div ref={ref} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3">
+        {/* FAB Container - Fixed at bottom center, responsive */}
+        <div ref={ref} className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 sm:gap-3">
           {/* Action buttons */}
           <div className={cn(
-            "flex gap-3 transition-all duration-300",
+            "flex gap-2 sm:gap-3 transition-all duration-300",
             isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
           )}>
             {actions.map((action) => {
@@ -145,15 +145,15 @@ const FloatingTransactionForm = forwardRef<HTMLDivElement, FloatingTransactionFo
                   <Button
                     onClick={() => handleOpen(action.type)}
                     className={cn(
-                      "w-14 h-14 rounded-full shadow-lg",
+                      "w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg",
                       action.color,
                       "text-primary-foreground hover:opacity-90"
                     )}
                     size="icon"
                   >
-                    <Icon className="w-6 h-6" />
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                   </Button>
-                  <span className="text-xs font-medium text-foreground">{action.label}</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-foreground">{action.label}</span>
                 </div>
               );
             })}
@@ -163,23 +163,23 @@ const FloatingTransactionForm = forwardRef<HTMLDivElement, FloatingTransactionFo
           <Button
             onClick={() => setIsOpen(!isOpen)}
             className={cn(
-              "w-16 h-16 rounded-full shadow-xl transition-all duration-300",
+              "w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-xl transition-all duration-300",
               "bg-primary hover:bg-primary/90",
               isOpen && "rotate-45"
             )}
             size="icon"
           >
             {isOpen ? (
-              <X className="w-7 h-7" />
+              <X className="w-6 h-6 sm:w-7 sm:h-7" />
             ) : (
-              <Plus className="w-7 h-7" />
+              <Plus className="w-6 h-6 sm:w-7 sm:h-7" />
             )}
           </Button>
         </div>
 
         {/* Transaction Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[400px]">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {transactionType === 'income' && <TrendingUp className="w-5 h-5 text-income" />}
