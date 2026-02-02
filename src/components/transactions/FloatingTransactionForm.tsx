@@ -179,7 +179,7 @@ const FloatingTransactionForm = forwardRef<HTMLDivElement, FloatingTransactionFo
 
         {/* Transaction Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {transactionType === 'income' && <TrendingUp className="w-5 h-5 text-income" />}
