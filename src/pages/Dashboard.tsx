@@ -30,7 +30,6 @@ import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import UserBadges from '@/components/gamification/UserBadges';
 import StreakTracker from '@/components/gamification/StreakTracker';
 import FinancialLessons from '@/components/education/FinancialLessons';
-import QuickActions from '@/components/dashboard/QuickActions';
 import TransactionRulesManager from '@/components/rules/TransactionRulesManager';
 import FloatingTransactionForm from '@/components/transactions/FloatingTransactionForm';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -166,14 +165,6 @@ export default function Dashboard() {
     navigate('/auth');
   };
 
-  const handleQuickAction = (type: 'income' | 'expense' | 'transfer' | 'export') => {
-    if (type === 'export') {
-      setActiveTab('reports');
-    } else {
-      setTransactionFormType(type);
-      setShowTransactionForm(true);
-    }
-  };
 
   if (loading) {
     return (
@@ -290,14 +281,6 @@ export default function Dashboard() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Quick Actions */}
-            <QuickActions
-              onAddIncome={() => handleQuickAction('income')}
-              onAddExpense={() => handleQuickAction('expense')}
-              onAddTransfer={() => handleQuickAction('transfer')}
-              onExport={() => handleQuickAction('export')}
-            />
-
             {/* Streak Tracker */}
             <StreakTracker 
               transactions={transactions} 
