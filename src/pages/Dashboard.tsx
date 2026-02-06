@@ -24,7 +24,7 @@ import BudgetForm from '@/components/budgets/BudgetForm';
 import BudgetCard from '@/components/budgets/BudgetCard';
 import SavingsGoalForm from '@/components/savings/SavingsGoalForm';
 import SavingsGoalCard from '@/components/savings/SavingsGoalCard';
-import CategoryForm from '@/components/categories/CategoryForm';
+import CategoryManager from '@/components/categories/CategoryManager';
 import EnhancedReports from '@/components/reports/EnhancedReports';
 import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import UserBadges from '@/components/gamification/UserBadges';
@@ -254,7 +254,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <CategoryForm onSuccess={fetchData} />
+            <CategoryManager onSuccess={fetchData} />
             <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
               <Settings className="w-4 h-4" />
             </Button>
