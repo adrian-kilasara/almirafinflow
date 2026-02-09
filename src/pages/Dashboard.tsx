@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
@@ -57,9 +57,10 @@ export default function Dashboard() {
   }, [user, loading, navigate]);
 
   const fetchData = useCallback(async () => {
+    // Fetch all data without the default 1000-row limit for transactions
     const [accountsRes, transactionsRes, categoriesRes, budgetsRes, goalsRes] = await Promise.all([
       supabase.from('accounts').select('*').order('created_at', { ascending: false }),
-      supabase.from('transactions').select('*').order('date', { ascending: false }),
+      supabase.from('transactions').select('*').order('date', { ascending: false }).limit(10000),
       supabase.from('categories').select('*').order('name'),
       supabase.from('budgets').select('*').order('created_at', { ascending: false }),
       supabase.from('savings_goals').select('*').order('created_at', { ascending: false }),
@@ -145,9 +146,19 @@ export default function Dashboard() {
   };
 
   // Calculate financial metrics
+  // Net Worth = sum of all account balances (reflects real-time state)
   const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
-  const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
-  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+  
+  // Income, Expenses, Net Flow = current month only for meaningful overview
+  const currentMonthTransactions = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    return transactions.filter(t => t.date >= monthStart && t.date <= monthEnd);
+  }, [transactions]);
+  
+  const totalIncome = currentMonthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+  const totalExpenses = currentMonthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
   const netFlow = totalIncome - totalExpenses;
   const totalSavings = savingsGoals.reduce((sum, g) => sum + Number(g.current_amount), 0);
 
@@ -307,7 +318,7 @@ export default function Dashboard() {
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Income</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Income (This Month)</p>
                       <p className="text-lg sm:text-2xl font-bold font-mono mt-1 text-income">{formatCurrency(totalIncome)}</p>
                     </div>
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-income/10 rounded-xl flex items-center justify-center">
@@ -321,7 +332,7 @@ export default function Dashboard() {
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Expenses</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Expenses (This Month)</p>
                       <p className="text-lg sm:text-2xl font-bold font-mono mt-1 text-expense">{formatCurrency(totalExpenses)}</p>
                     </div>
                     <div className="w-10 h-10 sm:w-12 sm:h-12 bg-expense/10 rounded-xl flex items-center justify-center">
@@ -335,7 +346,7 @@ export default function Dashboard() {
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Net Flow</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">Net Flow (This Month)</p>
                       <p className={`text-lg sm:text-2xl font-bold font-mono mt-1 ${netFlow >= 0 ? 'text-income' : 'text-expense'}`}>
                         {netFlow >= 0 ? '+' : ''}{formatCurrency(netFlow)}
                       </p>
