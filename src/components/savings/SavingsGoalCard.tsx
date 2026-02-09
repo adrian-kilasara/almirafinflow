@@ -190,13 +190,38 @@ export default function SavingsGoalCard({ goal, onRefresh }: SavingsGoalCardProp
   const handleDelete = async () => {
     setLoading(true);
     try {
+      // Fetch all allocations to refund account balances
+      const { data: allocations } = await supabase
+        .from('savings_allocations')
+        .select('*')
+        .eq('savings_goal_id', goal.id);
+
+      // Refund each allocation back to its source account
+      if (allocations && allocations.length > 0) {
+        for (const alloc of allocations) {
+          const account = accounts.find(a => a.id === alloc.account_id);
+          if (account) {
+            await supabase
+              .from('accounts')
+              .update({ balance: Number(account.balance) + Number(alloc.amount) })
+              .eq('id', alloc.account_id);
+          }
+        }
+
+        // Delete allocations first (foreign key constraint)
+        await supabase
+          .from('savings_allocations')
+          .delete()
+          .eq('savings_goal_id', goal.id);
+      }
+
       const { error } = await supabase
         .from('savings_goals')
         .delete()
         .eq('id', goal.id);
 
       if (error) throw error;
-      toast.success('Goal deleted');
+      toast.success('Goal deleted and funds returned to accounts');
       onRefresh();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete goal');
