@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO, isWithinInterval } from 'date-fns';
 import type { Transaction, Category, Account, TransactionType, CurrencyCode } from '@/types/finance';
 
 const editTransactionSchema = z.object({
@@ -50,6 +51,7 @@ const editTransactionSchema = z.object({
 });
 
 type EditTransactionData = z.infer<typeof editTransactionSchema>;
+type TimeFrame = 'all' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -68,12 +70,43 @@ export default function TransactionList({ transactions, categories, accounts, on
   const [editOpen, setEditOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>('all');
 
   const form = useForm<EditTransactionData>({
     resolver: zodResolver(editTransactionSchema),
   });
 
-  const filteredTransactions = transactions.filter(t => {
+  // Filter by timeframe first
+  const timeFilteredTransactions = useMemo(() => {
+    if (timeFrame === 'all') return transactions;
+    const now = new Date();
+    let start: Date;
+    let end: Date;
+    switch (timeFrame) {
+      case 'daily':
+        start = startOfDay(now);
+        end = endOfDay(now);
+        break;
+      case 'weekly':
+        start = startOfWeek(now);
+        end = endOfWeek(now);
+        break;
+      case 'monthly':
+        start = startOfMonth(now);
+        end = endOfMonth(now);
+        break;
+      case 'yearly':
+        start = startOfYear(now);
+        end = endOfYear(now);
+        break;
+    }
+    return transactions.filter(t => {
+      const d = parseISO(t.date);
+      return isWithinInterval(d, { start, end });
+    });
+  }, [transactions, timeFrame]);
+
+  const filteredTransactions = timeFilteredTransactions.filter(t => {
     const query = searchQuery.toLowerCase();
     const category = categories.find(c => c.id === t.category_id);
     const account = accounts.find(a => a.id === t.account_id);
@@ -145,14 +178,12 @@ export default function TransactionList({ transactions, categories, accounts, on
 
       // Update account balances
       if (oldTransaction.account_id === data.account_id) {
-        // Same account: apply net change
         const netChange = oldBalanceChange + newBalanceChange;
         await supabase
           .from('accounts')
           .update({ balance: Number(oldAccount.balance) + netChange })
           .eq('id', oldAccount.id);
       } else {
-        // Different accounts: reverse on old, apply on new
         await Promise.all([
           supabase
             .from('accounts')
@@ -184,11 +215,9 @@ export default function TransactionList({ transactions, categories, accounts, on
       
       const account = accounts.find(a => a.id === transaction.account_id);
 
-      // Delete the transaction
       const { error } = await supabase.from('transactions').delete().eq('id', id);
       if (error) throw error;
 
-      // Reverse the transaction's effect on account balance
       if (account) {
         const balanceReverse = transaction.type === 'income' 
           ? -Number(transaction.amount) 
@@ -211,23 +240,17 @@ export default function TransactionList({ transactions, categories, accounts, on
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'income':
-        return <TrendingUp className="w-4 h-4 text-income" />;
-      case 'expense':
-        return <TrendingDown className="w-4 h-4 text-expense" />;
-      default:
-        return <ArrowLeftRight className="w-4 h-4 text-primary" />;
+      case 'income': return <TrendingUp className="w-4 h-4 text-income" />;
+      case 'expense': return <TrendingDown className="w-4 h-4 text-expense" />;
+      default: return <ArrowLeftRight className="w-4 h-4 text-primary" />;
     }
   };
 
   const getAmountColor = (type: string) => {
     switch (type) {
-      case 'income':
-        return 'text-income';
-      case 'expense':
-        return 'text-expense';
-      default:
-        return 'text-primary';
+      case 'income': return 'text-income';
+      case 'expense': return 'text-expense';
+      default: return 'text-primary';
     }
   };
 
@@ -240,25 +263,48 @@ export default function TransactionList({ transactions, categories, accounts, on
     { value: 'transfer', label: 'Transfer', icon: ArrowLeftRight, color: 'text-primary' },
   ];
 
+  const timeFrameOptions: { value: TimeFrame; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'daily', label: 'Today' },
+    { value: 'weekly', label: 'This Week' },
+    { value: 'monthly', label: 'This Month' },
+    { value: 'yearly', label: 'This Year' },
+  ];
+
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-3 sm:space-y-0 pb-4">
           <CardTitle className="flex items-center gap-2">
             <Receipt className="w-5 h-5" />
-            Recent Transactions
+            Transactions
           </CardTitle>
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search transactions..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="pl-9"
-            />
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            {/* Timeframe Filter */}
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              {timeFrameOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setTimeFrame(opt.value); setCurrentPage(1); }}
+                  className={`px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    timeFrame === opt.value
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background hover:bg-muted'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="relative w-full sm:w-52">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                className="pl-9"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -317,7 +363,6 @@ export default function TransactionList({ transactions, categories, accounts, on
                 })}
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
                   <p className="text-sm text-muted-foreground">
@@ -326,20 +371,10 @@ export default function TransactionList({ transactions, categories, accounts, on
                     {filteredTransactions.length} transactions
                   </p>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
@@ -350,7 +385,7 @@ export default function TransactionList({ transactions, categories, accounts, on
             <div className="text-center py-12 text-muted-foreground">
               <Receipt className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>No transactions found</p>
-              <p className="text-sm">Add your first transaction to get started</p>
+              <p className="text-sm">{timeFrame !== 'all' ? `No transactions for this ${timeFrame} period` : 'Add your first transaction to get started'}</p>
             </div>
           )}
         </CardContent>
@@ -384,7 +419,6 @@ export default function TransactionList({ transactions, categories, accounts, on
             <DialogTitle>Edit Transaction</DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(handleEdit)} className="space-y-4">
-            {/* Type Selector */}
             <div className="grid grid-cols-3 gap-2">
               {typeOptions.map((option) => {
                 const Icon = option.icon;

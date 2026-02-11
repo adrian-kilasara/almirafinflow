@@ -1,24 +1,24 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCurrency, formatDate } from '@/lib/format';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Legend, Area, AreaChart
+  PieChart, Pie, Cell, Legend, Area, AreaChart
 } from 'recharts';
 import { 
   BarChart3, PieChart as PieChartIcon, TrendingUp, Calendar,
-  Download, FileText, Table as TableIcon
+  FileText, Table as TableIcon
 } from 'lucide-react';
 import type { Transaction, Account, Category, Budget } from '@/types/finance';
 import { 
   format, startOfDay, startOfWeek, startOfMonth, startOfYear,
   endOfDay, endOfWeek, endOfMonth, endOfYear,
   subDays, subWeeks, subMonths, subYears,
-  isWithinInterval, parseISO, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval
+  isWithinInterval, parseISO
 } from 'date-fns';
 import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
 
 interface EnhancedReportsProps {
   transactions: Transaction[];
@@ -103,26 +103,6 @@ export default function EnhancedReports({
       .sort((a, b) => b.value - a.value);
   }, [filteredTransactions, categories]);
 
-  // Income by Category
-  const incomeByCategory = useMemo(() => {
-    const incomeTransactions = filteredTransactions.filter(t => t.type === 'income');
-    const categoryMap = new Map<string, number>();
-
-    incomeTransactions.forEach(t => {
-      const category = categories.find(c => c.id === t.category_id);
-      const categoryName = category?.name || 'Uncategorized';
-      categoryMap.set(categoryName, (categoryMap.get(categoryName) || 0) + Number(t.amount));
-    });
-
-    return Array.from(categoryMap.entries())
-      .map(([name, value], index) => ({
-        name,
-        value,
-        fill: COLORS[index % COLORS.length],
-      }))
-      .sort((a, b) => b.value - a.value);
-  }, [filteredTransactions, categories]);
-
   // Trend Data
   const trendData = useMemo(() => {
     const groupedData = new Map<string, { income: number; expense: number; date: Date }>();
@@ -168,19 +148,53 @@ export default function EnhancedReports({
       }));
   }, [filteredTransactions, period]);
 
-  // Budget Performance
+  // Budget Performance - match the budget period to selected report period for accuracy
   const budgetPerformance = useMemo(() => {
+    const now = new Date();
+    
     return budgets.map(budget => {
-      const spent = filteredTransactions
-        .filter(t => t.type === 'expense' && t.category_id === budget.category_id)
-        .reduce((sum, t) => sum + Number(t.amount), 0);
+      // Calculate the correct date range for THIS budget's period
+      let budgetStart: Date;
+      let budgetEnd: Date;
       
+      switch (budget.period) {
+        case 'daily':
+          budgetStart = startOfDay(now);
+          budgetEnd = endOfDay(now);
+          break;
+        case 'weekly':
+          budgetStart = startOfWeek(now);
+          budgetEnd = endOfWeek(now);
+          break;
+        case 'monthly':
+          budgetStart = startOfMonth(now);
+          budgetEnd = endOfMonth(now);
+          break;
+        case 'yearly':
+          budgetStart = startOfYear(now);
+          budgetEnd = endOfYear(now);
+          break;
+      }
+      
+      // Filter transactions within budget's own period for accurate tracking
+      const budgetTransactions = transactions.filter(t => {
+        if (t.type !== 'expense') return false;
+        const d = parseISO(t.date);
+        const withinPeriod = isWithinInterval(d, { start: budgetStart, end: budgetEnd });
+        if (budget.category_id) {
+          return withinPeriod && t.category_id === budget.category_id;
+        }
+        return withinPeriod;
+      });
+      
+      const spent = budgetTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
       const percentage = (spent / Number(budget.amount)) * 100;
       const category = categories.find(c => c.id === budget.category_id);
       
       return {
         name: budget.name,
         category: category?.name || 'General',
+        period: budget.period,
         budgeted: Number(budget.amount),
         spent,
         remaining: Number(budget.amount) - spent,
@@ -188,7 +202,7 @@ export default function EnhancedReports({
         isOver: spent > Number(budget.amount),
       };
     });
-  }, [budgets, filteredTransactions, categories]);
+  }, [budgets, transactions, categories]);
 
   // Export to CSV
   const exportToCSV = () => {
@@ -238,6 +252,11 @@ Savings Rate: ${incomeVsExpense.savingsRate.toFixed(1)}%
 TOP EXPENSE CATEGORIES
 ═══════════════════════════════════════
 ${expensesByCategory.slice(0, 5).map((c, i) => `${i + 1}. ${c.name}: ${formatCurrency(c.value)}`).join('\n')}
+
+═══════════════════════════════════════
+BUDGET PERFORMANCE
+═══════════════════════════════════════
+${budgetPerformance.map(b => `${b.name} (${b.period}): ${formatCurrency(b.spent)} / ${formatCurrency(b.budgeted)} (${b.percentage.toFixed(0)}%)${b.isOver ? ' ⚠️ OVER BUDGET' : ''}`).join('\n')}
 
 ═══════════════════════════════════════
 ACCOUNT BALANCES
@@ -430,12 +449,12 @@ Total Net Worth: ${formatCurrency(accounts.reduce((sum, a) => sum + Number(a.bal
           </CardContent>
         </Card>
 
-        {/* Budget Performance */}
+        {/* Budget Performance - uses each budget's own period */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Calendar className="w-4 h-4" />
-              Budget Performance
+              Budget Performance (Current Period)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -444,7 +463,10 @@ Total Net Worth: ${formatCurrency(accounts.reduce((sum, a) => sum + Number(a.bal
                 {budgetPerformance.map((budget, index) => (
                   <div key={index} className="space-y-1">
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium">{budget.name}</span>
+                      <span className="font-medium">
+                        {budget.name}
+                        <span className="text-xs text-muted-foreground ml-1">({budget.period})</span>
+                      </span>
                       <span className={budget.isOver ? 'text-expense' : 'text-muted-foreground'}>
                         {formatCurrency(budget.spent)} / {formatCurrency(budget.budgeted)}
                       </span>
@@ -456,6 +478,12 @@ Total Net Worth: ${formatCurrency(accounts.reduce((sum, a) => sum + Number(a.bal
                         }`}
                         style={{ width: `${Math.min(budget.percentage, 100)}%` }}
                       />
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{budget.percentage.toFixed(0)}% used</span>
+                      <span className={budget.remaining >= 0 ? '' : 'text-expense'}>
+                        {budget.remaining >= 0 ? `${formatCurrency(budget.remaining)} left` : `${formatCurrency(Math.abs(budget.remaining))} over`}
+                      </span>
                     </div>
                   </div>
                 ))}

@@ -20,50 +20,57 @@ serve(async (req) => {
 
     const currentDate = new Date().toISOString().split('T')[0];
     
-    let systemPrompt = `You are a professional financial advisor specializing in East African markets and personal finance for 2026. 
+    const systemPrompt = `You are a personal financial advisor for an East African user. You have access to their REAL financial data from their FinFlow 2026 app.
 Current date: ${currentDate}
 
-You provide actionable, specific financial advice based on:
-- 2026 economic trends in East Africa (Kenya, Tanzania, Uganda, Rwanda, Burundi, Ethiopia)
-- Current inflation rates and interest rates
-- Mobile money trends (M-Pesa, Airtel Money, MTN Mobile Money)
-- Investment opportunities (government bonds, SACCOs, stock markets)
-- Savings strategies and emergency fund recommendations
-- Budgeting best practices for the region
+IMPORTANT: Base ALL your advice on the actual numbers provided. Reference specific amounts, categories, and percentages from their data. Never give generic advice - make every tip specific to their situation.
 
-Keep advice practical, culturally relevant, and specific to the user's financial situation.
-Always provide 2-3 actionable tips. Be encouraging but realistic.`;
+Context about East Africa:
+- Mobile money (M-Pesa, Airtel Money) is widely used
+- SACCOs and government bonds are popular investment vehicles  
+- Inflation and currency fluctuations affect savings strategies
+- Emergency funds of 3-6 months expenses are recommended
 
-    let userPrompt = "";
+Format your response as 3 numbered tips. Each tip should:
+1. Reference a specific number from their data
+2. Give a concrete, actionable step
+3. Be encouraging but honest`;
+
+    let userPrompt = `Here is my complete financial data from FinFlow:\n\n`;
     
+    const data = financialData;
+    
+    userPrompt += `📊 OVERVIEW:
+- Total Net Worth (all accounts): ${data.totalBalance || 0}
+- Number of accounts: ${data.accountCount || 0}
+- Total transactions tracked: ${data.transactionCount || 0}
+- Financial Health Score: ${data.healthScore || 0}/100
+- Current tracking streak: ${data.currentStreak || 0} days
+
+💰 CASH FLOW (This Month):
+- Total Income: ${data.totalIncome || 0}
+- Total Expenses: ${data.totalExpenses || 0}
+- Net Cash Flow: ${data.netCashFlow || 0}
+- Savings Rate: ${data.savingsRate || 0}%
+
+📂 SPENDING BY CATEGORY:
+${data.categorySpending ? Object.entries(data.categorySpending).map(([cat, amt]) => `- ${cat}: ${amt}`).join('\n') : 'No category data'}
+
+📋 BUDGET PERFORMANCE:
+${data.budgetPerformance ? data.budgetPerformance.map((b: any) => `- ${b.name}: Spent ${b.spent} of ${b.budgeted} budget${b.overBudget ? ' ⚠️ OVER BUDGET' : ''}`).join('\n') : 'No budgets set'}
+
+🎯 SAVINGS GOALS:
+${data.goalsProgress ? data.goalsProgress.map((g: any) => `- ${g.name}: ${g.currentAmount} / ${g.targetAmount} (${g.percentage.toFixed(1)}%)`).join('\n') : 'No savings goals'}
+`;
+
     if (tipType === 'budget') {
-      userPrompt = `Based on this budget data: ${JSON.stringify(financialData)}
-      
-Provide 3 specific tips to optimize this budget for 2026. Consider:
-- Category spending patterns
-- Potential savings opportunities
-- Emergency fund recommendations`;
+      userPrompt += `\nFocus specifically on my budget performance. Which budgets need attention? How can I optimize?`;
     } else if (tipType === 'savings') {
-      userPrompt = `Based on these savings goals: ${JSON.stringify(financialData)}
-      
-Provide 3 specific tips to accelerate savings in 2026. Consider:
-- High-yield savings options in East Africa
-- Inflation protection strategies
-- Timeline optimization`;
+      userPrompt += `\nFocus specifically on my savings goals. How can I accelerate progress? What strategies should I use?`;
     } else if (tipType === 'spending') {
-      userPrompt = `Based on this spending pattern: ${JSON.stringify(financialData)}
-      
-Provide 3 specific tips to reduce unnecessary spending in 2026. Consider:
-- Common overspending categories
-- Smart shopping strategies
-- Subscription and recurring cost optimization`;
+      userPrompt += `\nFocus specifically on my spending patterns. Where am I overspending? What can I cut?`;
     } else {
-      userPrompt = `Based on this financial overview: ${JSON.stringify(financialData)}
-      
-Provide 3 personalized financial tips for 2026. Consider:
-- Income vs expense ratio
-- Account health
-- Overall financial wellness`;
+      userPrompt += `\nGive me a holistic financial health assessment with personalized advice.`;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -99,8 +106,8 @@ Provide 3 personalized financial tips for 2026. Consider:
       throw new Error("Failed to get AI response");
     }
 
-    const data = await response.json();
-    const tips = data.choices[0].message.content;
+    const aiData = await response.json();
+    const tips = aiData.choices[0].message.content;
 
     return new Response(JSON.stringify({ tips }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
