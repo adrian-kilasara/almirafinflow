@@ -597,6 +597,7 @@ export default function Dashboard() {
               accounts={accounts}
               categories={categories}
               budgets={budgets}
+              savingsGoals={savingsGoals}
             />
           </TabsContent>
 
