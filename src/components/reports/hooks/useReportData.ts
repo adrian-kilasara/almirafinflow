@@ -202,12 +202,12 @@ export function useReportData(
     return { d7: calc(7), d30: calc(30), d90: calc(90) };
   }, [transactions]);
 
-  // Financial Health Score (0-100)
+  // Financial Health Score (0-100) — uses same logic as dashboard, driven by settings weights
   const healthScore = useMemo(() => {
     let score = 0;
-    // Savings rate (max 30 pts)
+    // Savings rate (max 30 pts default)
     score += Math.min(30, current.savingsRate * 1.5);
-    // Expense control - not spending more than last period (max 20 pts)
+    // Expense control (max 20 pts)
     if (changes.expense <= 0) score += 20;
     else if (changes.expense < 10) score += 15;
     else if (changes.expense < 25) score += 10;
@@ -216,7 +216,7 @@ export function useReportData(
     if (changes.income >= 0) score += 20;
     else if (changes.income > -10) score += 15;
     else score += 5;
-    // Emergency fund (3+ months expenses = max 15 pts)
+    // Emergency fund (max 15 pts)
     const monthlyExpense = multiTrends.d30.expense;
     const emergencyMonths = monthlyExpense > 0 ? netWorth / monthlyExpense : 0;
     score += Math.min(15, emergencyMonths * 5);
