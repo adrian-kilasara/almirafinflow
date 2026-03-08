@@ -381,17 +381,28 @@ export default function Dashboard() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="gap-1.5 rounded-xl px-2 h-9 hover:bg-muted/60">
                     <Avatar className="w-7 h-7 border border-primary/20">
+                      {settings.avatar_url && <AvatarImage src={settings.avatar_url} alt={settings.username || 'Avatar'} />}
                       <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                        {(settings.username || settings.full_name || user?.email || 'U').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
+                    <span className="hidden sm:inline text-xs font-medium max-w-[80px] truncate">{settings.username || settings.full_name || 'User'}</span>
                     <ChevronDown className="w-3 h-3 text-muted-foreground hidden sm:block" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 rounded-xl p-1">
-                  <div className="px-3 py-2">
-                    <p className="text-sm font-medium truncate">{user?.user_metadata?.full_name || 'User'}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+                <DropdownMenuContent align="end" className="w-56 rounded-xl p-1">
+                  <div className="flex items-center gap-3 px-3 py-2.5">
+                    <Avatar className="w-9 h-9 border border-primary/20">
+                      {settings.avatar_url && <AvatarImage src={settings.avatar_url} alt={settings.username || 'Avatar'} />}
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                        {(settings.username || settings.full_name || user?.email || 'U').charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{settings.full_name || 'User'}</p>
+                      {settings.username && <p className="text-[10px] text-primary truncate">@{settings.username}</p>}
+                      <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+                    </div>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/settings')} className="gap-2 rounded-lg cursor-pointer text-xs">
