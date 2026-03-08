@@ -18,6 +18,7 @@ import type { Account, Transaction, Category, Budget, SavingsGoal, UserStreak, T
 
 // Components
 import TransactionList from '@/components/transactions/TransactionList';
+import TransactionForm from '@/components/transactions/TransactionForm';
 import AccountForm from '@/components/accounts/AccountForm';
 import AccountCard from '@/components/accounts/AccountCard';
 import AccountDetailPanel from '@/components/accounts/AccountDetailPanel';
