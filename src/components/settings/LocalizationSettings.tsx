@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { useSettings } from '@/hooks/useSettings';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Globe, Loader2, Check } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Globe, Coins, Calendar, Clock } from 'lucide-react';
 import type { CurrencyCode } from '@/types/finance';
+
+const stagger = {
+  container: { hidden: {}, show: { transition: { staggerChildren: 0.06 } } },
+  item: {
+    hidden: { opacity: 0, y: 14 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
+  },
+};
 
 const currencies: { value: CurrencyCode; label: string }[] = [
   { value: 'KES', label: 'KES - Kenyan Shilling' },
@@ -36,107 +45,100 @@ const timezones = [
   { value: 'America/New_York', label: 'New York (EST/EDT)' },
 ];
 
-const months = [
-  'january', 'february', 'march', 'april', 'may', 'june',
-  'july', 'august', 'september', 'october', 'november', 'december',
-];
+const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
 
 export default function LocalizationSettings() {
   const { settings, updateSettings } = useSettings();
-  const [saving, setSaving] = useState<string | null>(null);
 
   const handleChange = async (key: string, value: string) => {
-    setSaving(key);
     try {
       await updateSettings({ [key]: value });
       toast.success(`${key.replace(/_/g, ' ')} updated system-wide`);
     } catch {
       toast.error('Failed to update setting');
-    } finally {
-      setSaving(null);
     }
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="w-5 h-5" />
-            System Currency
-          </CardTitle>
-          <CardDescription>
-            Applies to all displays: dashboard, reports, transactions, budgets, exports
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Default Currency</Label>
+    <motion.div variants={stagger.container} initial="hidden" animate="show" className="space-y-5">
+      {/* Currency */}
+      <motion.div variants={stagger.item}>
+        <Card className="overflow-hidden relative group/card">
+          <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-primary/5 blur-3xl opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          <CardContent className="pt-5 pb-5 space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Coins className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-bold">System Currency</p>
+                <p className="text-[9px] text-muted-foreground">Applies to dashboard, reports, transactions, budgets, exports</p>
+              </div>
+            </div>
             <Select value={settings.default_currency} onValueChange={(v) => handleChange('default_currency', v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {currencies.map(c => (
-                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                ))}
+                {currencies.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
               </SelectContent>
             </Select>
-          </div>
-          {saving === 'default_currency' ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" /> Applying system-wide...
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Regional */}
+      <motion.div variants={stagger.item}>
+        <Card className="overflow-hidden relative group/card">
+          <div className="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-primary/5 blur-3xl opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          <CardContent className="pt-5 pb-5 space-y-5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Globe className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-bold">Regional Preferences</p>
+                <p className="text-[9px] text-muted-foreground">Date format, timezone, and financial year</p>
+              </div>
             </div>
-          ) : (
-            <div className="flex items-center gap-2 text-sm text-income">
-              <Check className="w-4 h-4" /> Auto-saved
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                  <Calendar className="w-3 h-3" /> Date Format
+                </Label>
+                <Select value={settings.date_format} onValueChange={(v) => handleChange('date_format', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {dateFormats.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Timezone
+                </Label>
+                <Select value={settings.timezone} onValueChange={(v) => handleChange('timezone', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {timezones.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Financial Year Starts</Label>
+                <Select value={settings.financial_year_start} onValueChange={(v) => handleChange('financial_year_start', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {months.map(m => <SelectItem key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <p className="text-[9px] text-muted-foreground">Important for annual reports and tax calculations</p>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Regional Preferences</CardTitle>
-          <CardDescription>Date format, timezone, and financial year</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Date Format</Label>
-            <Select value={settings.date_format} onValueChange={(v) => handleChange('date_format', v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {dateFormats.map(f => (
-                  <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Timezone</Label>
-            <Select value={settings.timezone} onValueChange={(v) => handleChange('timezone', v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {timezones.map(t => (
-                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Financial Year Starts</Label>
-            <Select value={settings.financial_year_start} onValueChange={(v) => handleChange('financial_year_start', v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {months.map(m => (
-                  <SelectItem key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Important for annual reports and tax calculations</p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }

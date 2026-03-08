@@ -9,6 +9,9 @@ export interface UserSettings {
   default_currency: CurrencyCode;
   full_name: string | null;
   phone: string | null;
+  username: string | null;
+  dob: string | null;
+  gender: string | null;
   avatar_url: string | null;
 
   // Localization (from user_settings table)
@@ -70,6 +73,9 @@ const defaultSettings: UserSettings = {
   full_name: null,
   phone: null,
   avatar_url: null,
+  username: null,
+  dob: null,
+  gender: null,
   date_format: 'DD/MM/YYYY',
   timezone: 'Africa/Dar_es_Salaam',
   financial_year_start: 'january',
@@ -104,7 +110,7 @@ const defaultSettings: UserSettings = {
   data_cache_days: 30,
 };
 
-const PROFILE_FIELDS = ['default_currency', 'full_name', 'phone', 'avatar_url'] as const;
+const PROFILE_FIELDS = ['default_currency', 'full_name', 'phone', 'avatar_url', 'username', 'dob', 'gender'] as const;
 const SETTINGS_FIELDS = [
   'date_format', 'timezone', 'financial_year_start', 'language',
   'budget_mode', 'budget_rollover', 'savings_round_up', 'savings_auto_percentage', 'debt_strategy',
@@ -137,7 +143,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     try {
       const [profileRes, settingsRes] = await Promise.all([
-        supabase.from('profiles').select('default_currency, full_name, phone, avatar_url').eq('user_id', user.id).maybeSingle(),
+        supabase.from('profiles').select('default_currency, full_name, phone, avatar_url, username, dob, gender').eq('user_id', user.id).maybeSingle(),
         supabase.from('user_settings').select('*').eq('user_id', user.id).maybeSingle(),
       ]);
 
@@ -148,6 +154,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         merged.full_name = profileRes.data.full_name;
         merged.phone = (profileRes.data as any).phone || null;
         merged.avatar_url = profileRes.data.avatar_url;
+        merged.username = (profileRes.data as any).username || null;
+        merged.dob = (profileRes.data as any).dob || null;
+        merged.gender = (profileRes.data as any).gender || null;
       }
 
       if (settingsRes.data) {
