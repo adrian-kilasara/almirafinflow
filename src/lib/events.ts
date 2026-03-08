@@ -197,6 +197,7 @@ export async function emitSavingsEvent(
 ) {
   const pct = (currentAmount / targetAmount) * 100;
   logActivity(userId, 'savings contribution', 'savings', { goalName, amount, currentAmount, targetAmount });
+  emitDashboardRefresh();
 
   if (currentAmount >= targetAmount) {
     await supabase.from('notifications').insert({
