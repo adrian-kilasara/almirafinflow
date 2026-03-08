@@ -561,6 +561,62 @@ export type Database = {
         }
         Relationships: []
       }
+      reconciliation_sessions: {
+        Row: {
+          account_id: string
+          completed_at: string | null
+          created_at: string
+          difference: number
+          id: string
+          notes: string | null
+          reconciled_count: number
+          started_at: string
+          statement_balance: number
+          status: string
+          system_balance: number
+          total_count: number
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          completed_at?: string | null
+          created_at?: string
+          difference?: number
+          id?: string
+          notes?: string | null
+          reconciled_count?: number
+          started_at?: string
+          statement_balance: number
+          status?: string
+          system_balance: number
+          total_count?: number
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          completed_at?: string | null
+          created_at?: string
+          difference?: number
+          id?: string
+          notes?: string | null
+          reconciled_count?: number
+          started_at?: string
+          statement_balance?: number
+          status?: string
+          system_balance?: number
+          total_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reconciliation_sessions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recurring_schedules: {
         Row: {
           created_at: string
@@ -711,6 +767,42 @@ export type Database = {
         }
         Relationships: []
       }
+      transaction_history: {
+        Row: {
+          changed_by: string | null
+          changed_fields: Json
+          created_at: string
+          id: string
+          new_values: Json
+          old_values: Json
+          transaction_id: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          changed_by?: string | null
+          changed_fields?: Json
+          created_at?: string
+          id?: string
+          new_values?: Json
+          old_values?: Json
+          transaction_id: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          changed_by?: string | null
+          changed_fields?: Json
+          created_at?: string
+          id?: string
+          new_values?: Json
+          old_values?: Json
+          transaction_id?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       transaction_rules: {
         Row: {
           category_id: string | null
@@ -760,13 +852,17 @@ export type Database = {
           created_at: string
           currency: Database["public"]["Enums"]["currency_code"]
           date: string
+          deleted_at: string | null
           description: string | null
           id: string
+          is_deleted: boolean
+          is_reconciled: boolean
           is_recurring: boolean | null
           merchant: string | null
           notes: string | null
           payment_method: string | null
           receipt_url: string | null
+          reconciled_at: string | null
           recurring_interval: string | null
           status: string | null
           tags: string[] | null
@@ -781,13 +877,17 @@ export type Database = {
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
           date?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
+          is_deleted?: boolean
+          is_reconciled?: boolean
           is_recurring?: boolean | null
           merchant?: string | null
           notes?: string | null
           payment_method?: string | null
           receipt_url?: string | null
+          reconciled_at?: string | null
           recurring_interval?: string | null
           status?: string | null
           tags?: string[] | null
@@ -802,13 +902,17 @@ export type Database = {
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
           date?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
+          is_deleted?: boolean
+          is_reconciled?: boolean
           is_recurring?: boolean | null
           merchant?: string | null
           notes?: string | null
           payment_method?: string | null
           receipt_url?: string | null
+          reconciled_at?: string | null
           recurring_interval?: string | null
           status?: string | null
           tags?: string[] | null
