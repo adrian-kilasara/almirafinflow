@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Plus, TrendingUp, TrendingDown, ArrowLeftRight, X, Loader2, Upload, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { emitTransactionEvent } from '@/lib/events';
 import type { Account, Category, TransactionType, CurrencyCode } from '@/types/finance';
 
 const transactionSchema = z.object({
