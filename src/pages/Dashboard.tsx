@@ -767,8 +767,17 @@ export default function Dashboard() {
               />
             </motion.div>
 
+            {/* Financial Calendar */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}>
+              <FinancialCalendar
+                transactions={transactions}
+                budgets={budgets}
+                savingsGoals={savingsGoals}
+              />
+            </motion.div>
+
             {/* Recent Transactions */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}>
               <TransactionList
                 transactions={transactions.slice(0, 5)}
                 categories={categories}
