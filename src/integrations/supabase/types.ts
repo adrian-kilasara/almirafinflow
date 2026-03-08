@@ -14,42 +14,116 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_audit_log: {
+        Row: {
+          account_id: string
+          action: string
+          amount: number | null
+          balance_after: number | null
+          balance_before: number | null
+          created_at: string
+          field_changed: string | null
+          id: string
+          new_value: string | null
+          notes: string | null
+          old_value: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          action: string
+          amount?: number | null
+          balance_after?: number | null
+          balance_before?: number | null
+          created_at?: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          action?: string
+          amount?: number | null
+          balance_after?: number | null
+          balance_before?: number | null
+          created_at?: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          notes?: string | null
+          old_value?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_audit_log_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
+          account_number: string | null
           balance: number
+          classification: string
           color: string | null
           created_at: string
           currency: Database["public"]["Enums"]["currency_code"]
           icon: string | null
           id: string
+          institution_name: string | null
           is_active: boolean | null
+          is_archived: boolean
+          min_balance_alert: number | null
           name: string
+          notes: string | null
+          opening_balance: number
           type: Database["public"]["Enums"]["account_type"]
           updated_at: string
           user_id: string
         }
         Insert: {
+          account_number?: string | null
           balance?: number
+          classification?: string
           color?: string | null
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
           icon?: string | null
           id?: string
+          institution_name?: string | null
           is_active?: boolean | null
+          is_archived?: boolean
+          min_balance_alert?: number | null
           name: string
+          notes?: string | null
+          opening_balance?: number
           type?: Database["public"]["Enums"]["account_type"]
           updated_at?: string
           user_id: string
         }
         Update: {
+          account_number?: string | null
           balance?: number
+          classification?: string
           color?: string | null
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
           icon?: string | null
           id?: string
+          institution_name?: string | null
           is_active?: boolean | null
+          is_archived?: boolean
+          min_balance_alert?: number | null
           name?: string
+          notes?: string | null
+          opening_balance?: number
           type?: Database["public"]["Enums"]["account_type"]
           updated_at?: string
           user_id?: string
@@ -464,6 +538,86 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transfers: {
+        Row: {
+          amount: number
+          converted_amount: number
+          created_at: string
+          description: string | null
+          exchange_rate: number
+          from_account_id: string
+          from_currency: string
+          from_transaction_id: string | null
+          id: string
+          to_account_id: string
+          to_currency: string
+          to_transaction_id: string | null
+          transfer_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          converted_amount: number
+          created_at?: string
+          description?: string | null
+          exchange_rate?: number
+          from_account_id: string
+          from_currency?: string
+          from_transaction_id?: string | null
+          id?: string
+          to_account_id: string
+          to_currency?: string
+          to_transaction_id?: string | null
+          transfer_type?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          converted_amount?: number
+          created_at?: string
+          description?: string | null
+          exchange_rate?: number
+          from_account_id?: string
+          from_currency?: string
+          from_transaction_id?: string | null
+          id?: string
+          to_account_id?: string
+          to_currency?: string
+          to_transaction_id?: string | null
+          transfer_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfers_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_from_transaction_id_fkey"
+            columns: ["from_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_to_transaction_id_fkey"
+            columns: ["to_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
