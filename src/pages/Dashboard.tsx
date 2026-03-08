@@ -643,14 +643,14 @@ export default function Dashboard() {
                   ╚═══════════════════════════════════════════════════╝ */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 {/* Streak Tracker — tall card spanning left side */}
-                <motion.div variants={staggerItem} className="lg:col-span-5 xl:col-span-4">
+                <motion.div variants={staggerItem} className="lg:col-span-5 xl:col-span-4 2xl:col-span-3">
                   <div className="h-full">
                     <StreakTracker transactions={transactions} onStreakUpdate={setCurrentStreak} />
                   </div>
                 </motion.div>
                 
                 {/* Right stack: Health + Accounts + Budgets */}
-                <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
+                <div className="lg:col-span-7 xl:col-span-8 2xl:col-span-9 flex flex-col gap-4">
                   <motion.div variants={staggerItem}>
                     <FinancialHealthScore accounts={accounts} transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
                   </motion.div>
