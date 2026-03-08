@@ -974,7 +974,7 @@ export default function Dashboard() {
               </Suspense>
 
               {/* Bottom row: Badges */}
-              <motion.div variants={staggerItem}>
+              <Suspense fallback={null}>
                 <UserBadges
                   transactionCount={transactions.length}
                   accountCount={accounts.length}
@@ -984,7 +984,7 @@ export default function Dashboard() {
                   totalSaved={totalSavings}
                   healthScore={healthScore}
                 />
-              </motion.div>
+              </Suspense>
 
               {/* ╔═══════════════════════════════════════════════════╗
                   ║  RECENT TRANSACTIONS — Editorial list             ║
