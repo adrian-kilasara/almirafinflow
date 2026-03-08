@@ -2,3 +2,6 @@ project_id = "kcgnhpmbxspjcbxwgsqm"
 
 [functions.financial-tips]
 verify_jwt = false
+
+[functions.financial-coach]
+verify_jwt = false
