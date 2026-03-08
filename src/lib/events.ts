@@ -17,6 +17,9 @@ export async function emitTransactionEvent(
   // 0. Log activity
   logActivity(userId, `${type} recorded`, 'transactions', { amount, description, accountId, categoryId });
 
+  // Signal dashboard refresh
+  emitDashboardRefresh();
+
   // 1. Create notification
   await supabase.from('notifications').insert({
     user_id: userId,
