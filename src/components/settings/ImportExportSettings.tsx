@@ -260,6 +260,9 @@ export default function ImportExportSettings() {
                 )}
                 <div className="text-xs">
                   <span className="font-semibold text-income">{importResult.success} imported</span>
+                  {importResult.duplicates > 0 && (
+                    <span className="text-muted-foreground"> · {importResult.duplicates} duplicates skipped</span>
+                  )}
                   {importResult.failed > 0 && (
                     <span className="text-muted-foreground"> · {importResult.failed} failed</span>
                   )}

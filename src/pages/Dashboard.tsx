@@ -118,7 +118,7 @@ export default function Dashboard() {
   const fetchData = useCallback(async () => {
     const [accountsRes, transactionsRes, categoriesRes, budgetsRes, goalsRes] = await Promise.all([
       supabase.from('accounts').select('*').order('created_at', { ascending: false }),
-      supabase.from('transactions').select('*').order('date', { ascending: false }).limit(10000),
+      supabase.from('transactions').select('*').eq('is_deleted', false).order('date', { ascending: false }).limit(10000),
       supabase.from('categories').select('*').order('name'),
       supabase.from('budgets').select('*').order('created_at', { ascending: false }),
       supabase.from('savings_goals').select('*').order('created_at', { ascending: false }),
