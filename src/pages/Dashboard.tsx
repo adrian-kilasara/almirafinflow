@@ -1011,6 +1011,7 @@ export default function Dashboard() {
 
           {/* ═══ ACCOUNTS TAB ═══ */}
           <TabsContent value="accounts" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <AnimatePresence mode="wait">
             {selectedAccount ? (
               <AccountDetailPanel
