@@ -955,15 +955,27 @@ export default function Dashboard() {
 
           {/* Transactions Tab */}
           <TabsContent value="transactions" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Receipt className="w-5 h-5" /> Transactions
-              </h2>
+            <motion.div 
+              initial={{ opacity: 0, y: 12 }} 
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Receipt className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold">Transactions</h2>
+                  <p className="text-[10px] text-muted-foreground">{transactions.length} total records</p>
+                </div>
+              </div>
               <div className="flex gap-2">
                 <TransactionForm accounts={accounts} categories={categories} onSuccess={fetchData} />
               </div>
-            </div>
-            <TransactionRulesManager categories={categories} onRulesChange={fetchData} />
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+              <TransactionRulesManager categories={categories} onRulesChange={fetchData} />
+            </motion.div>
             <TransactionList 
               transactions={transactions} 
               categories={categories}
