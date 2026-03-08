@@ -110,7 +110,7 @@ const defaultSettings: UserSettings = {
   data_cache_days: 30,
 };
 
-const PROFILE_FIELDS = ['default_currency', 'full_name', 'phone', 'avatar_url'] as const;
+const PROFILE_FIELDS = ['default_currency', 'full_name', 'phone', 'avatar_url', 'username', 'dob', 'gender'] as const;
 const SETTINGS_FIELDS = [
   'date_format', 'timezone', 'financial_year_start', 'language',
   'budget_mode', 'budget_rollover', 'savings_round_up', 'savings_auto_percentage', 'debt_strategy',
