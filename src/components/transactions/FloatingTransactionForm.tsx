@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Plus, TrendingUp, TrendingDown, ArrowLeftRight, X, Loader2, Upload, Store } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { emitTransactionEvent } from '@/lib/events';
 import type { Account, Category, TransactionType, CurrencyCode } from '@/types/finance';
 
 const transactionSchema = z.object({
@@ -122,6 +123,16 @@ const FloatingTransactionForm = forwardRef<HTMLDivElement, FloatingTransactionFo
           balance_after: (selectedAccount?.balance || 0) + balanceChange,
           notes: `${data.type}: ${data.description || data.merchant || 'Transaction'}`,
         });
+
+        // Emit cross-module event (notifications, budget alerts, low balance, streak)
+        await emitTransactionEvent(
+          userData.user.id,
+          data.type as 'income' | 'expense' | 'transfer',
+          Number(data.amount),
+          data.description || data.merchant || 'Transaction',
+          data.account_id,
+          data.category_id || null
+        );
 
         toast.success('Transaction added!');
         reset();

@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { ArrowLeftRight, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
+import { emitTransferEvent } from '@/lib/events';
 import type { Account, CurrencyCode } from '@/types/finance';
 
 const transferSchema = z.object({
@@ -134,6 +135,9 @@ export default function TransferForm({ accounts, onSuccess }: TransferFormProps)
           notes: `Transfer from ${from.name}`,
         } as any),
       ]);
+
+      // Emit cross-module transfer event
+      await emitTransferEvent(userData.user.id, from.name, to.name, amt, from.id, to.id);
 
       toast.success(`Transferred ${formatCurrency(amt, from.currency)} → ${formatCurrency(converted, to.currency)}`);
       reset();

@@ -27,7 +27,7 @@ import {
   TrendingUp, Calendar, History, ArrowDownLeft, Trophy, Clock,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/format';
-import { emitSavingsEvent } from '@/lib/events';
+import { emitSavingsEvent, emitSavingsWithdrawEvent } from '@/lib/events';
 import { differenceInDays } from 'date-fns';
 import { motion } from 'framer-motion';
 import type { SavingsGoal, Account } from '@/types/finance';
@@ -187,6 +187,8 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
       if (goal.is_completed && newCurrent < Number(goal.target_amount)) {
         await supabase.from('savings_goals').update({ is_completed: false }).eq('id', goal.id);
       }
+      // Emit withdrawal event
+      await emitSavingsWithdrawEvent(userData.user.id, goal.name, amount, goal.id);
       toast.success('Funds withdrawn'); setWithdrawOpen(false); withdrawForm.reset(); onRefresh();
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };

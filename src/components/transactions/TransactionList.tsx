@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { emitTransactionEditEvent, emitTransactionDeleteEvent } from '@/lib/events';
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO, isWithinInterval } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -228,6 +229,15 @@ export default function TransactionList({ transactions, categories, accounts, on
           supabase.from('accounts').update({ balance: Number(newAcct.balance) + newBalChange }).eq('id', newAcct.id),
         ]);
       }
+      // Emit edit event for budget re-check & low balance
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        await emitTransactionEditEvent(
+          userData.user.id, data.type as 'income' | 'expense' | 'transfer',
+          Number(data.amount), data.description || data.merchant || 'Transaction',
+          data.account_id, data.category_id || null
+        );
+      }
       toast.success('Transaction updated'); setEditOpen(false); setEditingTransaction(null); onRefresh();
     } catch (error: any) { toast.error(error.message || 'Failed to update'); }
     finally { setLoading(false); }
@@ -244,6 +254,14 @@ export default function TransactionList({ transactions, categories, accounts, on
       if (account) {
         const reverse = txn.type === 'income' ? -Number(txn.amount) : Number(txn.amount);
         await supabase.from('accounts').update({ balance: Number(account.balance) + reverse }).eq('id', account.id);
+      }
+      // Emit delete event for balance alerts
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        await emitTransactionDeleteEvent(
+          userData.user.id, txn.type as 'income' | 'expense' | 'transfer',
+          Number(txn.amount), txn.description || 'Transaction', txn.account_id
+        );
       }
       toast.success('Transaction deleted'); setDeleteConfirmId(null); onRefresh();
     } catch { toast.error('Failed to delete'); }
