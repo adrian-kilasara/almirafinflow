@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
@@ -27,40 +27,48 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-// Components
+// Eagerly loaded components (needed for Overview tab)
 import TransactionList from '@/components/transactions/TransactionList';
-import TransactionForm from '@/components/transactions/TransactionForm';
-import AccountForm from '@/components/accounts/AccountForm';
 import AccountCard from '@/components/accounts/AccountCard';
-import AccountDetailPanel from '@/components/accounts/AccountDetailPanel';
-import TransferForm from '@/components/accounts/TransferForm';
-import BudgetForm from '@/components/budgets/BudgetForm';
-import BudgetList from '@/components/budgets/BudgetList';
-import BudgetCard from '@/components/budgets/BudgetCard';
-import SavingsDashboard from '@/components/savings/SavingsDashboard';
-import CategoryManager from '@/components/categories/CategoryManager';
-import EnhancedReports from '@/components/reports/EnhancedReports';
-import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
-import UserBadges from '@/components/gamification/UserBadges';
 import StreakTracker from '@/components/gamification/StreakTracker';
-import FinancialLessons from '@/components/education/FinancialLessons';
-import TransactionRulesManager from '@/components/rules/TransactionRulesManager';
+import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import FloatingTransactionForm from '@/components/transactions/FloatingTransactionForm';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import NetWorthChart from '@/components/dashboard/NetWorthChart';
-import AISmartInsights from '@/components/dashboard/AISmartInsights';
-import BillsSubscriptions from '@/components/bills/BillsSubscriptions';
-import InvestmentTracker from '@/components/investments/InvestmentTracker';
-import FinancialCalendar from '@/components/calendar/FinancialCalendar';
-import SpendingHeatmap from '@/components/dashboard/SpendingHeatmap';
-import PredictiveCashFlow from '@/components/dashboard/PredictiveCashFlow';
-import SmartSpendingDetection from '@/components/dashboard/SmartSpendingDetection';
-import ActivityLog from '@/components/activity/ActivityLog';
-import CalendarSummary from '@/components/dashboard/CalendarSummary';
+import CategoryManager from '@/components/categories/CategoryManager';
+
+// Lazy-loaded components (loaded only when their tab is active)
+const TransactionForm = lazy(() => import('@/components/transactions/TransactionForm'));
+const AccountForm = lazy(() => import('@/components/accounts/AccountForm'));
+const AccountDetailPanel = lazy(() => import('@/components/accounts/AccountDetailPanel'));
+const TransferForm = lazy(() => import('@/components/accounts/TransferForm'));
+const BudgetForm = lazy(() => import('@/components/budgets/BudgetForm'));
+const BudgetList = lazy(() => import('@/components/budgets/BudgetList'));
+const BudgetCard = lazy(() => import('@/components/budgets/BudgetCard'));
+const SavingsDashboard = lazy(() => import('@/components/savings/SavingsDashboard'));
+const EnhancedReports = lazy(() => import('@/components/reports/EnhancedReports'));
+const UserBadges = lazy(() => import('@/components/gamification/UserBadges'));
+const FinancialLessons = lazy(() => import('@/components/education/FinancialLessons'));
+const TransactionRulesManager = lazy(() => import('@/components/rules/TransactionRulesManager'));
+const AISmartInsights = lazy(() => import('@/components/dashboard/AISmartInsights'));
+const BillsSubscriptions = lazy(() => import('@/components/bills/BillsSubscriptions'));
+const InvestmentTracker = lazy(() => import('@/components/investments/InvestmentTracker'));
+const FinancialCalendar = lazy(() => import('@/components/calendar/FinancialCalendar'));
+const SpendingHeatmap = lazy(() => import('@/components/dashboard/SpendingHeatmap'));
+const PredictiveCashFlow = lazy(() => import('@/components/dashboard/PredictiveCashFlow'));
+const SmartSpendingDetection = lazy(() => import('@/components/dashboard/SmartSpendingDetection'));
+const ActivityLog = lazy(() => import('@/components/activity/ActivityLog'));
+const CalendarSummary = lazy(() => import('@/components/dashboard/CalendarSummary'));
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
-// Shared animation variants
+const TabFallback = () => (
+  <div className="flex items-center justify-center py-20">
+    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
+// Shared animation variants — reduced for performance
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 14 },
   animate: { opacity: 1, y: 0 },
@@ -517,23 +525,11 @@ export default function Dashboard() {
                   ╚═══════════════════════════════════════════════════╝ */}
               <motion.div variants={staggerItem}>
                 <div className="relative rounded-3xl overflow-hidden border border-primary/10">
-                  {/* Animated mesh gradient background */}
+                  {/* Static gradient background — no continuous animations */}
                   <div className="absolute inset-0 overflow-hidden">
-                    <motion.div
-                      className="absolute w-[500px] h-[500px] rounded-full bg-primary/8 blur-[120px]"
-                      animate={{ x: ['-20%', '60%', '-20%'], y: ['-30%', '40%', '-30%'] }}
-                      transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                    <motion.div
-                      className="absolute w-[400px] h-[400px] rounded-full bg-income/6 blur-[100px]"
-                      animate={{ x: ['80%', '10%', '80%'], y: ['60%', '-10%', '60%'] }}
-                      transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                    <motion.div
-                      className="absolute w-[300px] h-[300px] rounded-full bg-accent/8 blur-[80px]"
-                      animate={{ x: ['40%', '70%', '40%'], y: ['10%', '70%', '10%'] }}
-                      transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-                    />
+                    <div className="absolute w-[500px] h-[500px] rounded-full bg-primary/8 blur-[120px] -top-1/4 -left-1/4" />
+                    <div className="absolute w-[400px] h-[400px] rounded-full bg-income/6 blur-[100px] -bottom-1/4 -right-1/4" />
+                    <div className="absolute w-[300px] h-[300px] rounded-full bg-accent/8 blur-[80px] top-1/3 left-1/2" />
                     <div className="absolute inset-0 bg-card/60 backdrop-blur-sm" />
                   </div>
                   
@@ -908,13 +904,11 @@ export default function Dashboard() {
                     <CardContent className="p-4 relative">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <motion.div
-                            className="w-7 h-7 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center"
-                            animate={{ boxShadow: ['0 0 0px hsl(var(--primary)/0)', '0 0 15px hsl(var(--primary)/0.2)', '0 0 0px hsl(var(--primary)/0)'] }}
-                            transition={{ duration: 3, repeat: Infinity }}
+                          <div
+                            className="w-7 h-7 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-glow"
                           >
                             <Sparkles className="w-3.5 h-3.5 text-primary" />
-                          </motion.div>
+                          </div>
                           <p className="text-xs font-bold">AI Advisor</p>
                         </div>
                         <Button onClick={getFinancialTip} disabled={loadingTip} size="sm" variant="ghost" className="rounded-full h-7 text-[10px] gap-1 hover:bg-primary/10">
@@ -954,31 +948,33 @@ export default function Dashboard() {
                 </div>
               </motion.div>
 
+              <Suspense fallback={<TabFallback />}>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4">
                 {/* AI Smart Insights — wide */}
-                <motion.div variants={staggerItem} className="xl:col-span-7 2xl:col-span-6">
+                <div className="xl:col-span-7 2xl:col-span-6">
                   <div className="h-full"><AISmartInsights accounts={accounts} transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} /></div>
-                </motion.div>
+                </div>
                 {/* Smart Spending — narrow */}
-                <motion.div variants={staggerItem} className="xl:col-span-5 2xl:col-span-6">
+                <div className="xl:col-span-5 2xl:col-span-6">
                   <div className="h-full"><SmartSpendingDetection transactions={transactions} categories={categories} budgets={budgets} /></div>
-                </motion.div>
+                </div>
                 {/* Predictive — medium */}
-                <motion.div variants={staggerItem} className="xl:col-span-5 2xl:col-span-4">
+                <div className="xl:col-span-5 2xl:col-span-4">
                   <div className="h-full"><PredictiveCashFlow accounts={accounts} transactions={transactions} /></div>
-                </motion.div>
+                </div>
                 {/* Heatmap — wide */}
-                <motion.div variants={staggerItem} className="xl:col-span-7 2xl:col-span-4">
+                <div className="xl:col-span-7 2xl:col-span-4">
                   <div className="h-full"><SpendingHeatmap transactions={transactions} categories={categories} /></div>
-                </motion.div>
+                </div>
                 {/* Calendar on large screens fills remaining */}
-                <motion.div variants={staggerItem} className="xl:col-span-6 2xl:col-span-4">
+                <div className="xl:col-span-6 2xl:col-span-4">
                   <div className="h-full"><CalendarSummary transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} onNavigate={() => setActiveTab('activity')} /></div>
-                </motion.div>
+                </div>
               </div>
+              </Suspense>
 
               {/* Bottom row: Badges */}
-              <motion.div variants={staggerItem}>
+              <Suspense fallback={null}>
                 <UserBadges
                   transactionCount={transactions.length}
                   accountCount={accounts.length}
@@ -988,7 +984,7 @@ export default function Dashboard() {
                   totalSaved={totalSavings}
                   healthScore={healthScore}
                 />
-              </motion.div>
+              </Suspense>
 
               {/* ╔═══════════════════════════════════════════════════╗
                   ║  RECENT TRANSACTIONS — Editorial list             ║
@@ -1017,6 +1013,7 @@ export default function Dashboard() {
 
           {/* ═══ ACCOUNTS TAB ═══ */}
           <TabsContent value="accounts" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <AnimatePresence mode="wait">
             {selectedAccount ? (
               <AccountDetailPanel
@@ -1170,10 +1167,12 @@ export default function Dashboard() {
               </motion.div>
             )}
             </AnimatePresence>
+          </Suspense>
           </TabsContent>
 
           {/* ═══ TRANSACTIONS TAB ═══ */}
           <TabsContent value="transactions" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <motion.div {...fadeUp()} className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Receipt className="w-4 h-4 text-primary" /></div>
@@ -1188,10 +1187,12 @@ export default function Dashboard() {
               <TransactionRulesManager categories={categories} onRulesChange={fetchData} />
             </motion.div>
             <TransactionList transactions={transactions} categories={categories} accounts={accounts} onRefresh={fetchData} />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ BUDGETS TAB ═══ */}
           <TabsContent value="budgets" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <motion.div {...fadeUp()} className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center"><Folder className="w-4 h-4 text-primary" /></div>
@@ -1220,10 +1221,12 @@ export default function Dashboard() {
                 </div>
               </motion.div>
             )}
+          </Suspense>
           </TabsContent>
 
           {/* ═══ BILLS TAB ═══ */}
           <TabsContent value="bills" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <motion.div {...fadeUp()} className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center"><CalendarClock className="w-4 h-4 text-primary" /></div>
               <div>
@@ -1232,10 +1235,12 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <BillsSubscriptions />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ INVESTMENTS TAB ═══ */}
           <TabsContent value="investments" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <motion.div {...fadeUp()} className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center"><Briefcase className="w-4 h-4 text-primary" /></div>
               <div>
@@ -1244,25 +1249,33 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <InvestmentTracker />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ SAVINGS TAB ═══ */}
           <TabsContent value="savings" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <SavingsDashboard savingsGoals={savingsGoals} transactions={transactions} accounts={accounts} onRefresh={fetchData} />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ REPORTS TAB ═══ */}
           <TabsContent value="reports">
+          <Suspense fallback={<TabFallback />}>
             <EnhancedReports transactions={transactions} accounts={accounts} categories={categories} budgets={budgets} savingsGoals={savingsGoals} />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ LEARN TAB ═══ */}
           <TabsContent value="learn" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <FinancialLessons transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} accounts={accounts} />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ ACTIVITY TAB — Calendar + Activity Log ═══ */}
           <TabsContent value="activity" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <motion.div {...fadeUp()} className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                 <ScrollText className="w-4 h-4 text-primary" />
@@ -1272,16 +1285,13 @@ export default function Dashboard() {
                 <p className="text-[10px] text-muted-foreground">Full timeline, events, and audit trail</p>
               </div>
             </motion.div>
-
-            {/* Financial Calendar */}
             <motion.div {...fadeUp(0.08)}>
               <FinancialCalendar transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
             </motion.div>
-
-            {/* Activity Log */}
             <motion.div {...fadeUp(0.16)}>
               <ActivityLog />
             </motion.div>
+          </Suspense>
           </TabsContent>
         </Tabs>
       </main>
