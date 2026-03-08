@@ -124,6 +124,16 @@ const FloatingTransactionForm = forwardRef<HTMLDivElement, FloatingTransactionFo
           notes: `${data.type}: ${data.description || data.merchant || 'Transaction'}`,
         });
 
+        // Emit cross-module event (notifications, budget alerts, low balance, streak)
+        await emitTransactionEvent(
+          userData.user.id,
+          data.type as 'income' | 'expense' | 'transfer',
+          Number(data.amount),
+          data.description || data.merchant || 'Transaction',
+          data.account_id,
+          data.category_id || null
+        );
+
         toast.success('Transaction added!');
         reset();
         setTags([]);
