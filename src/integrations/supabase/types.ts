@@ -487,7 +487,12 @@ export type Database = {
           description: string | null
           id: string
           is_recurring: boolean | null
+          merchant: string | null
           notes: string | null
+          payment_method: string | null
+          receipt_url: string | null
+          recurring_interval: string | null
+          status: string | null
           tags: string[] | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
@@ -503,7 +508,12 @@ export type Database = {
           description?: string | null
           id?: string
           is_recurring?: boolean | null
+          merchant?: string | null
           notes?: string | null
+          payment_method?: string | null
+          receipt_url?: string | null
+          recurring_interval?: string | null
+          status?: string | null
           tags?: string[] | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
@@ -519,7 +529,12 @@ export type Database = {
           description?: string | null
           id?: string
           is_recurring?: boolean | null
+          merchant?: string | null
           notes?: string | null
+          payment_method?: string | null
+          receipt_url?: string | null
+          recurring_interval?: string | null
+          status?: string | null
           tags?: string[] | null
           type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string

@@ -18,6 +18,7 @@ import type { Account, Transaction, Category, Budget, SavingsGoal, UserStreak, T
 
 // Components
 import TransactionList from '@/components/transactions/TransactionList';
+import TransactionForm from '@/components/transactions/TransactionForm';
 import AccountForm from '@/components/accounts/AccountForm';
 import AccountCard from '@/components/accounts/AccountCard';
 import AccountDetailPanel from '@/components/accounts/AccountDetailPanel';
@@ -742,6 +743,14 @@ export default function Dashboard() {
 
           {/* Transactions Tab */}
           <TabsContent value="transactions" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Receipt className="w-5 h-5" /> Transactions
+              </h2>
+              <div className="flex gap-2">
+                <TransactionForm accounts={accounts} categories={categories} onSuccess={fetchData} />
+              </div>
+            </div>
             <TransactionRulesManager categories={categories} onRulesChange={fetchData} />
             <TransactionList 
               transactions={transactions} 
