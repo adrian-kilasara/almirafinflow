@@ -378,7 +378,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* ===== HEADER ===== */}
       <header className="border-b border-border/40 bg-card/70 backdrop-blur-2xl sticky top-0 z-50">
-        <div className="w-full max-w-[1800px] mx-auto px-4 lg:px-6 xl:px-10 2xl:px-16">
+        <div className="w-full max-w-[2400px] mx-auto px-4 lg:px-6 xl:px-10 2xl:px-16 3xl:px-24">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-2.5">
               <MobileNav />
@@ -483,7 +483,7 @@ export default function Dashboard() {
       </header>
 
       {/* ===== MAIN CONTENT ===== */}
-      <main className={`w-full max-w-[1800px] mx-auto px-4 lg:px-6 xl:px-10 2xl:px-16 ${densityClasses.padding} pb-32 md:pb-8`}>
+      <main className={`w-full max-w-[2400px] mx-auto px-4 lg:px-6 xl:px-10 2xl:px-16 3xl:px-24 ${densityClasses.padding} pb-32 md:pb-8`}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
 
           {/* ═══════════════════════════════════════════
@@ -643,20 +643,20 @@ export default function Dashboard() {
                   ╚═══════════════════════════════════════════════════╝ */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 {/* Streak Tracker — tall card spanning left side */}
-                <motion.div variants={staggerItem} className="lg:col-span-5 xl:col-span-4">
+                <motion.div variants={staggerItem} className="lg:col-span-5 xl:col-span-4 2xl:col-span-3">
                   <div className="h-full">
                     <StreakTracker transactions={transactions} onStreakUpdate={setCurrentStreak} />
                   </div>
                 </motion.div>
                 
                 {/* Right stack: Health + Accounts + Budgets */}
-                <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
+                <div className="lg:col-span-7 xl:col-span-8 2xl:col-span-9 flex flex-col gap-4">
                   <motion.div variants={staggerItem}>
                     <FinancialHealthScore accounts={accounts} transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
                   </motion.div>
                   
                   {/* Side-by-side mini dashlets */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-4">
                     {/* Accounts */}
                     <motion.div variants={staggerItem}>
                       <Card className="h-full border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-colors duration-300">
@@ -747,6 +747,46 @@ export default function Dashboard() {
                         </CardContent>
                       </Card>
                     </motion.div>
+
+                    {/* Savings Quick View — visible on 2xl+ to fill the 3rd column */}
+                    <motion.div variants={staggerItem} className="hidden 2xl:block">
+                      <Card className="h-full border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-colors duration-300">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                                <PiggyBank className="w-3 h-3 text-primary" />
+                              </div>
+                              <p className="text-xs font-bold">Savings</p>
+                            </div>
+                            <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2 hover:bg-primary/10 rounded-full" onClick={() => setActiveTab('savings')}>View →</Button>
+                          </div>
+                          {savingsGoals.length > 0 ? (
+                            <div className="space-y-1.5">
+                              {savingsGoals.slice(0, 4).map((g, i) => {
+                                const pct = Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100);
+                                return (
+                                  <motion.div key={g.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04 }}
+                                    className="flex items-center justify-between p-2 rounded-xl bg-muted/15 hover:bg-muted/30 transition-all"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="text-sm">{g.icon || '🎯'}</span>
+                                      <p className="font-medium text-[11px] truncate">{g.name}</p>
+                                    </div>
+                                    <p className={`text-[11px] font-mono font-semibold ${pct >= 80 ? 'text-income' : 'text-primary'}`}>{pct}%</p>
+                                  </motion.div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-center py-6">
+                              <PiggyBank className="w-8 h-8 mx-auto mb-2 text-muted-foreground/15" />
+                              <p className="text-[10px] text-muted-foreground">No savings goals</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   </div>
                 </div>
               </div>
@@ -755,10 +795,10 @@ export default function Dashboard() {
                   ║  WEALTH PANORAMA — Net Worth + Savings sidebar    ║
                   ╚═══════════════════════════════════════════════════╝ */}
               <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-                <motion.div variants={staggerItem} className="xl:col-span-8">
+                <motion.div variants={staggerItem} className="xl:col-span-8 2xl:col-span-9">
                   <NetWorthChart accounts={accounts} transactions={transactions} />
                 </motion.div>
-                <motion.div variants={staggerItem} className="xl:col-span-4 flex flex-col gap-4">
+                <motion.div variants={staggerItem} className="xl:col-span-4 2xl:col-span-3 flex flex-col gap-4">
                   {/* Savings Goals with circular progress */}
                   <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm">
                     <CardContent className="p-4">
@@ -875,40 +915,39 @@ export default function Dashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4">
                 {/* AI Smart Insights — wide */}
-                <motion.div variants={staggerItem} className="xl:col-span-7">
-                  <AISmartInsights accounts={accounts} transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} />
+                <motion.div variants={staggerItem} className="xl:col-span-7 2xl:col-span-6">
+                  <div className="h-full"><AISmartInsights accounts={accounts} transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} /></div>
                 </motion.div>
                 {/* Smart Spending — narrow */}
-                <motion.div variants={staggerItem} className="xl:col-span-5">
-                  <SmartSpendingDetection transactions={transactions} categories={categories} budgets={budgets} />
+                <motion.div variants={staggerItem} className="xl:col-span-5 2xl:col-span-6">
+                  <div className="h-full"><SmartSpendingDetection transactions={transactions} categories={categories} budgets={budgets} /></div>
                 </motion.div>
                 {/* Predictive — medium */}
-                <motion.div variants={staggerItem} className="xl:col-span-5">
-                  <PredictiveCashFlow accounts={accounts} transactions={transactions} />
+                <motion.div variants={staggerItem} className="xl:col-span-5 2xl:col-span-4">
+                  <div className="h-full"><PredictiveCashFlow accounts={accounts} transactions={transactions} /></div>
                 </motion.div>
                 {/* Heatmap — wide */}
-                <motion.div variants={staggerItem} className="xl:col-span-7">
-                  <SpendingHeatmap transactions={transactions} categories={categories} />
+                <motion.div variants={staggerItem} className="xl:col-span-7 2xl:col-span-4">
+                  <div className="h-full"><SpendingHeatmap transactions={transactions} categories={categories} /></div>
+                </motion.div>
+                {/* Calendar on large screens fills remaining */}
+                <motion.div variants={staggerItem} className="xl:col-span-6 2xl:col-span-4">
+                  <div className="h-full"><CalendarSummary transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} onNavigate={() => setActiveTab('activity')} /></div>
                 </motion.div>
               </div>
 
-              {/* Bottom row: Calendar + Badges */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <motion.div variants={staggerItem}>
-                  <CalendarSummary transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} onNavigate={() => setActiveTab('activity')} />
-                </motion.div>
-                <motion.div variants={staggerItem}>
-                  <UserBadges
-                    transactionCount={transactions.length}
-                    accountCount={accounts.length}
-                    budgetCount={budgets.length}
-                    savingsGoalCount={savingsGoals.length}
-                    currentStreak={currentStreak?.current_streak || 0}
-                    totalSaved={totalSavings}
-                    healthScore={healthScore}
-                  />
-                </motion.div>
-              </div>
+              {/* Bottom row: Badges */}
+              <motion.div variants={staggerItem}>
+                <UserBadges
+                  transactionCount={transactions.length}
+                  accountCount={accounts.length}
+                  budgetCount={budgets.length}
+                  savingsGoalCount={savingsGoals.length}
+                  currentStreak={currentStreak?.current_streak || 0}
+                  totalSaved={totalSavings}
+                  healthScore={healthScore}
+                />
+              </motion.div>
 
               {/* ╔═══════════════════════════════════════════════════╗
                   ║  RECENT TRANSACTIONS — Editorial list             ║
