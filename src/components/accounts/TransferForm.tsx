@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { ArrowLeftRight, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
+import { emitTransferEvent } from '@/lib/events';
 import type { Account, CurrencyCode } from '@/types/finance';
 
 const transferSchema = z.object({
