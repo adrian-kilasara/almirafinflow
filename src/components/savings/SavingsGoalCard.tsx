@@ -27,7 +27,7 @@ import {
   TrendingUp, Calendar, History, ArrowDownLeft, Trophy, Clock,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/format';
-import { emitSavingsEvent } from '@/lib/events';
+import { emitSavingsEvent, emitSavingsWithdrawEvent } from '@/lib/events';
 import { differenceInDays } from 'date-fns';
 import { motion } from 'framer-motion';
 import type { SavingsGoal, Account } from '@/types/finance';
