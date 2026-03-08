@@ -378,7 +378,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* ===== HEADER ===== */}
       <header className="border-b border-border/40 bg-card/70 backdrop-blur-2xl sticky top-0 z-50">
-        <div className="w-full max-w-[1800px] mx-auto px-4 lg:px-6 xl:px-10 2xl:px-16">
+        <div className="w-full max-w-[2400px] mx-auto px-4 lg:px-6 xl:px-10 2xl:px-16 3xl:px-24">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-2.5">
               <MobileNav />
