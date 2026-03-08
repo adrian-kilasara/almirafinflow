@@ -181,6 +181,35 @@ export default function Dashboard() {
     });
   }, [budgets, currentMonthTransactions, settings.budget_mode]);
 
+  // Goal progress alerts
+  const goalAlerts = useMemo(() => {
+    if (!settings.notify_goal_progress) return [];
+    return savingsGoals.filter(g => {
+      const pct = (Number(g.current_amount) / Number(g.target_amount)) * 100;
+      return pct >= 80 && !g.is_completed;
+    });
+  }, [savingsGoals, settings.notify_goal_progress]);
+
+  // Budget exceeded notification alerts
+  const budgetExceededAlerts = useMemo(() => {
+    if (!settings.notify_budget_exceeded) return [];
+    return budgets.filter(b => {
+      const spent = currentMonthTransactions
+        .filter(t => t.type === 'expense' && (b.category_id ? t.category_id === b.category_id : true))
+        .reduce((s, t) => s + Number(t.amount), 0);
+      return spent > Number(b.amount);
+    });
+  }, [budgets, currentMonthTransactions, settings.notify_budget_exceeded]);
+
+  // Density classes
+  const densityClasses = useMemo(() => {
+    switch (settings.dashboard_density) {
+      case 'compact': return { gap: 'gap-3', padding: 'p-3', cardPadding: 'p-3 sm:p-4', textSize: 'text-sm' };
+      case 'detailed': return { gap: 'gap-8', padding: 'py-8', cardPadding: 'p-5 sm:p-8', textSize: 'text-base' };
+      default: return { gap: 'gap-4', padding: 'py-6', cardPadding: 'p-4 sm:p-6', textSize: 'text-sm' };
+    }
+  }, [settings.dashboard_density]);
+
   // Health score calculation (simplified for badge checking)
   const healthScore = Math.min(100, Math.round(
     (accounts.length > 0 ? 20 : 0) +
