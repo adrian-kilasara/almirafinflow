@@ -11,7 +11,8 @@ import {
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
   LogOut, Sparkles, Target, CreditCard, BarChart3,
   Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle,
-  User, ChevronDown, X, Archive, CalendarClock, Briefcase, ScrollText
+  User, ChevronDown, X, Archive, CalendarClock, Briefcase, ScrollText,
+  ArrowUpRight, ArrowDownRight, Activity, Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
@@ -55,8 +56,32 @@ import SpendingHeatmap from '@/components/dashboard/SpendingHeatmap';
 import PredictiveCashFlow from '@/components/dashboard/PredictiveCashFlow';
 import SmartSpendingDetection from '@/components/dashboard/SmartSpendingDetection';
 import ActivityLog from '@/components/activity/ActivityLog';
+import CalendarSummary from '@/components/dashboard/CalendarSummary';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
+
+// Shared animation variants
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.45, delay, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+});
+
+const fadeX = (x: number, delay = 0) => ({
+  initial: { opacity: 0, x },
+  animate: { opacity: 1, x: 0 },
+  transition: { duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+});
+
+const staggerContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+};
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
+};
 
 export default function Dashboard() {
   const { user, loading, signOut } = useAuth();
@@ -91,7 +116,6 @@ export default function Dashboard() {
   }, [user, loading, navigate]);
 
   const fetchData = useCallback(async () => {
-    // Fetch all data without the default 1000-row limit for transactions
     const [accountsRes, transactionsRes, categoriesRes, budgetsRes, goalsRes] = await Promise.all([
       supabase.from('accounts').select('*').order('created_at', { ascending: false }),
       supabase.from('transactions').select('*').order('date', { ascending: false }).limit(10000),
@@ -162,7 +186,6 @@ export default function Dashboard() {
             healthScore,
           },
           tipType: 'general',
-          // Pass user AI settings for personalized advice
           aiSettings: {
             adviceMode: settings.ai_advice_mode,
             riskTolerance: settings.ai_risk_tolerance,
@@ -181,10 +204,8 @@ export default function Dashboard() {
   };
 
   // Calculate financial metrics
-  // Net Worth = sum of all account balances (reflects real-time state)
   const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
   
-  // Income, Expenses, Net Flow = current month only for meaningful overview
   const currentMonthTransactions = useMemo(() => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
@@ -197,13 +218,11 @@ export default function Dashboard() {
   const netFlow = totalIncome - totalExpenses;
   const totalSavings = savingsGoals.reduce((sum, g) => sum + Number(g.current_amount), 0);
 
-  // Low balance alerts from settings
   const lowBalanceAccounts = useMemo(() => {
     if (!settings.notify_low_balance) return [];
     return accounts.filter(a => a.is_active && Number(a.balance) < settings.low_balance_threshold);
   }, [accounts, settings.notify_low_balance, settings.low_balance_threshold]);
 
-  // Budget mode strict warnings
   const overBudgetAlerts = useMemo(() => {
     if (settings.budget_mode !== 'strict') return [];
     return budgets.filter(b => {
@@ -214,7 +233,6 @@ export default function Dashboard() {
     });
   }, [budgets, currentMonthTransactions, settings.budget_mode]);
 
-  // Goal progress alerts
   const goalAlerts = useMemo(() => {
     if (!settings.notify_goal_progress) return [];
     return savingsGoals.filter(g => {
@@ -223,7 +241,6 @@ export default function Dashboard() {
     });
   }, [savingsGoals, settings.notify_goal_progress]);
 
-  // Budget exceeded notification alerts
   const budgetExceededAlerts = useMemo(() => {
     if (!settings.notify_budget_exceeded) return [];
     return budgets.filter(b => {
@@ -234,7 +251,6 @@ export default function Dashboard() {
     });
   }, [budgets, currentMonthTransactions, settings.notify_budget_exceeded]);
 
-  // Density classes
   const densityClasses = useMemo(() => {
     switch (settings.dashboard_density) {
       case 'compact': return { gap: 'gap-3', padding: 'p-3', cardPadding: 'p-3 sm:p-4', textSize: 'text-sm' };
@@ -243,7 +259,6 @@ export default function Dashboard() {
     }
   }, [settings.dashboard_density]);
 
-  // Health score calculation (simplified for badge checking)
   const healthScore = Math.min(100, Math.round(
     (accounts.length > 0 ? 20 : 0) +
     (transactions.length >= 10 ? 20 : transactions.length * 2) +
@@ -256,7 +271,6 @@ export default function Dashboard() {
     await signOut();
     navigate('/auth');
   };
-
 
   if (loading) {
     return (
@@ -284,6 +298,10 @@ export default function Dashboard() {
     { id: 'activity', label: 'Activity', icon: ScrollText, badge: '' },
   ];
 
+  const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100) : 0;
+
+  // --- SHARED SUB-COMPONENTS ---
+
   const MobileNav = () => (
     <Sheet>
       <SheetTrigger asChild>
@@ -293,10 +311,7 @@ export default function Dashboard() {
       </SheetTrigger>
       <SheetContent side="left" className="w-72 p-0 border-r-border/30">
         <div className="flex items-center gap-3 p-5 border-b border-border/30">
-          <motion.div 
-            className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center"
-            whileHover={{ rotate: -5 }}
-          >
+          <motion.div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center" whileHover={{ rotate: -5 }}>
             <Wallet className="w-5 h-5 text-primary-foreground" />
           </motion.div>
           <div>
@@ -323,12 +338,8 @@ export default function Dashboard() {
               >
                 <Icon className="w-4.5 h-4.5" />
                 <span className="text-sm font-medium">{item.label}</span>
-                {isActive && (
-                  <motion.div layoutId="mobile-active-dot" className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
-                )}
-                {item.badge === '!' && !isActive && (
-                  <span className="ml-auto w-2 h-2 rounded-full bg-destructive" />
-                )}
+                {isActive && <motion.div layoutId="mobile-active-dot" className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
+                {item.badge === '!' && !isActive && <span className="ml-auto w-2 h-2 rounded-full bg-destructive" />}
               </motion.button>
             );
           })}
@@ -359,15 +370,11 @@ export default function Dashboard() {
     </Sheet>
   );
 
-  // Savings rate for overview
-  const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100) : 0;
-
   return (
     <div className="min-h-screen bg-background">
       {/* ===== HEADER ===== */}
       <header className="border-b border-border/40 bg-card/70 backdrop-blur-2xl sticky top-0 z-50">
         <div className="container mx-auto px-4">
-          {/* Top row */}
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-2.5">
               <MobileNav />
@@ -379,9 +386,7 @@ export default function Dashboard() {
                 <Wallet className="w-4.5 h-4.5 text-primary-foreground" />
               </motion.div>
               <div className="hidden sm:block">
-                <h1 className="text-base font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent leading-tight">
-                  FinFlow
-                </h1>
+                <h1 className="text-base font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent leading-tight">FinFlow</h1>
                 <p className="text-[9px] text-muted-foreground -mt-0.5">2026</p>
               </div>
             </div>
@@ -432,7 +437,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* ===== DESKTOP TABS ===== */}
+          {/* Desktop Tabs */}
           <div className="hidden md:block relative -mb-px">
             <div className="flex items-center gap-0.5 relative" role="tablist">
               {navItems.map((item) => {
@@ -451,12 +456,8 @@ export default function Dashboard() {
                   >
                     <Icon className="w-3.5 h-3.5" />
                     <span>{item.label}</span>
-                    {item.badge === '!' && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-destructive" />
-                    )}
-                    {item.badge && item.badge !== '!' && (
-                      <span className="text-[9px] text-muted-foreground bg-muted/50 px-1.5 rounded-full">{item.badge}</span>
-                    )}
+                    {item.badge === '!' && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
+                    {item.badge && item.badge !== '!' && <span className="text-[9px] text-muted-foreground bg-muted/50 px-1.5 rounded-full">{item.badge}</span>}
                   </button>
                 );
               })}
@@ -471,347 +472,359 @@ export default function Dashboard() {
       </header>
 
       {/* ===== MAIN CONTENT ===== */}
-      <main className={`container mx-auto px-4 ${densityClasses.padding}`}>
+      <main className={`container mx-auto px-4 ${densityClasses.padding} pb-24 md:pb-8`}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
 
-          {/* ===== OVERVIEW TAB ===== */}
-          <TabsContent value="overview" className="space-y-5">
-            {/* Live Alerts */}
-            <AnimatePresence>
-              {lowBalanceAccounts.length > 0 && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[hsl(var(--warning))]/5 border border-[hsl(var(--warning))]/20">
-                    <AlertTriangle className="w-4 h-4 text-[hsl(var(--warning))] shrink-0" />
-                    <p className="text-xs"><span className="font-semibold">Low Balance:</span> {lowBalanceAccounts.map(a => `${a.name} (${formatCurrency(Number(a.balance), a.currency)})`).join(', ')}</p>
-                  </div>
-                </motion.div>
-              )}
-              {overBudgetAlerts.length > 0 && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-destructive/5 border border-destructive/20">
-                    <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-                    <p className="text-xs"><span className="font-semibold">Over Budget:</span> {overBudgetAlerts.map(b => b.name).join(', ')}</p>
-                  </div>
-                </motion.div>
-              )}
-              {goalAlerts.length > 0 && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                  <div className="flex items-center gap-2.5 p-3 rounded-xl bg-income/5 border border-income/20">
-                    <Target className="w-4 h-4 text-income shrink-0" />
-                    <p className="text-xs"><span className="font-semibold">🎉 Almost there:</span> {goalAlerts.map(g => g.name).join(', ')} — 80%+ complete</p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* ═══════════════════════════════════════════
+              OVERVIEW TAB — Compact Summary Dashboard
+          ═══════════════════════════════════════════ */}
+          <TabsContent value="overview">
+            <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-4">
 
-            {/* Hero Net Worth + Quick Stats */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-              <Card className="relative overflow-hidden border-primary/10">
-                {/* Ambient glows */}
-                <div className="absolute top-0 right-0 w-72 h-72 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-income/5 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl" />
-                
-                <CardContent className="relative p-5 sm:p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Wallet className="w-3 h-3 text-primary" />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Total Net Worth</p>
-                      </div>
-                      <motion.p
-                        className="text-3xl sm:text-4xl font-bold font-mono tracking-tight"
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: 'spring', stiffness: 200 }}
-                      >
-                        {formatCurrency(totalBalance)}
-                      </motion.p>
-                      <div className="flex items-center gap-4 mt-3">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-income" />
-                          <span className="text-[10px] text-muted-foreground">Income</span>
-                          <span className="text-[11px] font-mono font-semibold text-income">{formatCurrency(totalIncome)}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-expense" />
-                          <span className="text-[10px] text-muted-foreground">Expenses</span>
-                          <span className="text-[11px] font-mono font-semibold text-expense">{formatCurrency(totalExpenses)}</span>
-                        </div>
-                      </div>
+              {/* Row 0: Live Alerts */}
+              <AnimatePresence>
+                {lowBalanceAccounts.length > 0 && (
+                  <motion.div variants={staggerItem} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                    <div className="flex items-center gap-2.5 p-3 rounded-xl bg-[hsl(var(--warning))]/5 border border-[hsl(var(--warning))]/20">
+                      <AlertTriangle className="w-4 h-4 text-[hsl(var(--warning))] shrink-0" />
+                      <p className="text-xs"><span className="font-semibold">Low Balance:</span> {lowBalanceAccounts.map(a => `${a.name} (${formatCurrency(Number(a.balance), a.currency)})`).join(', ')}</p>
                     </div>
-
-                    {/* Quick stat pills */}
-                    <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-2">
-                      {[
-                        { label: 'Net Flow', value: `${netFlow >= 0 ? '+' : ''}${formatCurrency(netFlow)}`, color: netFlow >= 0 ? 'text-income' : 'text-expense' },
-                        { label: 'Savings', value: formatCurrency(totalSavings), color: 'text-primary' },
-                        { label: 'Save Rate', value: `${savingsRate}%`, color: savingsRate >= 20 ? 'text-income' : 'text-[hsl(var(--warning))]' },
-                      ].map((stat, i) => (
-                        <motion.div
-                          key={stat.label}
-                          whileHover={{ scale: 1.03 }}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 + i * 0.05 }}
-                          className="px-3 py-2 rounded-xl bg-muted/30 border border-border/30 text-center min-w-[85px]"
-                        >
-                          <p className="text-[9px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-                          <p className={`text-sm font-bold font-mono ${stat.color}`}>{stat.value}</p>
-                        </motion.div>
-                      ))}
+                  </motion.div>
+                )}
+                {overBudgetAlerts.length > 0 && (
+                  <motion.div variants={staggerItem} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                    <div className="flex items-center gap-2.5 p-3 rounded-xl bg-destructive/5 border border-destructive/20">
+                      <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+                      <p className="text-xs"><span className="font-semibold">Over Budget:</span> {overBudgetAlerts.map(b => b.name).join(', ')}</p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            {/* Net Worth Chart */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
-              <NetWorthChart accounts={accounts} transactions={transactions} />
-            </motion.div>
-
-            {/* Streak + Badges */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-                <StreakTracker transactions={transactions} onStreakUpdate={setCurrentStreak} />
-              </motion.div>
-              <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
-                <UserBadges
-                  transactionCount={transactions.length}
-                  accountCount={accounts.length}
-                  budgetCount={budgets.length}
-                  savingsGoalCount={savingsGoals.length}
-                  currentStreak={currentStreak?.current_streak || 0}
-                  totalSaved={totalSavings}
-                  healthScore={healthScore}
-                />
-              </motion.div>
-            </div>
-
-            {/* Bento Grid: Health + AI + Accounts + Savings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Health Score - spans 2 rows */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="md:row-span-2"
-              >
-                <FinancialHealthScore accounts={accounts} transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
-              </motion.div>
-
-              {/* AI Financial Advisor */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
-                className="lg:col-span-2"
-              >
-                <Card className="h-full border-primary/10 bg-gradient-to-br from-card to-primary/[0.02]">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Sparkles className="w-3.5 h-3.5 text-primary" />
-                      </div>
+              {/* Row 1: Hero — Net Worth + Monthly Pulse */}
+              <motion.div variants={staggerItem}>
+                <Card className="relative overflow-hidden border-primary/10">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-40 h-40 bg-income/5 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl pointer-events-none" />
+                  <CardContent className="relative p-4 sm:p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                       <div>
-                        <CardTitle className="text-sm">AI Financial Advisor</CardTitle>
-                        <p className="text-[9px] text-muted-foreground">Personalized insights from your data</p>
-                      </div>
-                    </div>
-                    <Button onClick={getFinancialTip} disabled={loadingTip} size="sm" variant="outline" className="rounded-xl h-8 text-xs gap-1.5">
-                      {loadingTip ? (
-                        <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full" /> Analyzing</>
-                      ) : (
-                        <><Sparkles className="w-3 h-3" /> Get Insights</>
-                      )}
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <AnimatePresence mode="wait">
-                      {aiTip ? (
-                        <motion.div key="tip" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                          className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed"
-                        >{aiTip}</motion.div>
-                      ) : (
-                        <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 py-2">
-                          <div className="w-9 h-9 rounded-xl bg-primary/5 flex items-center justify-center shrink-0">
-                            <Sparkles className="w-4 h-4 text-primary/30" />
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Wallet className="w-3 h-3 text-primary" />
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            Tap <span className="font-medium text-foreground">"Get Insights"</span> for AI-powered advice based on your spending patterns.
-                          </p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Accounts Summary */}
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-                <Card className="h-full">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="flex items-center gap-2 text-sm">
-                      <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
-                        <CreditCard className="w-3 h-3 text-primary" />
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Net Worth</p>
+                        </div>
+                        <motion.p
+                          className="text-3xl sm:text-4xl font-bold font-mono tracking-tight"
+                          initial={{ scale: 0.9, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ type: 'spring', stiffness: 200 }}
+                        >
+                          {formatCurrency(totalBalance)}
+                        </motion.p>
                       </div>
-                      Accounts
-                    </CardTitle>
-                    <AccountForm onSuccess={fetchData} />
-                  </CardHeader>
-                  <CardContent>
-                    {accounts.length > 0 ? (
-                      <div className="space-y-1.5">
-                        {accounts.slice(0, 4).map((account, i) => (
+
+                      {/* Monthly pulse metrics */}
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          { label: 'Income', value: formatCurrency(totalIncome), color: 'text-income', icon: ArrowUpRight },
+                          { label: 'Expenses', value: formatCurrency(totalExpenses), color: 'text-expense', icon: ArrowDownRight },
+                          { label: 'Net Flow', value: `${netFlow >= 0 ? '+' : ''}${formatCurrency(netFlow)}`, color: netFlow >= 0 ? 'text-income' : 'text-expense', icon: Activity },
+                          { label: 'Save Rate', value: `${savingsRate}%`, color: savingsRate >= 20 ? 'text-income' : 'text-[hsl(var(--warning))]', icon: Zap },
+                        ].map((s, i) => (
                           <motion.div
-                            key={account.id}
-                            initial={{ opacity: 0, x: -8 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.35 + i * 0.04 }}
-                            whileHover={{ x: 3 }}
-                            className="flex items-center justify-between p-2 rounded-xl bg-muted/20 hover:bg-muted/40 transition-all cursor-pointer group border border-transparent hover:border-border/20"
-                            onClick={() => { setSelectedAccount(account); setActiveTab('accounts'); }}
+                            key={s.label}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.15 + i * 0.04 }}
+                            className="px-2.5 py-2 rounded-xl bg-muted/30 border border-border/20 text-center"
                           >
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm">{ACCOUNT_TYPE_ICONS[account.type] || '💰'}</span>
-                              <div>
-                                <p className="font-medium text-xs group-hover:text-primary transition-colors">{account.name}</p>
-                                <p className="text-[9px] text-muted-foreground capitalize">{account.type.replace('_', ' ')}</p>
-                              </div>
-                            </div>
-                            <p className="font-mono text-xs font-semibold">{formatCurrency(Number(account.balance), account.currency)}</p>
+                            <s.icon className={`w-3 h-3 mx-auto mb-0.5 ${s.color}`} />
+                            <p className="text-[9px] text-muted-foreground">{s.label}</p>
+                            <p className={`text-[11px] font-bold font-mono ${s.color}`}>{s.value}</p>
                           </motion.div>
                         ))}
-                        {accounts.length > 4 && (
-                          <button onClick={() => setActiveTab('accounts')} className="w-full text-[10px] text-center text-primary hover:underline pt-1">
-                            View all {accounts.length} accounts →
-                          </button>
-                        )}
                       </div>
-                    ) : (
-                      <div className="text-center py-5">
-                        <CreditCard className="w-7 h-7 text-muted-foreground/20 mx-auto mb-1.5" />
-                        <p className="text-muted-foreground text-xs">Add your first account</p>
-                      </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
 
-              {/* Savings Goals */}
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-                <Card className="h-full">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="flex items-center gap-2 text-sm">
-                      <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
-                        <PiggyBank className="w-3 h-3 text-primary" />
+              {/* Row 2: Streak + Health Score */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <motion.div variants={staggerItem}>
+                  <StreakTracker transactions={transactions} onStreakUpdate={setCurrentStreak} />
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <FinancialHealthScore accounts={accounts} transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
+                </motion.div>
+              </div>
+
+              {/* Row 3: Bento — Accounts + Budgets + Savings + Calendar */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Accounts Summary */}
+                <motion.div variants={staggerItem}>
+                  <Card className="h-full border-primary/10">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+                            <CreditCard className="w-3 h-3 text-primary" />
+                          </div>
+                          <p className="text-xs font-semibold">Accounts</p>
+                        </div>
+                        <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2" onClick={() => setActiveTab('accounts')}>View All</Button>
                       </div>
-                      Savings Goals
-                    </CardTitle>
-                    <Button variant="ghost" size="sm" className="text-[10px] text-primary h-7 px-2" onClick={() => setActiveTab('savings')}>
-                      View All
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    {savingsGoals.length > 0 ? (
-                      <div className="space-y-2.5">
-                        {savingsGoals.slice(0, 3).map((goal, i) => {
-                          const percentage = Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100);
-                          return (
+                      {accounts.length > 0 ? (
+                        <div className="space-y-1.5">
+                          {accounts.filter(a => a.is_active).slice(0, 3).map((a, i) => (
                             <motion.div
-                              key={goal.id}
-                              initial={{ opacity: 0, x: -8 }}
+                              key={a.id}
+                              initial={{ opacity: 0, x: -6 }}
                               animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.4 + i * 0.04 }}
-                              className="p-2 rounded-xl bg-muted/20"
+                              transition={{ delay: 0.1 + i * 0.04 }}
+                              whileHover={{ x: 2 }}
+                              className="flex items-center justify-between p-2 rounded-lg bg-muted/20 hover:bg-muted/35 transition-all cursor-pointer"
+                              onClick={() => { setSelectedAccount(a); setActiveTab('accounts'); }}
                             >
-                              <div className="flex justify-between mb-1">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs">{goal.icon || '🎯'}</span>
-                                  <p className="font-medium text-xs">{goal.name}</p>
-                                </div>
-                                <span className={`text-[10px] font-mono font-bold ${percentage >= 80 ? 'text-income' : 'text-muted-foreground'}`}>{percentage}%</span>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-sm">{ACCOUNT_TYPE_ICONS[a.type] || '💰'}</span>
+                                <p className="font-medium text-[11px] truncate">{a.name}</p>
                               </div>
-                              <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
-                                <motion.div
-                                  className="absolute inset-y-0 left-0 rounded-full bg-primary"
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${Math.min(percentage, 100)}%` }}
-                                  transition={{ duration: 0.8, delay: 0.5 + i * 0.1, ease: 'easeOut' }}
-                                />
-                              </div>
-                              <div className="flex justify-between mt-1 text-[9px] text-muted-foreground">
-                                <span>{formatCurrency(Number(goal.current_amount), goal.currency)}</span>
-                                <span>{formatCurrency(Number(goal.target_amount), goal.currency)}</span>
-                              </div>
+                              <p className={`text-[11px] font-mono font-semibold ${Number(a.balance) >= 0 ? 'text-income' : 'text-expense'}`}>
+                                {formatCurrency(Number(a.balance), a.currency)}
+                              </p>
                             </motion.div>
-                          );
-                        })}
+                          ))}
+                          {accounts.filter(a => a.is_active).length > 3 && (
+                            <p className="text-[9px] text-muted-foreground text-center pt-1">+{accounts.filter(a => a.is_active).length - 3} more</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <CreditCard className="w-6 h-6 mx-auto mb-1 text-muted-foreground/20" />
+                          <p className="text-[10px] text-muted-foreground">No accounts yet</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Budgets Summary */}
+                <motion.div variants={staggerItem}>
+                  <Card className="h-full border-primary/10">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+                            <Folder className="w-3 h-3 text-primary" />
+                          </div>
+                          <p className="text-xs font-semibold">Budgets</p>
+                        </div>
+                        <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2" onClick={() => setActiveTab('budgets')}>View All</Button>
                       </div>
-                    ) : (
-                      <div className="text-center py-5">
-                        <PiggyBank className="w-7 h-7 text-muted-foreground/20 mx-auto mb-1.5" />
-                        <p className="text-muted-foreground text-xs">Start saving today!</p>
+                      {budgets.length > 0 ? (
+                        <div className="space-y-2">
+                          {budgets.slice(0, 3).map((b, i) => {
+                            const spent = currentMonthTransactions
+                              .filter(t => t.type === 'expense' && (b.category_id ? t.category_id === b.category_id : true))
+                              .reduce((s, t) => s + Number(t.amount), 0);
+                            const pct = Math.min(Math.round((spent / Number(b.amount)) * 100), 100);
+                            const over = spent > Number(b.amount);
+                            return (
+                              <motion.div key={b.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04 }} className="space-y-1">
+                                <div className="flex justify-between">
+                                  <p className="text-[11px] font-medium truncate">{b.name}</p>
+                                  <span className={`text-[10px] font-mono font-semibold ${over ? 'text-expense' : 'text-muted-foreground'}`}>{pct}%</span>
+                                </div>
+                                <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                                  <motion.div
+                                    className={`h-full rounded-full ${over ? 'bg-expense' : 'bg-primary'}`}
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${pct}%` }}
+                                    transition={{ duration: 0.6, delay: 0.2 + i * 0.08 }}
+                                  />
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <Folder className="w-6 h-6 mx-auto mb-1 text-muted-foreground/20" />
+                          <p className="text-[10px] text-muted-foreground">No budgets set</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Savings Summary */}
+                <motion.div variants={staggerItem}>
+                  <Card className="h-full border-primary/10">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+                            <PiggyBank className="w-3 h-3 text-primary" />
+                          </div>
+                          <p className="text-xs font-semibold">Savings</p>
+                        </div>
+                        <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2" onClick={() => setActiveTab('savings')}>View All</Button>
                       </div>
-                    )}
+                      {savingsGoals.length > 0 ? (
+                        <div className="space-y-2">
+                          {savingsGoals.slice(0, 3).map((g, i) => {
+                            const pct = Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100);
+                            return (
+                              <motion.div key={g.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04 }} className="space-y-1">
+                                <div className="flex justify-between">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px]">{g.icon || '🎯'}</span>
+                                    <p className="text-[11px] font-medium truncate">{g.name}</p>
+                                  </div>
+                                  <span className={`text-[10px] font-mono font-semibold ${pct >= 80 ? 'text-income' : 'text-muted-foreground'}`}>{pct}%</span>
+                                </div>
+                                <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                                  <motion.div
+                                    className="h-full rounded-full bg-primary"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${Math.min(pct, 100)}%` }}
+                                    transition={{ duration: 0.6, delay: 0.2 + i * 0.08 }}
+                                  />
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <PiggyBank className="w-6 h-6 mx-auto mb-1 text-muted-foreground/20" />
+                          <p className="text-[10px] text-muted-foreground">No goals yet</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Calendar Summary */}
+                <motion.div variants={staggerItem}>
+                  <CalendarSummary
+                    transactions={transactions}
+                    budgets={budgets}
+                    savingsGoals={savingsGoals}
+                    onNavigate={() => setActiveTab('activity')}
+                  />
+                </motion.div>
+              </div>
+
+              {/* Row 4: Net Worth Chart (full width) */}
+              <motion.div variants={staggerItem}>
+                <NetWorthChart accounts={accounts} transactions={transactions} />
+              </motion.div>
+
+              {/* Row 5: AI Advisor + Badges */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <motion.div variants={staggerItem}>
+                  <Card className="h-full border-primary/10 bg-gradient-to-br from-card to-primary/[0.02]">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Sparkles className="w-3 h-3 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold">AI Advisor</p>
+                            <p className="text-[9px] text-muted-foreground">Personalized insights</p>
+                          </div>
+                        </div>
+                        <Button onClick={getFinancialTip} disabled={loadingTip} size="sm" variant="outline" className="rounded-xl h-7 text-[10px] gap-1">
+                          {loadingTip ? (
+                            <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full" /> Analyzing</>
+                          ) : (
+                            <><Sparkles className="w-3 h-3" /> Get Insights</>
+                          )}
+                        </Button>
+                      </div>
+                      <AnimatePresence mode="wait">
+                        {aiTip ? (
+                          <motion.p key="tip" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                            className="text-xs text-muted-foreground leading-relaxed line-clamp-4"
+                          >{aiTip}</motion.p>
+                        ) : (
+                          <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2.5 py-1">
+                            <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center shrink-0">
+                              <Sparkles className="w-3.5 h-3.5 text-primary/30" />
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              Tap <span className="font-medium text-foreground">"Get Insights"</span> for AI-powered advice.
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <UserBadges
+                    transactionCount={transactions.length}
+                    accountCount={accounts.length}
+                    budgetCount={budgets.length}
+                    savingsGoalCount={savingsGoals.length}
+                    currentStreak={currentStreak?.current_streak || 0}
+                    totalSaved={totalSavings}
+                    healthScore={healthScore}
+                  />
+                </motion.div>
+              </div>
+
+              {/* Row 6: AI Insights + Smart Detection (compact) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <motion.div variants={staggerItem}>
+                  <AISmartInsights accounts={accounts} transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} />
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <SmartSpendingDetection transactions={transactions} categories={categories} budgets={budgets} />
+                </motion.div>
+              </div>
+
+              {/* Row 7: Predictive + Heatmap */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <motion.div variants={staggerItem}>
+                  <PredictiveCashFlow accounts={accounts} transactions={transactions} />
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <SpendingHeatmap transactions={transactions} />
+                </motion.div>
+              </div>
+
+              {/* Row 8: Recent Transactions */}
+              <motion.div variants={staggerItem}>
+                <Card className="border-primary/10">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+                          <Receipt className="w-3 h-3 text-primary" />
+                        </div>
+                        <p className="text-xs font-semibold">Recent Transactions</p>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2" onClick={() => setActiveTab('transactions')}>View All</Button>
+                    </div>
+                    <TransactionList
+                      transactions={transactions.slice(0, 5)}
+                      categories={categories}
+                      accounts={accounts}
+                      onRefresh={fetchData}
+                    />
                   </CardContent>
                 </Card>
               </motion.div>
-            </div>
-
-            {/* AI Smart Insights + Smart Detection */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-                <AISmartInsights
-                  accounts={accounts}
-                  transactions={transactions}
-                  categories={categories}
-                  budgets={budgets}
-                  savingsGoals={savingsGoals}
-                />
-              </motion.div>
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}>
-                <SmartSpendingDetection
-                  transactions={transactions}
-                  categories={categories}
-                  budgets={budgets}
-                />
-              </motion.div>
-            </div>
-
-            {/* Predictive Cash Flow + Spending Heatmap */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-                <PredictiveCashFlow accounts={accounts} transactions={transactions} />
-              </motion.div>
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}>
-                <SpendingHeatmap transactions={transactions} />
-              </motion.div>
-            </div>
-
-            {/* Financial Calendar */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}>
-              <FinancialCalendar
-                transactions={transactions}
-                budgets={budgets}
-                savingsGoals={savingsGoals}
-              />
-            </motion.div>
-
-            {/* Recent Transactions */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}>
-              <TransactionList
-                transactions={transactions.slice(0, 5)}
-                categories={categories}
-                accounts={accounts}
-                onRefresh={fetchData}
-              />
             </motion.div>
           </TabsContent>
 
-          {/* Accounts Tab */}
+          {/* ═══ ACCOUNTS TAB ═══ */}
           <TabsContent value="accounts" className="space-y-6">
             <AnimatePresence mode="wait">
             {selectedAccount ? (
@@ -823,35 +836,21 @@ export default function Dashboard() {
                 onBack={() => setSelectedAccount(null)}
               />
             ) : (
-              <motion.div
-                key="accounts-list"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="space-y-6"
-              >
+              <motion.div key="accounts-list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
                 {/* Net Position Hero */}
                 {accounts.length > 0 && (() => {
                   const activeAccts = accounts.filter(a => a.is_active && !a.is_archived);
-                  const totalAssets = activeAccts
-                    .filter(a => a.classification !== 'liability')
-                    .reduce((s, a) => s + Number(a.balance), 0);
-                  const totalLiabilities = activeAccts
-                    .filter(a => a.classification === 'liability')
-                    .reduce((s, a) => s + Math.abs(Number(a.balance)), 0);
+                  const totalAssets = activeAccts.filter(a => a.classification !== 'liability').reduce((s, a) => s + Number(a.balance), 0);
+                  const totalLiabilities = activeAccts.filter(a => a.classification === 'liability').reduce((s, a) => s + Math.abs(Number(a.balance)), 0);
                   const netPosition = totalAssets - totalLiabilities;
                   const assetPct = totalAssets + totalLiabilities > 0 ? (totalAssets / (totalAssets + totalLiabilities)) * 100 : 100;
                   const accountCount = activeAccts.length;
                   return (
-                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
+                    <motion.div {...fadeUp()}>
                       <Card className="relative overflow-hidden border-primary/10">
-                        {/* Multi-layer ambient */}
                         <div className="absolute top-0 right-0 w-72 h-72 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
                         <div className="absolute bottom-0 left-0 w-48 h-48 bg-income/5 rounded-full translate-y-1/3 -translate-x-1/4 blur-3xl" />
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-32 bg-primary/3 rounded-full blur-[60px]" />
-                        
                         <CardContent className="relative p-5 sm:p-6">
-                          {/* Top row: Net Position + Account Count */}
                           <div className="flex items-start justify-between mb-5">
                             <div>
                               <div className="flex items-center gap-2 mb-2">
@@ -869,62 +868,25 @@ export default function Dashboard() {
                                 {formatCurrency(netPosition)}
                               </motion.p>
                             </div>
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: 0.2 }}
-                              className="text-right"
-                            >
+                            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="text-right">
                               <p className="text-3xl font-extrabold font-mono text-primary/20">{accountCount}</p>
                               <p className="text-[9px] text-muted-foreground uppercase tracking-wider -mt-0.5">Accounts</p>
                             </motion.div>
                           </div>
-
-                          {/* Asset / Liability breakdown */}
                           <div className="grid grid-cols-2 gap-4 mb-4">
-                            <motion.div
-                              initial={{ opacity: 0, x: -12 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.15 }}
-                              className="p-3 rounded-xl bg-income/5 border border-income/10"
-                            >
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <TrendingUp className="w-3 h-3 text-income" />
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Assets</p>
-                              </div>
+                            <motion.div {...fadeX(-12, 0.15)} className="p-3 rounded-xl bg-income/5 border border-income/10">
+                              <div className="flex items-center gap-1.5 mb-1"><TrendingUp className="w-3 h-3 text-income" /><p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Assets</p></div>
                               <p className="text-lg font-bold font-mono text-income">{formatCurrency(totalAssets)}</p>
                             </motion.div>
-                            <motion.div
-                              initial={{ opacity: 0, x: 12 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.2 }}
-                              className="p-3 rounded-xl bg-expense/5 border border-expense/10"
-                            >
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <TrendingDown className="w-3 h-3 text-expense" />
-                                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Liabilities</p>
-                              </div>
+                            <motion.div {...fadeX(12, 0.2)} className="p-3 rounded-xl bg-expense/5 border border-expense/10">
+                              <div className="flex items-center gap-1.5 mb-1"><TrendingDown className="w-3 h-3 text-expense" /><p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Liabilities</p></div>
                               <p className="text-lg font-bold font-mono text-expense">-{formatCurrency(totalLiabilities)}</p>
                             </motion.div>
                           </div>
-
-                          {/* Ratio bar */}
                           <div className="space-y-1.5">
                             <div className="flex gap-1 h-2.5 rounded-full overflow-hidden bg-muted/30">
-                              <motion.div
-                                className="bg-gradient-to-r from-income to-income/80 rounded-full"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${assetPct}%` }}
-                                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
-                              />
-                              {totalLiabilities > 0 && (
-                                <motion.div
-                                  className="bg-gradient-to-r from-expense/80 to-expense rounded-full"
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${100 - assetPct}%` }}
-                                  transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.4 }}
-                                />
-                              )}
+                              <motion.div className="bg-gradient-to-r from-income to-income/80 rounded-full" initial={{ width: 0 }} animate={{ width: `${assetPct}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.3 }} />
+                              {totalLiabilities > 0 && <motion.div className="bg-gradient-to-r from-expense/80 to-expense rounded-full" initial={{ width: 0 }} animate={{ width: `${100 - assetPct}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.4 }} />}
                             </div>
                             <div className="flex justify-between text-[10px] text-muted-foreground">
                               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-income" /> Assets {Math.round(assetPct)}%</span>
@@ -937,13 +899,7 @@ export default function Dashboard() {
                   );
                 })()}
 
-                {/* Action bar */}
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="flex items-center justify-between"
-                >
+                <motion.div {...fadeUp(0.15)} className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                       <CreditCard className="w-4 h-4 text-primary" />
@@ -964,100 +920,53 @@ export default function Dashboard() {
                   const archived = accounts.filter(a => a.is_archived);
                   const assets = active.filter(a => a.classification !== 'liability');
                   const liabilities = active.filter(a => a.classification === 'liability');
-
                   return (
                     <div className="space-y-8">
-                      {/* Assets */}
                       {assets.length > 0 && (
-                        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-3">
+                        <motion.div {...fadeUp(0.2)} className="space-y-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-6 h-6 rounded-lg bg-income/10 flex items-center justify-center">
-                              <TrendingUp className="w-3 h-3 text-income" />
-                            </div>
+                            <div className="w-6 h-6 rounded-lg bg-income/10 flex items-center justify-center"><TrendingUp className="w-3 h-3 text-income" /></div>
                             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Assets ({assets.length})</h3>
                             <div className="flex-1 h-px bg-gradient-to-r from-border/30 to-transparent" />
-                            <span className="text-[10px] font-mono font-semibold text-income">
-                              {formatCurrency(assets.reduce((s, a) => s + Number(a.balance), 0))}
-                            </span>
+                            <span className="text-[10px] font-mono font-semibold text-income">{formatCurrency(assets.reduce((s, a) => s + Number(a.balance), 0))}</span>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {assets.map((account, i) => (
-                              <AccountCard
-                                key={account.id}
-                                account={account}
-                                transactions={transactions}
-                                onRefresh={fetchData}
-                                onSelect={setSelectedAccount}
-                                index={i}
-                              />
-                            ))}
+                            {assets.map((account, i) => <AccountCard key={account.id} account={account} transactions={transactions} onRefresh={fetchData} onSelect={setSelectedAccount} index={i} />)}
                           </div>
                         </motion.div>
                       )}
-
-                      {/* Liabilities */}
                       {liabilities.length > 0 && (
-                        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-3">
+                        <motion.div {...fadeUp(0.3)} className="space-y-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-6 h-6 rounded-lg bg-expense/10 flex items-center justify-center">
-                              <TrendingDown className="w-3 h-3 text-expense" />
-                            </div>
+                            <div className="w-6 h-6 rounded-lg bg-expense/10 flex items-center justify-center"><TrendingDown className="w-3 h-3 text-expense" /></div>
                             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Liabilities ({liabilities.length})</h3>
                             <div className="flex-1 h-px bg-gradient-to-r from-border/30 to-transparent" />
-                            <span className="text-[10px] font-mono font-semibold text-expense">
-                              -{formatCurrency(liabilities.reduce((s, a) => s + Math.abs(Number(a.balance)), 0))}
-                            </span>
+                            <span className="text-[10px] font-mono font-semibold text-expense">-{formatCurrency(liabilities.reduce((s, a) => s + Math.abs(Number(a.balance)), 0))}</span>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {liabilities.map((account, i) => (
-                              <AccountCard
-                                key={account.id}
-                                account={account}
-                                transactions={transactions}
-                                onRefresh={fetchData}
-                                onSelect={setSelectedAccount}
-                                index={i}
-                              />
-                            ))}
+                            {liabilities.map((account, i) => <AccountCard key={account.id} account={account} transactions={transactions} onRefresh={fetchData} onSelect={setSelectedAccount} index={i} />)}
                           </div>
                         </motion.div>
                       )}
-
-                      {/* Archived */}
                       {archived.length > 0 && (
-                        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="space-y-3">
+                        <motion.div {...fadeUp(0.4)} className="space-y-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-6 h-6 rounded-lg bg-muted/50 flex items-center justify-center">
-                              <Archive className="w-3 h-3 text-muted-foreground" />
-                            </div>
+                            <div className="w-6 h-6 rounded-lg bg-muted/50 flex items-center justify-center"><Archive className="w-3 h-3 text-muted-foreground" /></div>
                             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Archived ({archived.length})</h3>
                             <div className="flex-1 h-px bg-gradient-to-r from-border/30 to-transparent" />
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {archived.map((account, i) => (
-                              <AccountCard
-                                key={account.id}
-                                account={account}
-                                transactions={transactions}
-                                onRefresh={fetchData}
-                                onSelect={setSelectedAccount}
-                                index={i}
-                              />
-                            ))}
+                            {archived.map((account, i) => <AccountCard key={account.id} account={account} transactions={transactions} onRefresh={fetchData} onSelect={setSelectedAccount} index={i} />)}
                           </div>
                         </motion.div>
                       )}
                     </div>
                   );
                 })() : (
-                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
+                  <motion.div {...fadeUp(0.2)}>
                     <Card className="border-dashed border-2">
                       <CardContent className="py-20 text-center">
-                        <motion.div
-                          animate={{ y: [0, -8, 0] }}
-                          transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
-                          className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/30 flex items-center justify-center"
-                        >
+                        <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }} className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/30 flex items-center justify-center">
                           <CreditCard className="w-8 h-8 text-muted-foreground/30" />
                         </motion.div>
                         <p className="font-bold text-lg">No accounts yet</p>
@@ -1072,49 +981,29 @@ export default function Dashboard() {
             </AnimatePresence>
           </TabsContent>
 
-          {/* Transactions Tab */}
+          {/* ═══ TRANSACTIONS TAB ═══ */}
           <TabsContent value="transactions" className="space-y-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 12 }} 
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between"
-            >
+            <motion.div {...fadeUp()} className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Receipt className="w-4 h-4 text-primary" />
-                </div>
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Receipt className="w-4 h-4 text-primary" /></div>
                 <div>
                   <h2 className="text-lg font-bold">Transactions</h2>
                   <p className="text-[10px] text-muted-foreground">{transactions.length} total records</p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <TransactionForm accounts={accounts} categories={categories} onSuccess={fetchData} />
-              </div>
+              <TransactionForm accounts={accounts} categories={categories} onSuccess={fetchData} />
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+            <motion.div {...fadeUp(0.05)}>
               <TransactionRulesManager categories={categories} onRulesChange={fetchData} />
             </motion.div>
-            <TransactionList 
-              transactions={transactions} 
-              categories={categories}
-              accounts={accounts}
-              onRefresh={fetchData}
-            />
+            <TransactionList transactions={transactions} categories={categories} accounts={accounts} onRefresh={fetchData} />
           </TabsContent>
 
-          {/* Budgets Tab */}
+          {/* ═══ BUDGETS TAB ═══ */}
           <TabsContent value="budgets" className="space-y-6">
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between"
-            >
+            <motion.div {...fadeUp()} className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Folder className="w-4 h-4 text-primary" />
-                </div>
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center"><Folder className="w-4 h-4 text-primary" /></div>
                 <div>
                   <h2 className="text-lg font-extrabold">Budget Tracking</h2>
                   <p className="text-[10px] text-muted-foreground">{budgets.length} budgets · {budgets.filter(b => {
@@ -1125,47 +1014,27 @@ export default function Dashboard() {
               </div>
               <BudgetForm categories={categories} transactions={transactions} savingsGoals={savingsGoals} onSuccess={fetchData} />
             </motion.div>
-
-            {/* Overview Dashboard */}
             <BudgetList budgets={budgets} transactions={transactions} categories={categories} />
-
-            {/* Individual Budget Cards */}
             {budgets.length > 0 && (
-              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="space-y-3">
+              <motion.div {...fadeUp(0.4)} className="space-y-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Target className="w-3 h-3 text-primary" />
-                  </div>
+                  <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center"><Target className="w-3 h-3 text-primary" /></div>
                   <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Individual Budgets</h3>
                   <div className="flex-1 h-px bg-gradient-to-r from-border/30 to-transparent" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {budgets.map((budget, i) => (
-                    <BudgetCard
-                      key={budget.id}
-                      budget={budget}
-                      transactions={transactions}
-                      categories={categories}
-                      rolloverEnabled={settings.budget_rollover}
-                      onRefresh={fetchData}
-                      index={i}
-                    />
+                    <BudgetCard key={budget.id} budget={budget} transactions={transactions} categories={categories} rolloverEnabled={settings.budget_rollover} onRefresh={fetchData} index={i} />
                   ))}
                 </div>
               </motion.div>
             )}
           </TabsContent>
 
-          {/* Bills & Subscriptions Tab */}
+          {/* ═══ BILLS TAB ═══ */}
           <TabsContent value="bills" className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2.5"
-            >
-              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <CalendarClock className="w-4 h-4 text-primary" />
-              </div>
+            <motion.div {...fadeUp()} className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center"><CalendarClock className="w-4 h-4 text-primary" /></div>
               <div>
                 <h2 className="text-lg font-extrabold">Bills & Subscriptions</h2>
                 <p className="text-[10px] text-muted-foreground">Track recurring payments and due dates</p>
@@ -1174,12 +1043,10 @@ export default function Dashboard() {
             <BillsSubscriptions />
           </TabsContent>
 
-          {/* Investments Tab */}
+          {/* ═══ INVESTMENTS TAB ═══ */}
           <TabsContent value="investments" className="space-y-6">
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <Briefcase className="w-4 h-4 text-primary" />
-              </div>
+            <motion.div {...fadeUp()} className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center"><Briefcase className="w-4 h-4 text-primary" /></div>
               <div>
                 <h2 className="text-lg font-extrabold">Investment Portfolio</h2>
                 <p className="text-[10px] text-muted-foreground">Track stocks, crypto, bonds & more</p>
@@ -1188,50 +1055,42 @@ export default function Dashboard() {
             <InvestmentTracker />
           </TabsContent>
 
-          {/* Savings Tab */}
+          {/* ═══ SAVINGS TAB ═══ */}
           <TabsContent value="savings" className="space-y-6">
-            <SavingsDashboard
-              savingsGoals={savingsGoals}
-              transactions={transactions}
-              accounts={accounts}
-              onRefresh={fetchData}
-            />
+            <SavingsDashboard savingsGoals={savingsGoals} transactions={transactions} accounts={accounts} onRefresh={fetchData} />
           </TabsContent>
 
-          {/* Reports Tab */}
+          {/* ═══ REPORTS TAB ═══ */}
           <TabsContent value="reports">
-            <EnhancedReports 
-              transactions={transactions}
-              accounts={accounts}
-              categories={categories}
-              budgets={budgets}
-              savingsGoals={savingsGoals}
-            />
+            <EnhancedReports transactions={transactions} accounts={accounts} categories={categories} budgets={budgets} savingsGoals={savingsGoals} />
           </TabsContent>
 
-          {/* Learn Tab */}
+          {/* ═══ LEARN TAB ═══ */}
           <TabsContent value="learn" className="space-y-6">
-            <FinancialLessons
-              transactions={transactions}
-              categories={categories}
-              budgets={budgets}
-              savingsGoals={savingsGoals}
-              accounts={accounts}
-            />
+            <FinancialLessons transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} accounts={accounts} />
           </TabsContent>
 
-          {/* Activity Log Tab */}
+          {/* ═══ ACTIVITY TAB — Calendar + Activity Log ═══ */}
           <TabsContent value="activity" className="space-y-6">
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2.5">
+            <motion.div {...fadeUp()} className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                 <ScrollText className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <h2 className="text-lg font-extrabold">Activity Log</h2>
-                <p className="text-[10px] text-muted-foreground">Full audit trail of all your actions</p>
+                <h2 className="text-lg font-extrabold">Activity & Calendar</h2>
+                <p className="text-[10px] text-muted-foreground">Full timeline, events, and audit trail</p>
               </div>
             </motion.div>
-            <ActivityLog />
+
+            {/* Financial Calendar */}
+            <motion.div {...fadeUp(0.08)}>
+              <FinancialCalendar transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
+            </motion.div>
+
+            {/* Activity Log */}
+            <motion.div {...fadeUp(0.16)}>
+              <ActivityLog />
+            </motion.div>
           </TabsContent>
         </Tabs>
       </main>
@@ -1251,11 +1110,7 @@ export default function Dashboard() {
                 }`}
               >
                 {isActive && (
-                  <motion.div
-                    layoutId="mobile-bottom-indicator"
-                    className="absolute -top-1.5 w-8 h-1 bg-primary rounded-full"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
+                  <motion.div layoutId="mobile-bottom-indicator" className="absolute -top-1.5 w-8 h-1 bg-primary rounded-full" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
                 )}
                 <Icon className="w-5 h-5" />
                 <span className="text-[10px] font-medium">{item.label}</span>
@@ -1274,12 +1129,8 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      {/* Centered Floating Action Button */}
-      <FloatingTransactionForm
-        accounts={accounts}
-        categories={categories}
-        onSuccess={fetchData}
-      />
+      {/* Floating Action Button */}
+      <FloatingTransactionForm accounts={accounts} categories={categories} onSuccess={fetchData} />
     </div>
   );
 }
