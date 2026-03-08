@@ -143,7 +143,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     try {
       const [profileRes, settingsRes] = await Promise.all([
-        supabase.from('profiles').select('default_currency, full_name, phone, avatar_url').eq('user_id', user.id).maybeSingle(),
+        supabase.from('profiles').select('default_currency, full_name, phone, avatar_url, username, dob, gender').eq('user_id', user.id).maybeSingle(),
         supabase.from('user_settings').select('*').eq('user_id', user.id).maybeSingle(),
       ]);
 
