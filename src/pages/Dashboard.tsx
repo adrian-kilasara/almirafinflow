@@ -24,7 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 // Components
 import TransactionList from '@/components/transactions/TransactionList';
@@ -324,11 +324,15 @@ export default function Dashboard() {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/30">
           <div className="flex items-center gap-3 mb-3 px-1">
             <Avatar className="w-8 h-8 border border-primary/20">
+              {settings.avatar_url && <AvatarImage src={settings.avatar_url} alt={settings.username || 'Avatar'} />}
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                {user?.email?.charAt(0).toUpperCase() || 'U'}
+                {(settings.username || settings.full_name || user?.email || 'U').charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <p className="text-xs font-medium truncate flex-1">{user?.email}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate">{settings.username || settings.full_name || 'User'}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="flex-1 rounded-xl text-xs h-8" onClick={() => navigate('/settings')}>
@@ -377,17 +381,28 @@ export default function Dashboard() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="gap-1.5 rounded-xl px-2 h-9 hover:bg-muted/60">
                     <Avatar className="w-7 h-7 border border-primary/20">
+                      {settings.avatar_url && <AvatarImage src={settings.avatar_url} alt={settings.username || 'Avatar'} />}
                       <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                        {(settings.username || settings.full_name || user?.email || 'U').charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
+                    <span className="hidden sm:inline text-xs font-medium max-w-[80px] truncate">{settings.username || settings.full_name || 'User'}</span>
                     <ChevronDown className="w-3 h-3 text-muted-foreground hidden sm:block" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 rounded-xl p-1">
-                  <div className="px-3 py-2">
-                    <p className="text-sm font-medium truncate">{user?.user_metadata?.full_name || 'User'}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+                <DropdownMenuContent align="end" className="w-56 rounded-xl p-1">
+                  <div className="flex items-center gap-3 px-3 py-2.5">
+                    <Avatar className="w-9 h-9 border border-primary/20">
+                      {settings.avatar_url && <AvatarImage src={settings.avatar_url} alt={settings.username || 'Avatar'} />}
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                        {(settings.username || settings.full_name || user?.email || 'U').charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{settings.full_name || 'User'}</p>
+                      {settings.username && <p className="text-[10px] text-primary truncate">@{settings.username}</p>}
+                      <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+                    </div>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/settings')} className="gap-2 rounded-lg cursor-pointer text-xs">
