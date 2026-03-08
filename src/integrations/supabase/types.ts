@@ -246,6 +246,36 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_rates: {
+        Row: {
+          created_at: string
+          effective_date: string
+          from_currency: string
+          id: string
+          rate: number
+          source: string
+          to_currency: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date?: string
+          from_currency: string
+          id?: string
+          rate: number
+          source?: string
+          to_currency: string
+        }
+        Update: {
+          created_at?: string
+          effective_date?: string
+          from_currency?: string
+          id?: string
+          rate?: number
+          source?: string
+          to_currency?: string
+        }
+        Relationships: []
+      }
       financial_lessons: {
         Row: {
           category: string
@@ -306,6 +336,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          module: string
+          related_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          module?: string
+          related_id?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          module?: string
+          related_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -334,6 +400,54 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      recurring_schedules: {
+        Row: {
+          created_at: string
+          description: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          last_run_date: string | null
+          max_runs: number | null
+          next_run_date: string
+          template_data: Json
+          total_runs: number
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_run_date?: string | null
+          max_runs?: number | null
+          next_run_date: string
+          template_data?: Json
+          total_runs?: number
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_run_date?: string | null
+          max_runs?: number | null
+          next_run_date?: string
+          template_data?: Json
+          total_runs?: number
+          type?: string
           updated_at?: string
           user_id?: string
         }
