@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/format';
-import { BarChart3, FileText, Table as TableIcon, Download, Calendar, ArrowRight } from 'lucide-react';
+import { BarChart3, FileText, Download, Sparkles } from 'lucide-react';
 import type { Transaction, Account, Category, Budget, SavingsGoal } from '@/types/finance';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useReportData, type ReportPeriod } from './hooks/useReportData';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 
 import SummaryCards from './sections/SummaryCards';
 import TrendChart from './sections/TrendChart';
@@ -28,12 +28,12 @@ interface EnhancedReportsProps {
   savingsGoals?: SavingsGoal[];
 }
 
-const PERIODS: { id: ReportPeriod; label: string; icon: string }[] = [
-  { id: 'daily', label: 'Daily', icon: '📅' },
-  { id: 'weekly', label: 'Weekly', icon: '📊' },
-  { id: 'monthly', label: 'Monthly', icon: '📈' },
-  { id: 'quarterly', label: 'Quarterly', icon: '📋' },
-  { id: 'annual', label: 'Annual', icon: '🏆' },
+const PERIODS: { id: ReportPeriod; label: string; icon: string; short: string }[] = [
+  { id: 'daily', label: 'Daily', icon: '📅', short: 'D' },
+  { id: 'weekly', label: 'Weekly', icon: '📊', short: 'W' },
+  { id: 'monthly', label: 'Monthly', icon: '📈', short: 'M' },
+  { id: 'quarterly', label: 'Quarterly', icon: '📋', short: 'Q' },
+  { id: 'annual', label: 'Annual', icon: '🏆', short: 'Y' },
 ];
 
 const PERIOD_DESCRIPTIONS: Record<ReportPeriod, string> = {
@@ -44,9 +44,10 @@ const PERIOD_DESCRIPTIONS: Record<ReportPeriod, string> = {
   annual: 'Wealth perspective & trajectory',
 };
 
+const spring = { type: 'spring' as const, stiffness: 400, damping: 30 };
 const stagger = {
-  container: { hidden: {}, show: { transition: { staggerChildren: 0.06 } } },
-  item: { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } },
+  container: { hidden: {}, show: { transition: { staggerChildren: 0.07 } } },
+  item: { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } } },
 };
 
 export default function EnhancedReports({
@@ -115,54 +116,58 @@ ${data.actionItems.map((a, i) => `${i + 1}. ${a}`).join('\n')}
     <div className="space-y-6">
       {/* Header */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-4"
+        transition={{ duration: 0.4 }}
+        className="space-y-4"
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
               <BarChart3 className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Financial Reports</h2>
-              <p className="text-xs text-muted-foreground">{PERIOD_DESCRIPTIONS[period]}</p>
+              <h2 className="text-lg font-extrabold">Financial Reports</h2>
+              <p className="text-[10px] text-muted-foreground">{PERIOD_DESCRIPTIONS[period]}</p>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={exportToCSV} className="rounded-xl gap-1.5">
+            <Button variant="outline" size="sm" onClick={exportToCSV} className="gap-1.5">
               <Download className="w-3.5 h-3.5" /> CSV
             </Button>
-            <Button variant="outline" size="sm" onClick={exportSummary} className="rounded-xl gap-1.5">
+            <Button variant="outline" size="sm" onClick={exportSummary} className="gap-1.5">
               <FileText className="w-3.5 h-3.5" /> Summary
             </Button>
           </div>
         </div>
 
-        {/* Period Selector */}
-        <div className="flex gap-1.5 p-1 rounded-2xl bg-muted/50 border border-border w-fit">
-          {PERIODS.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setPeriod(p.id)}
-              className={`relative px-3 py-2 text-xs font-medium rounded-xl transition-colors duration-200 ${
-                period === p.id ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {period === p.id && (
-                <motion.div
-                  layoutId="report-period-bg"
-                  className="absolute inset-0 bg-primary rounded-xl"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-1.5">
-                <span className="hidden sm:inline">{p.icon}</span>
-                {p.label}
-              </span>
-            </button>
-          ))}
-        </div>
+        {/* Period Selector — pill tabs with spring indicator */}
+        <LayoutGroup>
+          <div className="flex gap-1 p-1 rounded-2xl bg-muted/40 border border-border/50 w-fit backdrop-blur-sm">
+            {PERIODS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setPeriod(p.id)}
+                className={`relative px-4 py-2 text-xs font-semibold rounded-xl transition-colors duration-200 ${
+                  period === p.id ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {period === p.id && (
+                  <motion.div
+                    layoutId="report-period-pill"
+                    className="absolute inset-0 bg-primary rounded-xl shadow-md"
+                    transition={spring}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  <span className="hidden sm:inline text-sm">{p.icon}</span>
+                  <span className="hidden sm:inline">{p.label}</span>
+                  <span className="sm:hidden">{p.short}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </LayoutGroup>
       </motion.div>
 
       {/* Report Content */}
@@ -188,7 +193,7 @@ ${data.actionItems.map((a, i) => `${i + 1}. ${a}`).join('\n')}
             <TrendChart data={data.trendData} />
           </motion.div>
 
-          {/* 3. Category + Budget */}
+          {/* 3. Category + Budget — side by side */}
           <motion.div variants={stagger.item} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <CategoryBreakdown data={data.categoryBreakdown} />
             <BudgetAnalysis data={data.budgetPerformance} />

@@ -17,59 +17,82 @@ interface Props {
 
 export default function AccountBreakdownCard({ accounts, breakdown, fixedVsVariable }: Props) {
   const fixedPct = fixedVsVariable.total > 0 ? (fixedVsVariable.fixed / fixedVsVariable.total) * 100 : 0;
+  const totalBalance = breakdown.reduce((s, b) => s + b.balance, 0);
 
   return (
-    <Card className="h-full">
+    <Card className="h-full overflow-hidden relative group">
+      <div className="absolute -top-12 -left-12 w-32 h-32 rounded-full bg-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-          <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
-            <CreditCard className="w-3 h-3 text-primary" />
+        <CardTitle className="flex items-center gap-2 text-sm font-bold">
+          <div className="w-7 h-7 rounded-xl bg-primary/10 flex items-center justify-center">
+            <CreditCard className="w-3.5 h-3.5 text-primary" />
           </div>
           Accounts & Structure
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {breakdown.map((b, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="flex items-center justify-between text-xs p-2 rounded-xl hover:bg-muted/30 transition-colors"
-          >
-            <span className="flex items-center gap-1.5">
-              {TYPE_LABELS[b.type] || b.type}
-              <span className="text-muted-foreground text-[10px]">({b.count})</span>
-            </span>
-            <span className="font-mono font-medium">{formatCurrency(b.balance)}</span>
-          </motion.div>
-        ))}
+        {/* Account type breakdown with proportional bars */}
+        {breakdown.map((b, i) => {
+          const barPct = totalBalance > 0 ? (b.balance / totalBalance) * 100 : 0;
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.06, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-1"
+            >
+              <div className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 font-medium">
+                  {TYPE_LABELS[b.type] || b.type}
+                  <span className="text-[9px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-md">{b.count}</span>
+                </span>
+                <span className="font-mono font-semibold">{formatCurrency(b.balance)}</span>
+              </div>
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-primary"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.max(barPct, 2)}%` }}
+                  transition={{ duration: 0.7, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </div>
+            </motion.div>
+          );
+        })}
+
+        {/* Fixed vs Variable */}
         {fixedVsVariable.total > 0 && (
-          <div className="border-t border-border pt-3 space-y-2">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Fixed vs Variable</p>
-            <div className="flex gap-1 h-3 rounded-full overflow-hidden bg-muted">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="border-t border-border/50 pt-3 space-y-2.5"
+          >
+            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Fixed vs Variable</p>
+            <div className="flex gap-0.5 h-3 rounded-full overflow-hidden bg-muted">
               {fixedPct > 0 && (
                 <motion.div
-                  className="bg-primary rounded-full"
+                  className="bg-primary rounded-l-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${fixedPct}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                 />
               )}
               {(100 - fixedPct) > 0 && fixedVsVariable.variable > 0 && (
                 <motion.div
-                  className="bg-[hsl(var(--warning))] rounded-full"
+                  className="bg-[hsl(var(--warning))] rounded-r-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${100 - fixedPct}%` }}
-                  transition={{ duration: 0.8, delay: 0.1, ease: 'easeOut' }}
+                  transition={{ duration: 0.8, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                 />
               )}
             </div>
             <div className="flex justify-between text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary inline-block" /> Fixed: {formatCurrency(fixedVsVariable.fixed)}</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[hsl(var(--warning))] inline-block" /> Variable: {formatCurrency(fixedVsVariable.variable)}</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-primary inline-block" /> Fixed: {formatCurrency(fixedVsVariable.fixed)}</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[hsl(var(--warning))] inline-block" /> Variable: {formatCurrency(fixedVsVariable.variable)}</span>
             </div>
-          </div>
+          </motion.div>
         )}
       </CardContent>
     </Card>
