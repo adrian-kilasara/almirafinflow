@@ -42,6 +42,7 @@ const CONTENT: Record<string, React.FC> = {
   notifications: NotificationSettings,
   'ai-insights': AIInsightsSettings,
   data: DataManagementSettings,
+  'import-export': ImportExportSettings,
   display: DisplaySettings,
   advanced: AdvancedSettings,
 };
