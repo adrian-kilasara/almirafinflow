@@ -1034,31 +1034,55 @@ export default function Dashboard() {
 
           {/* Budgets Tab */}
           <TabsContent value="budgets" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Folder className="w-5 h-5" />
-                Budget Tracking
-              </h2>
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Folder className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-extrabold">Budget Tracking</h2>
+                  <p className="text-[10px] text-muted-foreground">{budgets.length} budgets · {budgets.filter(b => {
+                    const spent = transactions.filter(t => t.type === 'expense' && (b.category_id ? t.category_id === b.category_id : true)).reduce((s, t) => s + Number(t.amount), 0);
+                    return spent > Number(b.amount);
+                  }).length} over budget</p>
+                </div>
+              </div>
               <BudgetForm categories={categories} transactions={transactions} savingsGoals={savingsGoals} onSuccess={fetchData} />
-            </div>
+            </motion.div>
+
+            {/* Overview Dashboard */}
             <BudgetList budgets={budgets} transactions={transactions} categories={categories} />
-            {budgets.length > 0 ? (
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-muted-foreground">Individual Budgets</h3>
+
+            {/* Individual Budget Cards */}
+            {budgets.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Target className="w-3 h-3 text-primary" />
+                  </div>
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Individual Budgets</h3>
+                  <div className="flex-1 h-px bg-gradient-to-r from-border/30 to-transparent" />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {budgets.map((budget) => (
-                    <BudgetCard 
-                      key={budget.id} 
-                      budget={budget} 
+                  {budgets.map((budget, i) => (
+                    <BudgetCard
+                      key={budget.id}
+                      budget={budget}
                       transactions={transactions}
                       categories={categories}
                       rolloverEnabled={settings.budget_rollover}
-                      onRefresh={fetchData} 
+                      onRefresh={fetchData}
+                      index={i}
                     />
                   ))}
                 </div>
-              </div>
-            ) : null}
+              </motion.div>
+            )}
           </TabsContent>
 
           {/* Savings Tab */}
