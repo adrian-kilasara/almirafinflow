@@ -174,7 +174,6 @@ export default function SavingsDashboard({ savingsGoals, transactions, accounts,
                     <div key={i} className="flex-1 flex flex-col items-center gap-1.5 group">
                       <motion.div
                         className="w-full relative overflow-hidden rounded-t-md bg-primary/10"
-                        style={{ height: `${Math.max(h, 6)}%` }}
                         initial={{ scaleY: 0 }}
                         animate={{ scaleY: 1 }}
                         transition={{ delay: 0.3 + i * 0.08, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
