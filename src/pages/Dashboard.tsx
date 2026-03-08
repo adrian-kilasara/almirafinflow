@@ -378,7 +378,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* ===== HEADER ===== */}
       <header className="border-b border-border/40 bg-card/70 backdrop-blur-2xl sticky top-0 z-50">
-        <div className="container mx-auto px-4">
+        <div className="w-full max-w-[1800px] mx-auto px-4 lg:px-6 xl:px-10 2xl:px-16">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-2.5">
               <MobileNav />
@@ -483,7 +483,7 @@ export default function Dashboard() {
       </header>
 
       {/* ===== MAIN CONTENT ===== */}
-      <main className={`max-w-[1600px] mx-auto px-4 xl:px-8 ${densityClasses.padding} pb-32 md:pb-8`}>
+      <main className={`w-full max-w-[1800px] mx-auto px-4 lg:px-6 xl:px-10 2xl:px-16 ${densityClasses.padding} pb-32 md:pb-8`}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
 
           {/* ═══════════════════════════════════════════
@@ -562,17 +562,17 @@ export default function Dashboard() {
                 </Card>
               </motion.div>
 
-              {/* Row 2: Streak + Health + Accounts + Budgets (6-col bento on xl) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
-                <motion.div variants={staggerItem} className="xl:col-span-3">
+              {/* Row 2: 4-col bento — Streak | Health | Accounts | Budgets */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <motion.div variants={staggerItem}>
                   <StreakTracker transactions={transactions} onStreakUpdate={setCurrentStreak} />
                 </motion.div>
-                <motion.div variants={staggerItem} className="xl:col-span-3">
+                <motion.div variants={staggerItem}>
                   <FinancialHealthScore accounts={accounts} transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
                 </motion.div>
 
                 {/* Accounts Summary */}
-                <motion.div variants={staggerItem} className="xl:col-span-2">
+                <motion.div variants={staggerItem}>
                   <Card className="h-full border-primary/10">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -620,7 +620,7 @@ export default function Dashboard() {
                 </motion.div>
 
                 {/* Budgets Summary */}
-                <motion.div variants={staggerItem} className="xl:col-span-2">
+                <motion.div variants={staggerItem}>
                   <Card className="h-full border-primary/10">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -667,9 +667,15 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
                 </motion.div>
+              </div>
 
-                {/* Savings + Calendar stacked on xl */}
-                <motion.div variants={staggerItem} className="xl:col-span-2 flex flex-col gap-4">
+              {/* Row 3: Net Worth (wide) + Savings & AI Advisor */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <motion.div variants={staggerItem} className="lg:col-span-2">
+                  <NetWorthChart accounts={accounts} transactions={transactions} />
+                </motion.div>
+                <motion.div variants={staggerItem} className="flex flex-col gap-4">
+                  {/* Savings mini */}
                   <Card className="flex-1 border-primary/10">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -707,28 +713,14 @@ export default function Dashboard() {
                           })}
                         </div>
                       ) : (
-                        <div className="text-center py-4">
+                        <div className="text-center py-3">
                           <PiggyBank className="w-6 h-6 mx-auto mb-1 text-muted-foreground/20" />
                           <p className="text-[10px] text-muted-foreground">No goals yet</p>
                         </div>
                       )}
                     </CardContent>
                   </Card>
-                  <CalendarSummary
-                    transactions={transactions}
-                    budgets={budgets}
-                    savingsGoals={savingsGoals}
-                    onNavigate={() => setActiveTab('activity')}
-                  />
-                </motion.div>
-              </div>
-
-              {/* Row 3: Net Worth + AI Advisor + Badges (3-col on xl) */}
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                <motion.div variants={staggerItem} className="xl:col-span-2">
-                  <NetWorthChart accounts={accounts} transactions={transactions} />
-                </motion.div>
-                <motion.div variants={staggerItem} className="flex flex-col gap-4">
+                  {/* AI Advisor */}
                   <Card className="flex-1 border-primary/10 bg-gradient-to-br from-card to-primary/[0.02]">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -767,6 +759,36 @@ export default function Dashboard() {
                       </AnimatePresence>
                     </CardContent>
                   </Card>
+                </motion.div>
+              </div>
+
+              {/* Row 4: AI Insights + Smart Detection + Calendar (3-col on xl) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                <motion.div variants={staggerItem}>
+                  <AISmartInsights accounts={accounts} transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} />
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <SmartSpendingDetection transactions={transactions} categories={categories} budgets={budgets} />
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <CalendarSummary
+                    transactions={transactions}
+                    budgets={budgets}
+                    savingsGoals={savingsGoals}
+                    onNavigate={() => setActiveTab('activity')}
+                  />
+                </motion.div>
+              </div>
+
+              {/* Row 5: Predictive + Heatmap + Badges (3-col on xl) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                <motion.div variants={staggerItem}>
+                  <PredictiveCashFlow accounts={accounts} transactions={transactions} />
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <SpendingHeatmap transactions={transactions} categories={categories} />
+                </motion.div>
+                <motion.div variants={staggerItem}>
                   <UserBadges
                     transactionCount={transactions.length}
                     accountCount={accounts.length}
@@ -779,21 +801,6 @@ export default function Dashboard() {
                 </motion.div>
               </div>
 
-              {/* Row 4: AI Insights + Smart Detection + Predictive + Heatmap (2x2 on xl) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <motion.div variants={staggerItem}>
-                  <AISmartInsights accounts={accounts} transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} />
-                </motion.div>
-                <motion.div variants={staggerItem}>
-                  <SmartSpendingDetection transactions={transactions} categories={categories} budgets={budgets} />
-                </motion.div>
-                <motion.div variants={staggerItem}>
-                  <PredictiveCashFlow accounts={accounts} transactions={transactions} />
-                </motion.div>
-                <motion.div variants={staggerItem}>
-                  <SpendingHeatmap transactions={transactions} categories={categories} />
-                </motion.div>
-              </div>
 
               {/* Row 8: Recent Transactions */}
               <motion.div variants={staggerItem}>
