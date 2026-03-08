@@ -898,10 +898,8 @@ export default function Dashboard() {
                     <CardContent className="p-4 relative">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <motion.div
-                            className="w-7 h-7 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center"
-                            animate={{ boxShadow: ['0 0 0px hsl(var(--primary)/0)', '0 0 15px hsl(var(--primary)/0.2)', '0 0 0px hsl(var(--primary)/0)'] }}
-                            transition={{ duration: 3, repeat: Infinity }}
+                          <div
+                            className="w-7 h-7 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-glow"
                           >
                             <Sparkles className="w-3.5 h-3.5 text-primary" />
                           </motion.div>
