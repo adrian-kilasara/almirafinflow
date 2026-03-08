@@ -125,7 +125,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setGlobalCurrency(settings.default_currency);
-  }, [settings.default_currency]);
+    setGlobalDateFormat(settings.date_format);
+  }, [settings.default_currency, settings.date_format]);
 
   const loadSettings = useCallback(async () => {
     if (!user) {
