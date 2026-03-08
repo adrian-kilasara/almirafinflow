@@ -27,6 +27,7 @@ const tabs = [
   { value: 'notifications', icon: Bell, label: 'Notifications', desc: 'Alerts & reminders' },
   { value: 'ai-insights', icon: Sparkles, label: 'AI & Insights', desc: 'AI engine configuration' },
   { value: 'data', icon: Database, label: 'Data', desc: 'Export & manage data' },
+  { value: 'import-export', icon: Upload, label: 'Import / Export', desc: 'CSV import & full backup' },
   { value: 'display', icon: Monitor, label: 'Display', desc: 'Theme & UI preferences' },
   { value: 'advanced', icon: Wrench, label: 'Advanced', desc: 'Performance & cache' },
 ];
