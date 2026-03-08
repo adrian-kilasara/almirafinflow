@@ -10,13 +10,21 @@ import {
   Trophy, Flame, Star,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { FinancialLesson, UserLessonProgress } from '@/types/finance';
+import type { FinancialLesson, UserLessonProgress, Transaction, Category, Budget, SavingsGoal, Account } from '@/types/finance';
 import FinancialCalculators from './FinancialCalculators';
 import AIFinancialCoach from './AIFinancialCoach';
 import FinancialQuizzes from './FinancialQuizzes';
 import FinancialTipsFeed from './FinancialTipsFeed';
 
-export default function FinancialLessons() {
+interface FinancialLessonsProps {
+  transactions?: Transaction[];
+  categories?: Category[];
+  budgets?: Budget[];
+  savingsGoals?: SavingsGoal[];
+  accounts?: Account[];
+}
+
+export default function FinancialLessons({ transactions = [], categories = [], budgets = [], savingsGoals = [], accounts = [] }: FinancialLessonsProps) {
   const [lessons, setLessons] = useState<FinancialLesson[]>([]);
   const [progress, setProgress] = useState<UserLessonProgress[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<FinancialLesson | null>(null);
