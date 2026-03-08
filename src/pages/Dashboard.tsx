@@ -1224,6 +1224,7 @@ export default function Dashboard() {
 
           {/* ═══ BILLS TAB ═══ */}
           <TabsContent value="bills" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <motion.div {...fadeUp()} className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center"><CalendarClock className="w-4 h-4 text-primary" /></div>
               <div>
@@ -1232,10 +1233,12 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <BillsSubscriptions />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ INVESTMENTS TAB ═══ */}
           <TabsContent value="investments" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <motion.div {...fadeUp()} className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center"><Briefcase className="w-4 h-4 text-primary" /></div>
               <div>
@@ -1244,25 +1247,33 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <InvestmentTracker />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ SAVINGS TAB ═══ */}
           <TabsContent value="savings" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <SavingsDashboard savingsGoals={savingsGoals} transactions={transactions} accounts={accounts} onRefresh={fetchData} />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ REPORTS TAB ═══ */}
           <TabsContent value="reports">
+          <Suspense fallback={<TabFallback />}>
             <EnhancedReports transactions={transactions} accounts={accounts} categories={categories} budgets={budgets} savingsGoals={savingsGoals} />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ LEARN TAB ═══ */}
           <TabsContent value="learn" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <FinancialLessons transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} accounts={accounts} />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ ACTIVITY TAB — Calendar + Activity Log ═══ */}
           <TabsContent value="activity" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <motion.div {...fadeUp()} className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                 <ScrollText className="w-4 h-4 text-primary" />
@@ -1272,16 +1283,13 @@ export default function Dashboard() {
                 <p className="text-[10px] text-muted-foreground">Full timeline, events, and audit trail</p>
               </div>
             </motion.div>
-
-            {/* Financial Calendar */}
             <motion.div {...fadeUp(0.08)}>
               <FinancialCalendar transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
             </motion.div>
-
-            {/* Activity Log */}
             <motion.div {...fadeUp(0.16)}>
               <ActivityLog />
             </motion.div>
+          </Suspense>
           </TabsContent>
         </Tabs>
       </main>
