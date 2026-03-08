@@ -753,6 +753,17 @@ export default function Dashboard() {
               </motion.div>
             </div>
 
+            {/* AI Smart Insights */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+              <AISmartInsights
+                accounts={accounts}
+                transactions={transactions}
+                categories={categories}
+                budgets={budgets}
+                savingsGoals={savingsGoals}
+              />
+            </motion.div>
+
             {/* Recent Transactions */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
               <TransactionList
