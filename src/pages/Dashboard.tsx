@@ -51,6 +51,10 @@ import AISmartInsights from '@/components/dashboard/AISmartInsights';
 import BillsSubscriptions from '@/components/bills/BillsSubscriptions';
 import InvestmentTracker from '@/components/investments/InvestmentTracker';
 import FinancialCalendar from '@/components/calendar/FinancialCalendar';
+import SpendingHeatmap from '@/components/dashboard/SpendingHeatmap';
+import PredictiveCashFlow from '@/components/dashboard/PredictiveCashFlow';
+import SmartSpendingDetection from '@/components/dashboard/SmartSpendingDetection';
+import ActivityLog from '@/components/activity/ActivityLog';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
