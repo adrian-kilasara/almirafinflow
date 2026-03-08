@@ -171,6 +171,7 @@ export async function emitTransactionDeleteEvent(
   accountId: string
 ) {
   logActivity(userId, 'transaction deleted', 'transactions', { type, amount, description, accountId });
+  emitDashboardRefresh();
 
   // Check low balance after deletion (income removed could lower balance)
   if (type === 'income') {
