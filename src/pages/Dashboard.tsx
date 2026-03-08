@@ -49,6 +49,8 @@ import NotificationCenter from '@/components/notifications/NotificationCenter';
 import NetWorthChart from '@/components/dashboard/NetWorthChart';
 import AISmartInsights from '@/components/dashboard/AISmartInsights';
 import BillsSubscriptions from '@/components/bills/BillsSubscriptions';
+import InvestmentTracker from '@/components/investments/InvestmentTracker';
+import FinancialCalendar from '@/components/calendar/FinancialCalendar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
