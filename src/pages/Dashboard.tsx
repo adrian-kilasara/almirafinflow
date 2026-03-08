@@ -393,19 +393,6 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             )}
-            {overBudgetAlerts.length > 0 && (
-              <Card className="border-destructive/50 bg-destructive/5">
-                <CardContent className="p-4 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-medium text-sm">⚠ Budget Strict Mode — Over Budget!</p>
-                    <p className="text-xs text-muted-foreground">
-                      {overBudgetAlerts.map(b => b.name).join(', ')} exceeded their limits
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Streak Tracker */}
             <StreakTracker 
