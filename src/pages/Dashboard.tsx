@@ -761,16 +761,35 @@ export default function Dashboard() {
               </motion.div>
             </div>
 
-            {/* AI Smart Insights */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-              <AISmartInsights
-                accounts={accounts}
-                transactions={transactions}
-                categories={categories}
-                budgets={budgets}
-                savingsGoals={savingsGoals}
-              />
-            </motion.div>
+            {/* AI Smart Insights + Smart Detection */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+                <AISmartInsights
+                  accounts={accounts}
+                  transactions={transactions}
+                  categories={categories}
+                  budgets={budgets}
+                  savingsGoals={savingsGoals}
+                />
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}>
+                <SmartSpendingDetection
+                  transactions={transactions}
+                  categories={categories}
+                  budgets={budgets}
+                />
+              </motion.div>
+            </div>
+
+            {/* Predictive Cash Flow + Spending Heatmap */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                <PredictiveCashFlow accounts={accounts} transactions={transactions} />
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}>
+                <SpendingHeatmap transactions={transactions} />
+              </motion.div>
+            </div>
 
             {/* Financial Calendar */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}>
