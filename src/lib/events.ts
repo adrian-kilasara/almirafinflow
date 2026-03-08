@@ -139,6 +139,7 @@ export async function emitSavingsEvent(
 export async function emitStreakEvent(userId: string, streak: number) {
   const milestones = [7, 14, 30, 60, 90, 180, 365];
   if (milestones.includes(streak)) {
+    logActivity(userId, `${streak}-day streak milestone`, 'system', { streak });
     await supabase.from('notifications').insert({
       user_id: userId,
       type: 'success',
