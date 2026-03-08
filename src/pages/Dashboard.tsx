@@ -806,7 +806,7 @@ export default function Dashboard() {
                   <PredictiveCashFlow accounts={accounts} transactions={transactions} />
                 </motion.div>
                 <motion.div variants={staggerItem}>
-                  <SpendingHeatmap transactions={transactions} />
+                  <SpendingHeatmap transactions={transactions} categories={categories} />
                 </motion.div>
               </div>
 
