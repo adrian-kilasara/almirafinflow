@@ -164,6 +164,23 @@ export default function Dashboard() {
   const netFlow = totalIncome - totalExpenses;
   const totalSavings = savingsGoals.reduce((sum, g) => sum + Number(g.current_amount), 0);
 
+  // Low balance alerts from settings
+  const lowBalanceAccounts = useMemo(() => {
+    if (!settings.notify_low_balance) return [];
+    return accounts.filter(a => a.is_active && Number(a.balance) < settings.low_balance_threshold);
+  }, [accounts, settings.notify_low_balance, settings.low_balance_threshold]);
+
+  // Budget mode strict warnings
+  const overBudgetAlerts = useMemo(() => {
+    if (settings.budget_mode !== 'strict') return [];
+    return budgets.filter(b => {
+      const spent = currentMonthTransactions
+        .filter(t => t.type === 'expense' && (b.category_id ? t.category_id === b.category_id : true))
+        .reduce((s, t) => s + Number(t.amount), 0);
+      return spent > Number(b.amount);
+    });
+  }, [budgets, currentMonthTransactions, settings.budget_mode]);
+
   // Health score calculation (simplified for badge checking)
   const healthScore = Math.min(100, Math.round(
     (accounts.length > 0 ? 20 : 0) +
