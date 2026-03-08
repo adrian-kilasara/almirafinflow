@@ -218,7 +218,7 @@ export default function FinancialLessons({ transactions = [], categories = [], b
           <CardContent className="p-4 text-center">
             <Trophy className="w-5 h-5 mx-auto mb-1 text-primary" />
             <p className="text-xs text-muted-foreground">Categories</p>
-            <p className="text-lg font-bold">{categories.length}</p>
+            <p className="text-lg font-bold">{lessonCategories.length}</p>
           </CardContent>
         </Card>
       </div>
