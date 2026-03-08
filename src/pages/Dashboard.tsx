@@ -35,6 +35,7 @@ import StreakTracker from '@/components/gamification/StreakTracker';
 import FinancialLessons from '@/components/education/FinancialLessons';
 import TransactionRulesManager from '@/components/rules/TransactionRulesManager';
 import FloatingTransactionForm from '@/components/transactions/FloatingTransactionForm';
+import NotificationCenter from '@/components/notifications/NotificationCenter';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
@@ -318,6 +319,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-2">
             <CategoryManager onSuccess={fetchData} />
+            <NotificationCenter />
             <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
               <Settings className="w-4 h-4" />
             </Button>
@@ -811,7 +813,13 @@ export default function Dashboard() {
 
           {/* Learn Tab */}
           <TabsContent value="learn" className="space-y-6">
-            <FinancialLessons />
+            <FinancialLessons
+              transactions={transactions}
+              categories={categories}
+              budgets={budgets}
+              savingsGoals={savingsGoals}
+              accounts={accounts}
+            />
           </TabsContent>
         </Tabs>
       </main>
