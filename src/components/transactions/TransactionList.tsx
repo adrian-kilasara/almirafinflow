@@ -162,7 +162,10 @@ export default function TransactionList({ transactions, categories, accounts, on
         const txn = transactions.find(t => t.id === id);
         if (!txn) continue;
         const account = accounts.find(a => a.id === txn.account_id);
-        const { error } = await supabase.from('transactions').delete().eq('id', id);
+        // Soft delete
+        const { error } = await supabase.from('transactions').update({
+          is_deleted: true, deleted_at: new Date().toISOString(), status: 'deleted',
+        } as any).eq('id', id);
         if (error) throw error;
         if (account) {
           const reverse = txn.type === 'income' ? -Number(txn.amount) : Number(txn.amount);
