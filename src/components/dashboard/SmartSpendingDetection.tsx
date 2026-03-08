@@ -90,7 +90,7 @@ export default function SmartSpendingDetection({ transactions, categories, budge
     // 3. Recurring transaction detection
     const descFrequency: Record<string, number> = {};
     recentExpenses.forEach(t => {
-      const key = (t.description || t.merchant || '').toLowerCase().trim();
+      const key = (t.description || '').toLowerCase().trim();
       if (key.length > 2) descFrequency[key] = (descFrequency[key] || 0) + 1;
     });
 
