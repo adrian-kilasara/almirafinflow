@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import {
   Settings, User, Shield, Globe, Calculator, Bell, Sparkles,
-  Database, Monitor, Wrench, ArrowLeft, ChevronRight,
+  Database, Monitor, Wrench, ArrowLeft, ChevronRight, Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
