@@ -198,7 +198,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
       if (Object.keys(profileUpdate).length > 0) {
         promises.push(
-          supabase.from('profiles').update(profileUpdate).eq('user_id', user.id).then()
+          supabase.from('profiles').update(profileUpdate).eq('user_id', user.id).select() as any
         );
       }
 
@@ -207,7 +207,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           supabase.from('user_settings').upsert(
             { user_id: user.id, ...settingsUpdate, updated_at: new Date().toISOString() } as any,
             { onConflict: 'user_id' }
-          ).then()
+          ).select() as any
         );
       }
 
