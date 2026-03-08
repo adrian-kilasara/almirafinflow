@@ -14,6 +14,9 @@ export async function emitTransactionEvent(
   accountId: string,
   categoryId?: string | null
 ) {
+  // 0. Log activity
+  logActivity(userId, `${type} recorded`, 'transactions', { amount, description, accountId, categoryId });
+
   // 1. Create notification
   await supabase.from('notifications').insert({
     user_id: userId,
