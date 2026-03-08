@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import ReconciliationPanel from '@/components/accounts/ReconciliationPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate } from '@/lib/format';
 import {
   TrendingUp, TrendingDown, ArrowLeft, Activity, History,
-  Search, Download, BarChart3, AlertTriangle, Shield, ChevronRight,
+  Search, Download, BarChart3, AlertTriangle, Shield, ChevronRight, Scale,
   ArrowUpRight, ArrowDownRight, Zap, Clock, Wallet, Calendar,
 } from 'lucide-react';
 import {
@@ -26,6 +27,7 @@ interface AccountDetailPanelProps {
 
 const tabItems = [
   { id: 'transactions', label: 'Transactions', icon: Zap },
+  { id: 'reconcile', label: 'Reconcile', icon: Scale },
   { id: 'linked', label: 'Linked', icon: ChevronRight },
   { id: 'audit', label: 'Audit Log', icon: History },
 ] as const;
@@ -431,6 +433,24 @@ export default function AccountDetailPanel({
                   <p className="text-[11px] text-muted-foreground/60 mt-1">Try adjusting your search</p>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {/* Reconcile */}
+          {activeTab === 'reconcile' && (
+            <motion.div
+              key="reconcile"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ReconciliationPanel
+                account={account}
+                transactions={transactions}
+                onBack={() => setActiveTab('transactions')}
+                onRefresh={() => {}}
+              />
             </motion.div>
           )}
 

@@ -23,7 +23,7 @@ export default function ImportExportSettings() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
+  const [importResult, setImportResult] = useState<{ success: number; failed: number; duplicates: number } | null>(null);
 
   const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,8 +65,18 @@ export default function ImportExportSettings() {
       }
       const accountId = accounts[0].id;
 
+      // Fetch existing transactions for duplicate detection
+      const { data: existingTxns } = await supabase
+        .from('transactions').select('date, amount, description')
+        .eq('user_id', user.id).eq('account_id', accountId);
+      
+      const existingSet = new Set(
+        (existingTxns || []).map(t => `${t.date}|${t.amount}|${(t.description || '').toLowerCase().trim()}`)
+      );
+
       let success = 0;
       let failed = 0;
+      let duplicates = 0;
 
       // Process in batches of 50
       const batchSize = 50;
@@ -90,13 +100,24 @@ export default function ImportExportSettings() {
             if (!isNaN(parsed.getTime())) date = parsed.toISOString().split('T')[0];
           }
 
+          const desc = descIdx !== -1 ? (cols[descIdx] || '').replace(/"/g, '').trim() || null : null;
+          const absAmt = Math.abs(amount);
+
+          // Duplicate detection
+          const fingerprint = `${date}|${absAmt}|${(desc || '').toLowerCase().trim()}`;
+          if (existingSet.has(fingerprint)) {
+            duplicates++;
+            return null;
+          }
+          existingSet.add(fingerprint);
+
           return {
             user_id: user.id,
             account_id: accountId,
             type,
-            amount: Math.abs(amount),
+            amount: absAmt,
             date,
-            description: descIdx !== -1 ? (cols[descIdx] || '').replace(/"/g, '').trim() || null : null,
+            description: desc,
             notes: notesIdx !== -1 ? (cols[notesIdx] || '').replace(/"/g, '').trim() || null : null,
           };
         }).filter(Boolean);
@@ -111,8 +132,9 @@ export default function ImportExportSettings() {
         }
       }
 
-      setImportResult({ success, failed });
+      setImportResult({ success, failed, duplicates });
       if (success > 0) toast.success(`Imported ${success} transactions`);
+      if (duplicates > 0) toast.info(`${duplicates} duplicates skipped`);
       if (failed > 0) toast.error(`${failed} rows failed to import`);
     } catch (err: any) {
       toast.error(err.message || 'Import failed');
@@ -238,6 +260,9 @@ export default function ImportExportSettings() {
                 )}
                 <div className="text-xs">
                   <span className="font-semibold text-income">{importResult.success} imported</span>
+                  {importResult.duplicates > 0 && (
+                    <span className="text-muted-foreground"> · {importResult.duplicates} duplicates skipped</span>
+                  )}
                   {importResult.failed > 0 && (
                     <span className="text-muted-foreground"> · {importResult.failed} failed</span>
                   )}

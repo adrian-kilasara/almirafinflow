@@ -162,7 +162,10 @@ export default function TransactionList({ transactions, categories, accounts, on
         const txn = transactions.find(t => t.id === id);
         if (!txn) continue;
         const account = accounts.find(a => a.id === txn.account_id);
-        const { error } = await supabase.from('transactions').delete().eq('id', id);
+        // Soft delete
+        const { error } = await supabase.from('transactions').update({
+          is_deleted: true, deleted_at: new Date().toISOString(), status: 'deleted',
+        } as any).eq('id', id);
         if (error) throw error;
         if (account) {
           const reverse = txn.type === 'income' ? -Number(txn.amount) : Number(txn.amount);
@@ -213,6 +216,28 @@ export default function TransactionList({ transactions, categories, accounts, on
       if (!oldAcct || !newAcct) throw new Error('Account not found');
       const oldBalChange = old.type === 'income' ? -Number(old.amount) : Number(old.amount);
       const newBalChange = data.type === 'income' ? Number(data.amount) : -Number(data.amount);
+      // Log edit history before update
+      const changedFields: Record<string, unknown> = {};
+      const oldValues: Record<string, unknown> = {};
+      const newValues: Record<string, unknown> = {};
+      const oldAny = old as any;
+      const fieldMap: Record<string, string> = { type: 'type', amount: 'amount', account_id: 'account_id', category_id: 'category_id', description: 'description', merchant: 'merchant', notes: 'notes', date: 'date', payment_method: 'payment_method', status: 'status' };
+      for (const [key, field] of Object.entries(fieldMap)) {
+        const oldVal = oldAny[field]; const newVal = (data as any)[key];
+        if (String(oldVal ?? '') !== String(newVal ?? '')) {
+          changedFields[field] = true; oldValues[field] = oldVal; newValues[field] = newVal;
+        }
+      }
+      if (Object.keys(changedFields).length > 0) {
+        const { data: userData2 } = await supabase.auth.getUser();
+        if (userData2.user) {
+          await supabase.from('transaction_history' as any).insert({
+            transaction_id: old.id, user_id: userData2.user.id,
+            changed_fields: changedFields, old_values: oldValues, new_values: newValues,
+          });
+        }
+      }
+
       const { error } = await supabase.from('transactions').update({
         type: data.type as TransactionType, amount: Number(data.amount), account_id: data.account_id,
         category_id: data.category_id || null, description: data.description || null,
@@ -249,7 +274,12 @@ export default function TransactionList({ transactions, categories, accounts, on
       const txn = transactions.find(t => t.id === id);
       if (!txn) throw new Error('Not found');
       const account = accounts.find(a => a.id === txn.account_id);
-      const { error } = await supabase.from('transactions').delete().eq('id', id);
+      // Soft delete instead of hard delete
+      const { error } = await supabase.from('transactions').update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        status: 'deleted',
+      } as any).eq('id', id);
       if (error) throw error;
       if (account) {
         const reverse = txn.type === 'income' ? -Number(txn.amount) : Number(txn.amount);
@@ -263,7 +293,7 @@ export default function TransactionList({ transactions, categories, accounts, on
           Number(txn.amount), txn.description || 'Transaction', txn.account_id
         );
       }
-      toast.success('Transaction deleted'); setDeleteConfirmId(null); onRefresh();
+      toast.success('Transaction archived (soft deleted)'); setDeleteConfirmId(null); onRefresh();
     } catch { toast.error('Failed to delete'); }
     finally { setDeleting(null); }
   };

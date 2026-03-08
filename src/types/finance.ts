@@ -81,10 +81,42 @@ export interface Transaction {
   notes?: string;
   tags?: string[];
   is_recurring: boolean;
+  is_deleted?: boolean;
+  deleted_at?: string;
+  is_reconciled?: boolean;
+  reconciled_at?: string;
   created_at: string;
   updated_at: string;
   category?: Category;
   account?: Account;
+}
+
+export interface TransactionHistoryEntry {
+  id: string;
+  transaction_id: string;
+  user_id: string;
+  version: number;
+  changed_fields: Record<string, unknown>;
+  old_values: Record<string, unknown>;
+  new_values: Record<string, unknown>;
+  changed_by: string;
+  created_at: string;
+}
+
+export interface ReconciliationSession {
+  id: string;
+  user_id: string;
+  account_id: string;
+  statement_balance: number;
+  system_balance: number;
+  difference: number;
+  status: string;
+  reconciled_count: number;
+  total_count: number;
+  notes?: string;
+  started_at: string;
+  completed_at?: string;
+  created_at: string;
 }
 
 export interface Budget {
