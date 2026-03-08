@@ -1165,6 +1165,7 @@ export default function Dashboard() {
               </motion.div>
             )}
             </AnimatePresence>
+          </Suspense>
           </TabsContent>
 
           {/* ═══ TRANSACTIONS TAB ═══ */}
