@@ -513,307 +513,229 @@ export default function Dashboard() {
               </AnimatePresence>
 
               {/* ╔═══════════════════════════════════════════════════╗
-                  ║  COMMAND CENTER HERO — Cinematic financial pulse  ║
+                  ║  PULSE STRIP — Horizontal scrollable stat cards    ║
                   ╚═══════════════════════════════════════════════════╝ */}
               <motion.div variants={staggerItem}>
-                <div className="relative rounded-3xl overflow-hidden border border-primary/10">
-                  {/* Animated mesh gradient background */}
-                  <div className="absolute inset-0 overflow-hidden">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Net Worth', value: formatCurrency(totalBalance), icon: Wallet, trend: netFlow >= 0, trendVal: `${netFlow >= 0 ? '+' : ''}${formatCurrency(netFlow)}`, gradient: 'from-primary/15 to-primary/5', iconColor: 'text-primary', borderColor: 'border-primary/20' },
+                    { label: 'Income', value: formatCurrency(totalIncome), icon: ArrowUpRight, trend: true, trendVal: 'This month', gradient: 'from-income/15 to-income/5', iconColor: 'text-income', borderColor: 'border-income/20' },
+                    { label: 'Expenses', value: formatCurrency(totalExpenses), icon: ArrowDownRight, trend: false, trendVal: 'This month', gradient: 'from-expense/15 to-expense/5', iconColor: 'text-expense', borderColor: 'border-expense/20' },
+                    { label: 'Savings Rate', value: `${savingsRate}%`, icon: Zap, trend: savingsRate >= 20, trendVal: savingsRate >= 20 ? 'On track' : 'Needs attention', gradient: savingsRate >= 20 ? 'from-income/15 to-income/5' : 'from-[hsl(var(--warning))]/15 to-[hsl(var(--warning))]/5', iconColor: savingsRate >= 20 ? 'text-income' : 'text-[hsl(var(--warning))]', borderColor: savingsRate >= 20 ? 'border-income/20' : 'border-[hsl(var(--warning))]/20' },
+                  ].map((stat, i) => (
                     <motion.div
-                      className="absolute w-[500px] h-[500px] rounded-full bg-primary/8 blur-[120px]"
-                      animate={{ x: ['-20%', '60%', '-20%'], y: ['-30%', '40%', '-30%'] }}
-                      transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                    <motion.div
-                      className="absolute w-[400px] h-[400px] rounded-full bg-income/6 blur-[100px]"
-                      animate={{ x: ['80%', '10%', '80%'], y: ['60%', '-10%', '60%'] }}
-                      transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                    <motion.div
-                      className="absolute w-[300px] h-[300px] rounded-full bg-accent/8 blur-[80px]"
-                      animate={{ x: ['40%', '70%', '40%'], y: ['10%', '70%', '10%'] }}
-                      transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                    <div className="absolute inset-0 bg-card/60 backdrop-blur-sm" />
-                  </div>
-                  
-                  <div className="relative p-5 sm:p-7 lg:p-8">
-                    {/* Top: Greeting + Health Badge */}
-                    <div className="flex items-start justify-between mb-6">
-                      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-1">
-                          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                        </p>
-                        <h2 className="text-xl sm:text-2xl font-extrabold">
-                          Financial Command Center
-                        </h2>
-                      </motion.div>
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2, type: 'spring' }}
-                        whileHover={{ scale: 1.05, rotate: 3 }}
-                        className="relative flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl"
-                      >
-                        <div className="relative">
-                          <svg className="w-8 h-8 -rotate-90" viewBox="0 0 36 36">
-                            <circle cx="18" cy="18" r="15" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
-                            <motion.circle
-                              cx="18" cy="18" r="15" fill="none" stroke="hsl(var(--primary))" strokeWidth="3"
-                              strokeLinecap="round" strokeDasharray={`${healthScore * 0.94} 94`}
-                              initial={{ strokeDasharray: '0 94' }}
-                              animate={{ strokeDasharray: `${healthScore * 0.94} 94` }}
-                              transition={{ duration: 1.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                            />
-                          </svg>
-                          <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold font-mono text-primary">{healthScore}</span>
+                      key={stat.label}
+                      initial={{ opacity: 0, y: 24, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: 0.1 + i * 0.07, type: 'spring', stiffness: 200, damping: 20 }}
+                      whileHover={{ y: -4, scale: 1.02 }}
+                      className={`relative overflow-hidden rounded-2xl border ${stat.borderColor} bg-gradient-to-br ${stat.gradient} backdrop-blur-xl p-4 sm:p-5 cursor-default`}
+                    >
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-foreground/[0.02] to-transparent rounded-bl-full" />
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-8 h-8 rounded-xl bg-background/50 flex items-center justify-center backdrop-blur-sm">
+                          <stat.icon className={`w-4 h-4 ${stat.iconColor}`} />
                         </div>
-                        <span className="text-[10px] font-semibold text-primary hidden sm:block">Health</span>
-                      </motion.div>
-                    </div>
-
-                    {/* Center: Giant Net Worth */}
-                    <div className="text-center mb-8">
-                      <motion.p
-                        className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-medium mb-2"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
-                      >
-                        Total Net Worth
-                      </motion.p>
-                      <motion.p
-                        className="text-4xl sm:text-5xl lg:text-6xl font-black font-mono tracking-tighter bg-gradient-to-b from-foreground to-foreground/60 bg-clip-text text-transparent"
-                        initial={{ scale: 0.8, opacity: 0, filter: 'blur(10px)' }}
-                        animate={{ scale: 1, opacity: 1, filter: 'blur(0px)' }}
-                        transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                      >
-                        {formatCurrency(totalBalance)}
-                      </motion.p>
-                      <motion.div
-                        className="flex items-center justify-center gap-1.5 mt-2"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                      >
-                        {netFlow >= 0 ? (
-                          <span className="flex items-center gap-1 text-xs font-semibold text-income">
-                            <ArrowUpRight className="w-3.5 h-3.5" />
-                            +{formatCurrency(netFlow)} this month
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-xs font-semibold text-expense">
-                            <ArrowDownRight className="w-3.5 h-3.5" />
-                            {formatCurrency(netFlow)} this month
-                          </span>
-                        )}
-                      </motion.div>
-                    </div>
-
-                    {/* Bottom: Floating metric pills */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                      {[
-                        { label: 'Income', value: formatCurrency(totalIncome), icon: ArrowUpRight, color: 'text-income', ring: 'ring-income/20', bg: 'bg-income/5' },
-                        { label: 'Expenses', value: formatCurrency(totalExpenses), icon: ArrowDownRight, color: 'text-expense', ring: 'ring-expense/20', bg: 'bg-expense/5' },
-                        { label: 'Saved', value: formatCurrency(totalSavings), icon: PiggyBank, color: 'text-primary', ring: 'ring-primary/20', bg: 'bg-primary/5' },
-                        { label: 'Save Rate', value: `${savingsRate}%`, icon: Zap, color: savingsRate >= 20 ? 'text-income' : 'text-[hsl(var(--warning))]', ring: savingsRate >= 20 ? 'ring-income/20' : 'ring-[hsl(var(--warning))]/20', bg: savingsRate >= 20 ? 'bg-income/5' : 'bg-[hsl(var(--warning))]/5' },
-                      ].map((pill, i) => (
-                        <motion.div
-                          key={pill.label}
-                          initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          transition={{ delay: 0.3 + i * 0.08, type: 'spring', stiffness: 200 }}
-                          whileHover={{ scale: 1.03, y: -2 }}
-                          className={`relative flex items-center gap-2.5 p-3 rounded-2xl ${pill.bg} ring-1 ${pill.ring} backdrop-blur-xl cursor-default`}
-                        >
-                          <pill.icon className={`w-4 h-4 ${pill.color} shrink-0`} />
-                          <div className="min-w-0">
-                            <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">{pill.label}</p>
-                            <p className={`text-sm font-bold font-mono ${pill.color} truncate`}>{pill.value}</p>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
+                        <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground font-semibold">{stat.label}</p>
+                      </div>
+                      <p className="text-xl sm:text-2xl font-black font-mono tracking-tight">{stat.value}</p>
+                      <p className={`text-[10px] mt-1 font-medium ${stat.trend ? 'text-income' : 'text-expense'}`}>{stat.trendVal}</p>
+                    </motion.div>
+                  ))}
                 </div>
               </motion.div>
 
               {/* ╔═══════════════════════════════════════════════════╗
-                  ║  ASYMMETRIC BENTO — Streak tall left, cards right ║
+                  ║  COMMAND ROW — Health Score + Streak + AI Advisor  ║
                   ╚═══════════════════════════════════════════════════╝ */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                {/* Streak Tracker — tall card spanning left side */}
-                <motion.div variants={staggerItem} className="lg:col-span-5 xl:col-span-4 2xl:col-span-3">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <motion.div variants={staggerItem}>
+                  <div className="h-full">
+                    <FinancialHealthScore accounts={accounts} transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
+                  </div>
+                </motion.div>
+                <motion.div variants={staggerItem}>
                   <div className="h-full">
                     <StreakTracker transactions={transactions} onStreakUpdate={setCurrentStreak} />
                   </div>
                 </motion.div>
-                
-                {/* Right stack: Health + Accounts + Budgets */}
-                <div className="lg:col-span-7 xl:col-span-8 2xl:col-span-9 flex flex-col gap-4">
-                  <motion.div variants={staggerItem}>
-                    <FinancialHealthScore accounts={accounts} transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
-                  </motion.div>
-                  
-                  {/* Side-by-side mini dashlets */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-4">
-                    {/* Accounts */}
-                    <motion.div variants={staggerItem}>
-                      <Card className="h-full border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-colors duration-300">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                                <CreditCard className="w-3 h-3 text-primary" />
-                              </div>
-                              <p className="text-xs font-bold">Accounts</p>
-                            </div>
-                            <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2 hover:bg-primary/10 rounded-full" onClick={() => setActiveTab('accounts')}>View →</Button>
+                <motion.div variants={staggerItem}>
+                  <Card className="h-full border-primary/10 bg-gradient-to-br from-card via-primary/[0.03] to-card overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-accent/5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl pointer-events-none" />
+                    <CardContent className="p-5 relative h-full flex flex-col">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2.5">
+                          <motion.div
+                            className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center"
+                            animate={{ boxShadow: ['0 0 0px hsl(var(--primary)/0)', '0 0 20px hsl(var(--primary)/0.25)', '0 0 0px hsl(var(--primary)/0)'] }}
+                            transition={{ duration: 3, repeat: Infinity }}
+                          >
+                            <Sparkles className="w-4 h-4 text-primary" />
+                          </motion.div>
+                          <div>
+                            <p className="text-sm font-bold">AI Advisor</p>
+                            <p className="text-[9px] text-muted-foreground">Personalized insights</p>
                           </div>
-                          {accounts.length > 0 ? (
-                            <div className="space-y-1.5">
-                              {accounts.filter(a => a.is_active).slice(0, 4).map((a, i) => (
-                                <motion.div key={a.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04 }}
-                                  whileHover={{ x: 3 }}
-                                  className="flex items-center justify-between p-2 rounded-xl bg-muted/15 hover:bg-muted/30 transition-all cursor-pointer group/item"
-                                  onClick={() => { setSelectedAccount(a); setActiveTab('accounts'); }}
-                                >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <span className="text-sm">{ACCOUNT_TYPE_ICONS[a.type] || '💰'}</span>
-                                    <p className="font-medium text-[11px] truncate group-hover/item:text-primary transition-colors">{a.name}</p>
-                                  </div>
-                                  <p className={`text-[11px] font-mono font-semibold ${Number(a.balance) >= 0 ? 'text-income' : 'text-expense'}`}>
-                                    {formatCurrency(Number(a.balance), a.currency)}
-                                  </p>
-                                </motion.div>
-                              ))}
-                              {accounts.filter(a => a.is_active).length > 4 && (
-                                <p className="text-[9px] text-muted-foreground text-center pt-1">+{accounts.filter(a => a.is_active).length - 4} more accounts</p>
-                              )}
-                            </div>
+                        </div>
+                        <Button onClick={getFinancialTip} disabled={loadingTip} size="sm" className="rounded-full h-8 text-xs gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 border-0">
+                          {loadingTip ? (
+                            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full" />
                           ) : (
-                            <div className="text-center py-6">
-                              <CreditCard className="w-8 h-8 mx-auto mb-2 text-muted-foreground/15" />
-                              <p className="text-[10px] text-muted-foreground">No accounts yet</p>
-                            </div>
+                            <><Sparkles className="w-3.5 h-3.5" /> Get Advice</>
                           )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-
-                    {/* Budgets */}
-                    <motion.div variants={staggerItem}>
-                      <Card className="h-full border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-colors duration-300">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                                <Folder className="w-3 h-3 text-primary" />
-                              </div>
-                              <p className="text-xs font-bold">Budgets</p>
-                            </div>
-                            <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2 hover:bg-primary/10 rounded-full" onClick={() => setActiveTab('budgets')}>View →</Button>
-                          </div>
-                          {budgets.length > 0 ? (
-                            <div className="space-y-2.5">
-                              {budgets.slice(0, 4).map((b, i) => {
-                                const spent = currentMonthTransactions.filter(t => t.type === 'expense' && (b.category_id ? t.category_id === b.category_id : true)).reduce((s, t) => s + Number(t.amount), 0);
-                                const pct = Math.min(Math.round((spent / Number(b.amount)) * 100), 100);
-                                const over = spent > Number(b.amount);
-                                return (
-                                  <motion.div key={b.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04 }} className="space-y-1">
-                                    <div className="flex justify-between items-center">
-                                      <p className="text-[11px] font-medium truncate">{b.name}</p>
-                                      <span className={`text-[10px] font-mono font-bold ${over ? 'text-expense' : pct > 75 ? 'text-[hsl(var(--warning))]' : 'text-muted-foreground'}`}>{pct}%</span>
-                                    </div>
-                                    <div className="h-1.5 rounded-full bg-muted/20 overflow-hidden">
-                                      <motion.div
-                                        className={`h-full rounded-full ${over ? 'bg-gradient-to-r from-expense/80 to-expense' : pct > 75 ? 'bg-gradient-to-r from-[hsl(var(--warning))]/80 to-[hsl(var(--warning))]' : 'bg-gradient-to-r from-primary/80 to-primary'}`}
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${pct}%` }}
-                                        transition={{ duration: 0.8, delay: 0.2 + i * 0.1 }}
-                                      />
-                                    </div>
-                                  </motion.div>
-                                );
-                              })}
-                            </div>
+                        </Button>
+                      </div>
+                      <div className="flex-1 flex items-center">
+                        <AnimatePresence mode="wait">
+                          {aiTip ? (
+                            <motion.p key="tip" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                              className="text-xs text-muted-foreground leading-relaxed"
+                            >{aiTip}</motion.p>
                           ) : (
-                            <div className="text-center py-6">
-                              <Folder className="w-8 h-8 mx-auto mb-2 text-muted-foreground/15" />
-                              <p className="text-[10px] text-muted-foreground">No budgets set</p>
-                            </div>
+                            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 0.7 }} className="text-center w-full">
+                              <Sparkles className="w-8 h-8 mx-auto mb-2 text-primary/20" />
+                              <p className="text-xs text-muted-foreground italic">Tap "Get Advice" for personalized financial coaching</p>
+                            </motion.div>
                           )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-
-                    {/* Savings Quick View — visible on 2xl+ to fill the 3rd column */}
-                    <motion.div variants={staggerItem} className="hidden 2xl:block">
-                      <Card className="h-full border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-colors duration-300">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                                <PiggyBank className="w-3 h-3 text-primary" />
-                              </div>
-                              <p className="text-xs font-bold">Savings</p>
-                            </div>
-                            <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2 hover:bg-primary/10 rounded-full" onClick={() => setActiveTab('savings')}>View →</Button>
-                          </div>
-                          {savingsGoals.length > 0 ? (
-                            <div className="space-y-1.5">
-                              {savingsGoals.slice(0, 4).map((g, i) => {
-                                const pct = Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100);
-                                return (
-                                  <motion.div key={g.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04 }}
-                                    className="flex items-center justify-between p-2 rounded-xl bg-muted/15 hover:bg-muted/30 transition-all"
-                                  >
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <span className="text-sm">{g.icon || '🎯'}</span>
-                                      <p className="font-medium text-[11px] truncate">{g.name}</p>
-                                    </div>
-                                    <p className={`text-[11px] font-mono font-semibold ${pct >= 80 ? 'text-income' : 'text-primary'}`}>{pct}%</p>
-                                  </motion.div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className="text-center py-6">
-                              <PiggyBank className="w-8 h-8 mx-auto mb-2 text-muted-foreground/15" />
-                              <p className="text-[10px] text-muted-foreground">No savings goals</p>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </div>
-                </div>
+                        </AnimatePresence>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </div>
 
               {/* ╔═══════════════════════════════════════════════════╗
-                  ║  WEALTH PANORAMA — Net Worth + Savings sidebar    ║
+                  ║  WEALTH CANVAS — Full-width Net Worth Chart       ║
                   ╚═══════════════════════════════════════════════════╝ */}
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-                <motion.div variants={staggerItem} className="xl:col-span-8 2xl:col-span-9">
-                  <NetWorthChart accounts={accounts} transactions={transactions} />
-                </motion.div>
-                <motion.div variants={staggerItem} className="xl:col-span-4 2xl:col-span-3 flex flex-col gap-4">
-                  {/* Savings Goals with circular progress */}
-                  <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm">
-                    <CardContent className="p-4">
+              <motion.div variants={staggerItem}>
+                <NetWorthChart accounts={accounts} transactions={transactions} />
+              </motion.div>
+
+              {/* ╔═══════════════════════════════════════════════════╗
+                  ║  TRIPLE LENS — Accounts | Budgets | Savings       ║
+                  ╚═══════════════════════════════════════════════════╝ */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Accounts */}
+                <motion.div variants={staggerItem}>
+                  <Card className="h-full border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-colors duration-300">
+                    <CardContent className="p-4 sm:p-5">
                       <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                            <Target className="w-3 h-3 text-primary" />
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                            <CreditCard className="w-4 h-4 text-primary" />
                           </div>
-                          <p className="text-xs font-bold">Savings Goals</p>
+                          <div>
+                            <p className="text-sm font-bold">Accounts</p>
+                            <p className="text-[9px] text-muted-foreground">{accounts.filter(a => a.is_active).length} active</p>
+                          </div>
                         </div>
-                        <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2 hover:bg-primary/10 rounded-full" onClick={() => setActiveTab('savings')}>View →</Button>
+                        <Button variant="ghost" size="sm" className="text-[10px] text-primary h-7 px-3 hover:bg-primary/10 rounded-full" onClick={() => setActiveTab('accounts')}>View All →</Button>
+                      </div>
+                      {accounts.length > 0 ? (
+                        <div className="space-y-1.5">
+                          {accounts.filter(a => a.is_active).slice(0, 5).map((a, i) => (
+                            <motion.div key={a.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04 }}
+                              whileHover={{ x: 4 }}
+                              className="flex items-center justify-between p-2.5 rounded-xl bg-muted/10 hover:bg-muted/25 transition-all cursor-pointer group/acc"
+                              onClick={() => { setSelectedAccount(a); setActiveTab('accounts'); }}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="text-base">{ACCOUNT_TYPE_ICONS[a.type] || '💰'}</span>
+                                <p className="font-medium text-xs truncate group-hover/acc:text-primary transition-colors">{a.name}</p>
+                              </div>
+                              <p className={`text-xs font-mono font-bold ${Number(a.balance) >= 0 ? 'text-income' : 'text-expense'}`}>
+                                {formatCurrency(Number(a.balance), a.currency)}
+                              </p>
+                            </motion.div>
+                          ))}
+                          {accounts.filter(a => a.is_active).length > 5 && (
+                            <p className="text-[9px] text-muted-foreground text-center pt-1">+{accounts.filter(a => a.is_active).length - 5} more</p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <CreditCard className="w-10 h-10 mx-auto mb-2 text-muted-foreground/10" />
+                          <p className="text-xs text-muted-foreground">No accounts yet</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Budgets */}
+                <motion.div variants={staggerItem}>
+                  <Card className="h-full border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-colors duration-300">
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                            <Folder className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold">Budgets</p>
+                            <p className="text-[9px] text-muted-foreground">{budgets.length} active</p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" className="text-[10px] text-primary h-7 px-3 hover:bg-primary/10 rounded-full" onClick={() => setActiveTab('budgets')}>View All →</Button>
+                      </div>
+                      {budgets.length > 0 ? (
+                        <div className="space-y-3">
+                          {budgets.slice(0, 5).map((b, i) => {
+                            const spent = currentMonthTransactions.filter(t => t.type === 'expense' && (b.category_id ? t.category_id === b.category_id : true)).reduce((s, t) => s + Number(t.amount), 0);
+                            const pct = Math.min(Math.round((spent / Number(b.amount)) * 100), 100);
+                            const over = spent > Number(b.amount);
+                            return (
+                              <motion.div key={b.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04 }} className="space-y-1.5">
+                                <div className="flex justify-between items-center">
+                                  <p className="text-xs font-medium truncate">{b.name}</p>
+                                  <span className={`text-[10px] font-mono font-bold ${over ? 'text-expense' : pct > 75 ? 'text-[hsl(var(--warning))]' : 'text-muted-foreground'}`}>{pct}%</span>
+                                </div>
+                                <div className="h-2 rounded-full bg-muted/20 overflow-hidden">
+                                  <motion.div
+                                    className={`h-full rounded-full ${over ? 'bg-gradient-to-r from-expense/80 to-expense' : pct > 75 ? 'bg-gradient-to-r from-[hsl(var(--warning))]/80 to-[hsl(var(--warning))]' : 'bg-gradient-to-r from-primary/80 to-primary'}`}
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${pct}%` }}
+                                    transition={{ duration: 0.8, delay: 0.2 + i * 0.1 }}
+                                  />
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-[9px] text-muted-foreground font-mono">{formatCurrency(spent)}</span>
+                                  <span className="text-[9px] text-muted-foreground font-mono">of {formatCurrency(Number(b.amount))}</span>
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Folder className="w-10 h-10 mx-auto mb-2 text-muted-foreground/10" />
+                          <p className="text-xs text-muted-foreground">No budgets set</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Savings Goals */}
+                <motion.div variants={staggerItem}>
+                  <Card className="h-full border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-colors duration-300">
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                            <Target className="w-4 h-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold">Savings Goals</p>
+                            <p className="text-[9px] text-muted-foreground">{savingsGoals.length} goals</p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="sm" className="text-[10px] text-primary h-7 px-3 hover:bg-primary/10 rounded-full" onClick={() => setActiveTab('savings')}>View All →</Button>
                       </div>
                       {savingsGoals.length > 0 ? (
-                        <div className="space-y-3">
-                          {savingsGoals.slice(0, 4).map((g, i) => {
+                        <div className="space-y-2.5">
+                          {savingsGoals.slice(0, 5).map((g, i) => {
                             const pct = Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100);
                             const circumference = 2 * Math.PI * 14;
                             return (
@@ -821,7 +743,7 @@ export default function Dashboard() {
                                 key={g.id}
                                 initial={{ opacity: 0, x: -8 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.15 + i * 0.06 }}
+                                transition={{ delay: 0.1 + i * 0.05 }}
                                 className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/15 transition-colors"
                               >
                                 <div className="relative shrink-0">
@@ -840,9 +762,9 @@ export default function Dashboard() {
                                   <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold font-mono">{pct}%</span>
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-xs">{g.icon || '🎯'}</span>
-                                    <p className="text-[11px] font-semibold truncate">{g.name}</p>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-sm">{g.icon || '🎯'}</span>
+                                    <p className="text-xs font-semibold truncate">{g.name}</p>
                                   </div>
                                   <p className="text-[10px] text-muted-foreground font-mono">
                                     {formatCurrency(Number(g.current_amount))} / {formatCurrency(Number(g.target_amount))}
@@ -853,48 +775,11 @@ export default function Dashboard() {
                           })}
                         </div>
                       ) : (
-                        <div className="text-center py-6">
-                          <PiggyBank className="w-8 h-8 mx-auto mb-2 text-muted-foreground/15" />
-                          <p className="text-[10px] text-muted-foreground">No goals yet</p>
+                        <div className="text-center py-8">
+                          <Target className="w-10 h-10 mx-auto mb-2 text-muted-foreground/10" />
+                          <p className="text-xs text-muted-foreground">No savings goals yet</p>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                  
-                  {/* AI Advisor compact */}
-                  <Card className="border-primary/10 bg-gradient-to-br from-card via-primary/[0.03] to-card overflow-hidden relative">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
-                    <CardContent className="p-4 relative">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <motion.div
-                            className="w-7 h-7 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center"
-                            animate={{ boxShadow: ['0 0 0px hsl(var(--primary)/0)', '0 0 15px hsl(var(--primary)/0.2)', '0 0 0px hsl(var(--primary)/0)'] }}
-                            transition={{ duration: 3, repeat: Infinity }}
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-primary" />
-                          </motion.div>
-                          <p className="text-xs font-bold">AI Advisor</p>
-                        </div>
-                        <Button onClick={getFinancialTip} disabled={loadingTip} size="sm" variant="ghost" className="rounded-full h-7 text-[10px] gap-1 hover:bg-primary/10">
-                          {loadingTip ? (
-                            <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full" />
-                          ) : (
-                            <><Sparkles className="w-3 h-3" /> Ask</>
-                          )}
-                        </Button>
-                      </div>
-                      <AnimatePresence mode="wait">
-                        {aiTip ? (
-                          <motion.p key="tip" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                            className="text-[11px] text-muted-foreground leading-relaxed line-clamp-5"
-                          >{aiTip}</motion.p>
-                        ) : (
-                          <motion.p key="empty" initial={{ opacity: 0 }} animate={{ opacity: 0.6 }} className="text-[11px] text-muted-foreground italic">
-                            Tap "Ask" for personalized advice…
-                          </motion.p>
-                        )}
-                      </AnimatePresence>
                     </CardContent>
                   </Card>
                 </motion.div>
