@@ -1,4 +1,5 @@
 export type AccountType = 'bank' | 'mobile_money' | 'cash' | 'investment' | 'crypto' | 'other';
+export type AccountClassification = 'asset' | 'liability';
 export type TransactionType = 'income' | 'expense' | 'transfer';
 export type CurrencyCode = 'KES' | 'TZS' | 'UGX' | 'RWF' | 'BIF' | 'ETB' | 'USD' | 'EUR' | 'GBP';
 export type BudgetPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -8,13 +9,52 @@ export interface Account {
   user_id: string;
   name: string;
   type: AccountType;
+  classification: AccountClassification;
   currency: CurrencyCode;
   balance: number;
+  opening_balance: number;
   icon?: string;
   color?: string;
   is_active: boolean;
+  is_archived: boolean;
+  min_balance_alert?: number | null;
+  institution_name?: string | null;
+  account_number?: string | null;
+  notes?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface AccountAuditLog {
+  id: string;
+  account_id: string;
+  user_id: string;
+  action: string;
+  field_changed?: string;
+  old_value?: string;
+  new_value?: string;
+  amount?: number;
+  balance_before?: number;
+  balance_after?: number;
+  notes?: string;
+  created_at: string;
+}
+
+export interface Transfer {
+  id: string;
+  user_id: string;
+  from_account_id: string;
+  to_account_id: string;
+  amount: number;
+  from_currency: string;
+  to_currency: string;
+  exchange_rate: number;
+  converted_amount: number;
+  from_transaction_id?: string;
+  to_transaction_id?: string;
+  description?: string;
+  transfer_type: string;
+  created_at: string;
 }
 
 export interface Category {
@@ -165,6 +205,11 @@ export const ACCOUNT_TYPE_ICONS: Record<AccountType, string> = {
   investment: '📈',
   crypto: '₿',
   other: '💰',
+};
+
+export const ACCOUNT_CLASSIFICATION_LABELS: Record<AccountClassification, string> = {
+  asset: 'Asset',
+  liability: 'Liability',
 };
 
 export const BADGE_CATEGORIES = ['transactions', 'streaks', 'savings', 'budgets', 'accounts', 'health'] as const;
