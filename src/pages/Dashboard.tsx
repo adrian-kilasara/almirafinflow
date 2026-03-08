@@ -27,36 +27,38 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-// Components
+// Eagerly loaded components (needed for Overview tab)
 import TransactionList from '@/components/transactions/TransactionList';
-import TransactionForm from '@/components/transactions/TransactionForm';
-import AccountForm from '@/components/accounts/AccountForm';
 import AccountCard from '@/components/accounts/AccountCard';
-import AccountDetailPanel from '@/components/accounts/AccountDetailPanel';
-import TransferForm from '@/components/accounts/TransferForm';
-import BudgetForm from '@/components/budgets/BudgetForm';
-import BudgetList from '@/components/budgets/BudgetList';
-import BudgetCard from '@/components/budgets/BudgetCard';
-import SavingsDashboard from '@/components/savings/SavingsDashboard';
-import CategoryManager from '@/components/categories/CategoryManager';
-import EnhancedReports from '@/components/reports/EnhancedReports';
-import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
-import UserBadges from '@/components/gamification/UserBadges';
 import StreakTracker from '@/components/gamification/StreakTracker';
-import FinancialLessons from '@/components/education/FinancialLessons';
-import TransactionRulesManager from '@/components/rules/TransactionRulesManager';
+import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
 import FloatingTransactionForm from '@/components/transactions/FloatingTransactionForm';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
 import NetWorthChart from '@/components/dashboard/NetWorthChart';
-import AISmartInsights from '@/components/dashboard/AISmartInsights';
-import BillsSubscriptions from '@/components/bills/BillsSubscriptions';
-import InvestmentTracker from '@/components/investments/InvestmentTracker';
-import FinancialCalendar from '@/components/calendar/FinancialCalendar';
-import SpendingHeatmap from '@/components/dashboard/SpendingHeatmap';
-import PredictiveCashFlow from '@/components/dashboard/PredictiveCashFlow';
-import SmartSpendingDetection from '@/components/dashboard/SmartSpendingDetection';
-import ActivityLog from '@/components/activity/ActivityLog';
-import CalendarSummary from '@/components/dashboard/CalendarSummary';
+import CategoryManager from '@/components/categories/CategoryManager';
+
+// Lazy-loaded components (loaded only when their tab is active)
+const TransactionForm = lazy(() => import('@/components/transactions/TransactionForm'));
+const AccountForm = lazy(() => import('@/components/accounts/AccountForm'));
+const AccountDetailPanel = lazy(() => import('@/components/accounts/AccountDetailPanel'));
+const TransferForm = lazy(() => import('@/components/accounts/TransferForm'));
+const BudgetForm = lazy(() => import('@/components/budgets/BudgetForm'));
+const BudgetList = lazy(() => import('@/components/budgets/BudgetList'));
+const BudgetCard = lazy(() => import('@/components/budgets/BudgetCard'));
+const SavingsDashboard = lazy(() => import('@/components/savings/SavingsDashboard'));
+const EnhancedReports = lazy(() => import('@/components/reports/EnhancedReports'));
+const UserBadges = lazy(() => import('@/components/gamification/UserBadges'));
+const FinancialLessons = lazy(() => import('@/components/education/FinancialLessons'));
+const TransactionRulesManager = lazy(() => import('@/components/rules/TransactionRulesManager'));
+const AISmartInsights = lazy(() => import('@/components/dashboard/AISmartInsights'));
+const BillsSubscriptions = lazy(() => import('@/components/bills/BillsSubscriptions'));
+const InvestmentTracker = lazy(() => import('@/components/investments/InvestmentTracker'));
+const FinancialCalendar = lazy(() => import('@/components/calendar/FinancialCalendar'));
+const SpendingHeatmap = lazy(() => import('@/components/dashboard/SpendingHeatmap'));
+const PredictiveCashFlow = lazy(() => import('@/components/dashboard/PredictiveCashFlow'));
+const SmartSpendingDetection = lazy(() => import('@/components/dashboard/SmartSpendingDetection'));
+const ActivityLog = lazy(() => import('@/components/activity/ActivityLog'));
+const CalendarSummary = lazy(() => import('@/components/dashboard/CalendarSummary'));
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
