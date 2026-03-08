@@ -437,9 +437,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Desktop Tabs */}
+          {/* Desktop Tabs — horizontally scrollable for all screen widths */}
           <div className="hidden md:block relative -mb-px">
-            <div className="flex items-center gap-0.5 relative" role="tablist">
+            <div className="flex items-center gap-0.5 relative overflow-x-auto scrollbar-hide" role="tablist">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -450,12 +450,12 @@ export default function Dashboard() {
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => setActiveTab(item.id)}
-                    className={`relative flex items-center gap-1.5 px-3.5 py-2.5 text-[13px] font-medium transition-colors duration-200 ${
+                    className={`relative flex items-center gap-1.5 px-3 py-2.5 text-[13px] font-medium transition-colors duration-200 whitespace-nowrap shrink-0 ${
                       isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
-                    <span>{item.label}</span>
+                    <span className="hidden lg:inline">{item.label}</span>
                     {item.badge === '!' && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
                     {item.badge && item.badge !== '!' && <span className="text-[9px] text-muted-foreground bg-muted/50 px-1.5 rounded-full">{item.badge}</span>}
                   </button>
@@ -1095,37 +1095,29 @@ export default function Dashboard() {
         </Tabs>
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border">
-        <div className="flex items-center justify-around py-1.5 px-2">
-          {navItems.slice(0, 5).map((item) => {
+      {/* Mobile Bottom Navigation — scrollable to fit all tabs */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border safe-area-bottom">
+        <div className="flex items-center overflow-x-auto scrollbar-hide py-1.5 px-1 gap-0.5">
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
+                className={`relative flex flex-col items-center gap-0.5 min-w-[3.5rem] px-2 py-1.5 rounded-xl transition-colors shrink-0 ${
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >
                 {isActive && (
-                  <motion.div layoutId="mobile-bottom-indicator" className="absolute -top-1.5 w-8 h-1 bg-primary rounded-full" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
+                  <motion.div layoutId="mobile-bottom-indicator" className="absolute -top-1.5 w-6 h-0.5 bg-primary rounded-full" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
                 )}
-                <Icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <Icon className="w-4.5 h-4.5" />
+                <span className="text-[9px] font-medium leading-tight">{item.label}</span>
+                {item.badge === '!' && <span className="absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full bg-destructive" />}
               </button>
             );
           })}
-          <button
-            onClick={() => setActiveTab(activeTab === 'reports' ? 'learn' : 'reports')}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
-              ['reports', 'learn'].includes(activeTab) ? 'text-primary' : 'text-muted-foreground'
-            }`}
-          >
-            <BarChart3 className="w-5 h-5" />
-            <span className="text-[10px] font-medium">More</span>
-          </button>
         </div>
       </nav>
 
