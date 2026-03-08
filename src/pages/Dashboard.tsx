@@ -767,29 +767,26 @@ export default function Dashboard() {
                 <Folder className="w-5 h-5" />
                 Budget Tracking
               </h2>
-              <BudgetForm categories={categories} onSuccess={fetchData} />
+              <BudgetForm categories={categories} transactions={transactions} savingsGoals={savingsGoals} onSuccess={fetchData} />
             </div>
+            <BudgetList budgets={budgets} transactions={transactions} categories={categories} />
             {budgets.length > 0 ? (
-              <div className="space-y-4">
-                {budgets.map((budget) => (
-                  <BudgetCard 
-                    key={budget.id} 
-                    budget={budget} 
-                    transactions={transactions}
-                    categories={categories}
-                    onRefresh={fetchData} 
-                  />
-                ))}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-muted-foreground">Individual Budgets</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {budgets.map((budget) => (
+                    <BudgetCard 
+                      key={budget.id} 
+                      budget={budget} 
+                      transactions={transactions}
+                      categories={categories}
+                      rolloverEnabled={settings.budget_rollover}
+                      onRefresh={fetchData} 
+                    />
+                  ))}
+                </div>
               </div>
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <Folder className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No budgets set</p>
-                  <p className="text-sm">Create a budget to track your spending</p>
-                </CardContent>
-              </Card>
-            )}
+            ) : null}
           </TabsContent>
 
           {/* Savings Tab */}
