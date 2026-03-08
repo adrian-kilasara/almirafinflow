@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/format';
-import { BarChart3, FileText, Table as TableIcon } from 'lucide-react';
+import { BarChart3, FileText, Table as TableIcon, Download, Calendar, ArrowRight } from 'lucide-react';
 import type { Transaction, Account, Category, Budget, SavingsGoal } from '@/types/finance';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useReportData, type ReportPeriod } from './hooks/useReportData';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import SummaryCards from './sections/SummaryCards';
 import TrendChart from './sections/TrendChart';
@@ -26,9 +28,13 @@ interface EnhancedReportsProps {
   savingsGoals?: SavingsGoal[];
 }
 
-const PERIOD_LABELS: Record<ReportPeriod, string> = {
-  daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly', annual: 'Annual',
-};
+const PERIODS: { id: ReportPeriod; label: string; icon: string }[] = [
+  { id: 'daily', label: 'Daily', icon: '📅' },
+  { id: 'weekly', label: 'Weekly', icon: '📊' },
+  { id: 'monthly', label: 'Monthly', icon: '📈' },
+  { id: 'quarterly', label: 'Quarterly', icon: '📋' },
+  { id: 'annual', label: 'Annual', icon: '🏆' },
+];
 
 const PERIOD_DESCRIPTIONS: Record<ReportPeriod, string> = {
   daily: 'Micro awareness — stop leaks early',
@@ -36,6 +42,11 @@ const PERIOD_DESCRIPTIONS: Record<ReportPeriod, string> = {
   monthly: 'Your most important decision-making layer',
   quarterly: 'Strategic financial review',
   annual: 'Wealth perspective & trajectory',
+};
+
+const stagger = {
+  container: { hidden: {}, show: { transition: { staggerChildren: 0.06 } } },
+  item: { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } },
 };
 
 export default function EnhancedReports({
@@ -62,7 +73,7 @@ export default function EnhancedReports({
   };
 
   const exportSummary = () => {
-    const summary = `FinFlow 2026 — ${PERIOD_LABELS[period]} Report
+    const summary = `FinFlow 2026 — ${PERIODS.find(p => p.id === period)?.label} Report
 Generated: ${format(new Date(), 'PPpp')}
 
 ═══ SUMMARY ═══
@@ -101,60 +112,107 @@ ${data.actionItems.map((a, i) => `${i + 1}. ${a}`).join('\n')}
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-primary" /> Financial Reports
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{PERIOD_DESCRIPTIONS[period]}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <div className="flex rounded-lg border border-border overflow-hidden">
-            {(['daily', 'weekly', 'monthly', 'quarterly', 'annual'] as ReportPeriod[]).map(p => (
-              <button key={p} onClick={() => setPeriod(p)}
-                className={`px-2.5 py-1.5 text-xs font-medium transition-colors ${period === p ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}>
-                {PERIOD_LABELS[p]}
-              </button>
-            ))}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col gap-4"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">Financial Reports</h2>
+              <p className="text-xs text-muted-foreground">{PERIOD_DESCRIPTIONS[period]}</p>
+            </div>
           </div>
-          <Button variant="outline" size="sm" onClick={exportToCSV}><TableIcon className="w-3.5 h-3.5 mr-1" />CSV</Button>
-          <Button variant="outline" size="sm" onClick={exportSummary}><FileText className="w-3.5 h-3.5 mr-1" />Summary</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportToCSV} className="rounded-xl gap-1.5">
+              <Download className="w-3.5 h-3.5" /> CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportSummary} className="rounded-xl gap-1.5">
+              <FileText className="w-3.5 h-3.5" /> Summary
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* 1. Summary Cards */}
-      <SummaryCards
-        income={data.current.income} expense={data.current.expense}
-        net={data.current.net} savingsRate={data.current.savingsRate}
-        changes={data.changes} periodLabel={PERIOD_LABELS[period]}
-      />
+        {/* Period Selector */}
+        <div className="flex gap-1.5 p-1 rounded-2xl bg-muted/50 border border-border w-fit">
+          {PERIODS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setPeriod(p.id)}
+              className={`relative px-3 py-2 text-xs font-medium rounded-xl transition-colors duration-200 ${
+                period === p.id ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {period === p.id && (
+                <motion.div
+                  layoutId="report-period-bg"
+                  className="absolute inset-0 bg-primary rounded-xl"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <span className="hidden sm:inline">{p.icon}</span>
+                {p.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </motion.div>
 
-      {/* 2. Trend Charts */}
-      <TrendChart data={data.trendData} />
+      {/* Report Content */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={period}
+          variants={stagger.container}
+          initial="hidden"
+          animate="show"
+          className="space-y-5"
+        >
+          {/* 1. Summary Cards */}
+          <motion.div variants={stagger.item}>
+            <SummaryCards
+              income={data.current.income} expense={data.current.expense}
+              net={data.current.net} savingsRate={data.current.savingsRate}
+              changes={data.changes} periodLabel={PERIODS.find(p => p.id === period)?.label || ''}
+            />
+          </motion.div>
 
-      {/* 3. Category + Budget + Health row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <CategoryBreakdown data={data.categoryBreakdown} />
-        <BudgetAnalysis data={data.budgetPerformance} />
-      </div>
+          {/* 2. Trend Charts */}
+          <motion.div variants={stagger.item}>
+            <TrendChart data={data.trendData} />
+          </motion.div>
 
-      {/* 4. Health + Forecast + Savings row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <HealthScoreCard score={data.healthScore} trajectory={data.trajectory} multiTrends={data.multiTrends} />
-        <ForecastPanel forecast={data.forecast} netWorth={data.netWorth} />
-        <SavingsAndGoals savingsGoals={savingsGoals} savingsProgress={data.savingsProgress} netWorth={data.netWorth} />
-      </div>
+          {/* 3. Category + Budget */}
+          <motion.div variants={stagger.item} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <CategoryBreakdown data={data.categoryBreakdown} />
+            <BudgetAnalysis data={data.budgetPerformance} />
+          </motion.div>
 
-      {/* 5. Account Breakdown + Top Expenses */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <AccountBreakdownCard accounts={accounts} breakdown={data.accountBreakdown} fixedVsVariable={data.fixedVsVariable} />
-        <TopExpenses expenses={data.topExpenses} categories={categories} />
-      </div>
+          {/* 4. Health + Forecast + Savings */}
+          <motion.div variants={stagger.item} className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <HealthScoreCard score={data.healthScore} trajectory={data.trajectory} multiTrends={data.multiTrends} />
+            <ForecastPanel forecast={data.forecast} netWorth={data.netWorth} />
+            <SavingsAndGoals savingsGoals={savingsGoals} savingsProgress={data.savingsProgress} netWorth={data.netWorth} />
+          </motion.div>
 
-      {/* 6. Action Box — the most important section */}
-      <ActionBox items={data.actionItems} spendingSpike={data.spendingSpike} />
+          {/* 5. Account + Top Expenses */}
+          <motion.div variants={stagger.item} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <AccountBreakdownCard accounts={accounts} breakdown={data.accountBreakdown} fixedVsVariable={data.fixedVsVariable} />
+            <TopExpenses expenses={data.topExpenses} categories={categories} />
+          </motion.div>
+
+          {/* 6. Action Box */}
+          <motion.div variants={stagger.item}>
+            <ActionBox items={data.actionItems} spendingSpike={data.spendingSpike} />
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
