@@ -562,14 +562,18 @@ export default function Dashboard() {
                 </Card>
               </motion.div>
 
-              {/* Row 2: 4-col bento — Streak | Health | Accounts | Budgets */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              {/* Row 2: Streak + Health */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <motion.div variants={staggerItem}>
                   <StreakTracker transactions={transactions} onStreakUpdate={setCurrentStreak} />
                 </motion.div>
                 <motion.div variants={staggerItem}>
                   <FinancialHealthScore accounts={accounts} transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
                 </motion.div>
+              </div>
+
+              {/* Row 3: Accounts | Budgets */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                 {/* Accounts Summary */}
                 <motion.div variants={staggerItem}>
