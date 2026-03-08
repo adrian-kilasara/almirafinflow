@@ -644,8 +644,49 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 {/* Streak Tracker — tall card spanning left side */}
                 <motion.div variants={staggerItem} className="lg:col-span-5 xl:col-span-4 2xl:col-span-3">
-                  <div className="h-full">
+                  <div className="h-full flex flex-col gap-4">
                     <StreakTracker transactions={transactions} onStreakUpdate={setCurrentStreak} />
+                    
+                    {/* Quick Accounts Summary — fills gap below streak */}
+                    <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm">
+                      <CardContent className="p-4 h-full flex flex-col">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                              <Wallet className="w-3.5 h-3.5 text-primary" />
+                            </div>
+                            <p className="text-sm font-bold">Quick Overview</p>
+                          </div>
+                        </div>
+                        <div className="flex-1 space-y-3">
+                          <div className="p-3 rounded-xl bg-muted/20 border border-border/30">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Accounts</p>
+                            <p className="text-lg font-bold">{accounts.filter(a => a.is_active).length}</p>
+                          </div>
+                          <div className="p-3 rounded-xl bg-muted/20 border border-border/30">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Active Budgets</p>
+                            <p className="text-lg font-bold">{budgets.length}</p>
+                          </div>
+                          <div className="p-3 rounded-xl bg-muted/20 border border-border/30">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Savings Goals</p>
+                            <p className="text-lg font-bold">{savingsGoals.length}</p>
+                          </div>
+                          <div className="p-3 rounded-xl bg-income/10 border border-income/20">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">This Month</p>
+                            <p className="text-lg font-bold number-mono">
+                              {formatCurrency(
+                                transactions.filter(t => {
+                                  const d = new Date(t.date);
+                                  const now = new Date();
+                                  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                                }).length,
+                                'TZS'
+                              ).replace(/[^\d,]/g, '')} <span className="text-xs font-normal text-muted-foreground">txns</span>
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
                 </motion.div>
                 
