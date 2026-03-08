@@ -10,7 +10,7 @@ import { formatCurrency } from '@/lib/format';
 import { 
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
   LogOut, Sparkles, Target, CreditCard, BarChart3,
-  Receipt, Folder, Menu, GraduationCap, Settings
+  Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
@@ -37,6 +37,7 @@ import { Progress } from '@/components/ui/progress';
 
 export default function Dashboard() {
   const { user, loading, signOut } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -45,7 +46,7 @@ export default function Dashboard() {
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
   const [aiTip, setAiTip] = useState<string>('');
   const [loadingTip, setLoadingTip] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(settings.default_landing_tab || 'overview');
   const [currentStreak, setCurrentStreak] = useState<UserStreak | null>(null);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [transactionFormType, setTransactionFormType] = useState<'income' | 'expense' | 'transfer'>('expense');
