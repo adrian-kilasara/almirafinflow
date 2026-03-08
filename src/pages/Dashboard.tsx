@@ -1,20 +1,30 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { formatCurrency } from '@/lib/format';
 import { 
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
   LogOut, Sparkles, Target, CreditCard, BarChart3,
-  Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle
+  Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle,
+  User, ChevronDown, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
 import type { Account, Transaction, Category, Budget, SavingsGoal, UserStreak, TransactionType } from '@/types/finance';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 // Components
 import TransactionList from '@/components/transactions/TransactionList';
@@ -55,6 +65,15 @@ export default function Dashboard() {
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [transactionFormType, setTransactionFormType] = useState<'income' | 'expense' | 'transfer'>('expense');
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+
+  useEffect(() => {
+    const el = tabRefs.current[activeTab];
+    if (el) {
+      setIndicatorStyle({ left: el.offsetLeft, width: el.offsetWidth });
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -260,8 +279,8 @@ export default function Dashboard() {
           <Menu className="w-5 h-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-72">
-        <div className="flex items-center gap-3 mb-8">
+      <SheetContent side="left" className="w-72 p-0">
+        <div className="flex items-center gap-3 p-6 border-b border-border">
           <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center">
             <Wallet className="w-6 h-6 text-primary-foreground" />
           </div>
@@ -272,78 +291,156 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground">2026 Edition</p>
           </div>
         </div>
-        <nav className="space-y-2">
-          {navItems.map((item) => {
+        <nav className="p-4 space-y-1">
+          {navItems.map((item, i) => {
             const Icon = item.icon;
+            const isActive = activeTab === item.id;
             return (
-              <button
+              <motion.button
                 key={item.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05 }}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  activeTab === item.id
-                    ? 'bg-primary/10 text-primary'
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  isActive
+                    ? 'bg-primary/10 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.2)]'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }`}
               >
                 <Icon className="w-5 h-5" />
                 <span className="font-medium">{item.label}</span>
-              </button>
+                {isActive && (
+                  <motion.div
+                    layoutId="mobile-active-dot"
+                    className="ml-auto w-2 h-2 rounded-full bg-primary"
+                  />
+                )}
+              </motion.button>
             );
           })}
         </nav>
-        <div className="absolute bottom-6 left-6 right-6">
-          <Button variant="outline" className="w-full" onClick={handleSignOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-card/50">
+          <div className="flex items-center gap-3 mb-4 px-2">
+            <Avatar className="w-9 h-9 border-2 border-primary/20">
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                {user?.email?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="truncate">
+              <p className="text-sm font-medium truncate">{user?.email}</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate('/settings')}>
+              <Settings className="w-4 h-4 mr-1" /> Settings
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1 text-destructive hover:text-destructive" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4 mr-1" /> Sign Out
+            </Button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
   );
 
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <MobileNav />
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-primary-foreground" />
+      <header className="border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-50">
+        <div className="container mx-auto px-4">
+          {/* Top row: Logo + Actions */}
+          <div className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-3">
+              <MobileNav />
+              <motion.div 
+                className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center"
+                whileHover={{ scale: 1.05, rotate: -5 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Wallet className="w-5 h-5 text-primary-foreground" />
+              </motion.div>
+              <div className="hidden sm:block">
+                <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  FinFlow 2026
+                </h1>
+              </div>
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                FinFlow 2026
-              </h1>
+            <div className="flex items-center gap-1.5">
+              <CategoryManager onSuccess={fetchData} />
+              <NotificationCenter />
+              
+              {/* User Menu Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-2 rounded-xl px-2 hover:bg-muted/80">
+                    <Avatar className="w-7 h-7 border border-primary/20">
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground hidden sm:block" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-xl p-1">
+                  <div className="px-3 py-2.5">
+                    <p className="text-sm font-medium truncate">{user?.user_metadata?.full_name || 'User'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/settings')} className="gap-2 rounded-lg cursor-pointer">
+                    <Settings className="w-4 h-4" /> Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab('learn')} className="gap-2 rounded-lg cursor-pointer">
+                    <GraduationCap className="w-4 h-4" /> Financial Education
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="gap-2 rounded-lg cursor-pointer text-destructive focus:text-destructive">
+                    <LogOut className="w-4 h-4" /> Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <CategoryManager onSuccess={fetchData} />
-            <NotificationCenter />
-            <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
-              <Settings className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="hidden md:flex" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4" />
-            </Button>
+
+          {/* Bottom row: Tab Navigation (desktop) */}
+          <div className="hidden md:block relative -mb-px">
+            <div className="flex items-center gap-1 relative" role="tablist">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    ref={(el) => { tabRefs.current[item.id] = el; }}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-xl transition-colors duration-200 ${
+                      isActive
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+              {/* Animated underline indicator */}
+              <motion.div
+                className="absolute bottom-0 h-[2px] bg-primary rounded-full"
+                animate={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            </div>
           </div>
         </div>
       </header>
 
       <main className={`container mx-auto px-4 ${densityClasses.padding}`}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="hidden md:flex mb-6 bg-muted/50">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <TabsTrigger key={item.id} value={item.id} className="gap-2">
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-
           {/* Overview Tab */}
           <TabsContent value="overview" className={`space-y-6 ${densityClasses.gap}`}>
             {/* Live Alerts from Settings */}
@@ -823,6 +920,44 @@ export default function Dashboard() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border">
+        <div className="flex items-center justify-around py-1.5 px-2">
+          {navItems.slice(0, 5).map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
+                  isActive ? 'text-primary' : 'text-muted-foreground'
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="mobile-bottom-indicator"
+                    className="absolute -top-1.5 w-8 h-1 bg-primary rounded-full"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <Icon className="w-5 h-5" />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setActiveTab(activeTab === 'reports' ? 'learn' : 'reports')}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
+              ['reports', 'learn'].includes(activeTab) ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span className="text-[10px] font-medium">More</span>
+          </button>
+        </div>
+      </nav>
 
       {/* Centered Floating Action Button */}
       <FloatingTransactionForm
