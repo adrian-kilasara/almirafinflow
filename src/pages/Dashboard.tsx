@@ -282,6 +282,7 @@ export default function Dashboard() {
     { id: 'reports', label: 'Reports', icon: BarChart3, badge: '' },
     { id: 'learn', label: 'Learn', icon: GraduationCap, badge: '' },
     { id: 'activity', label: 'Activity', icon: ScrollText, badge: '' },
+  ];
 
   const MobileNav = () => (
     <Sheet>
