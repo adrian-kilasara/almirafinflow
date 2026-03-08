@@ -74,7 +74,7 @@ export default function AISmartInsights({ accounts, transactions, categories, bu
     // 4. Merchant concentration (top merchant > 40% of spending)
     const merchantSpend: Record<string, number> = {};
     thisMonthExpenses.forEach(t => {
-      const key = t.merchant || t.description || 'Unknown';
+      const key = t.description || 'Unknown';
       merchantSpend[key] = (merchantSpend[key] || 0) + Number(t.amount);
     });
     const topMerchant = Object.entries(merchantSpend).sort((a, b) => b[1] - a[1])[0];
