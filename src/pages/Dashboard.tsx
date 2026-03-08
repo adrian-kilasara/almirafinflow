@@ -1219,6 +1219,20 @@ export default function Dashboard() {
               accounts={accounts}
             />
           </TabsContent>
+
+          {/* Activity Log Tab */}
+          <TabsContent value="activity" className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <ScrollText className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-extrabold">Activity Log</h2>
+                <p className="text-[10px] text-muted-foreground">Full audit trail of all your actions</p>
+              </div>
+            </motion.div>
+            <ActivityLog />
+          </TabsContent>
         </Tabs>
       </main>
 
