@@ -229,6 +229,15 @@ export default function TransactionList({ transactions, categories, accounts, on
           supabase.from('accounts').update({ balance: Number(newAcct.balance) + newBalChange }).eq('id', newAcct.id),
         ]);
       }
+      // Emit edit event for budget re-check & low balance
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        await emitTransactionEditEvent(
+          userData.user.id, data.type as 'income' | 'expense' | 'transfer',
+          Number(data.amount), data.description || data.merchant || 'Transaction',
+          data.account_id, data.category_id || null
+        );
+      }
       toast.success('Transaction updated'); setEditOpen(false); setEditingTransaction(null); onRefresh();
     } catch (error: any) { toast.error(error.message || 'Failed to update'); }
     finally { setLoading(false); }
