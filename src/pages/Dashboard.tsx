@@ -921,6 +921,44 @@ export default function Dashboard() {
         </Tabs>
       </main>
 
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border">
+        <div className="flex items-center justify-around py-1.5 px-2">
+          {navItems.slice(0, 5).map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
+                  isActive ? 'text-primary' : 'text-muted-foreground'
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="mobile-bottom-indicator"
+                    className="absolute -top-1.5 w-8 h-1 bg-primary rounded-full"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <Icon className="w-5 h-5" />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setActiveTab(activeTab === 'reports' ? 'learn' : 'reports')}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
+              ['reports', 'learn'].includes(activeTab) ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span className="text-[10px] font-medium">More</span>
+          </button>
+        </div>
+      </nav>
+
       {/* Centered Floating Action Button */}
       <FloatingTransactionForm
         accounts={accounts}
