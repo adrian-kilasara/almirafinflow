@@ -239,6 +239,7 @@ export type Database = {
           default_currency: Database["public"]["Enums"]["currency_code"] | null
           full_name: string | null
           id: string
+          phone: string | null
           updated_at: string
           user_id: string
         }
@@ -248,6 +249,7 @@ export type Database = {
           default_currency?: Database["public"]["Enums"]["currency_code"] | null
           full_name?: string | null
           id?: string
+          phone?: string | null
           updated_at?: string
           user_id: string
         }
@@ -257,6 +259,7 @@ export type Database = {
           default_currency?: Database["public"]["Enums"]["currency_code"] | null
           full_name?: string | null
           id?: string
+          phone?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -522,6 +525,123 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_settings: {
+        Row: {
+          ai_advice_mode: string
+          ai_enabled: boolean
+          ai_risk_tolerance: string
+          budget_mode: string
+          budget_rollover: boolean
+          chart_preference: string
+          created_at: string
+          dashboard_density: string
+          data_cache_days: number
+          date_format: string
+          debt_strategy: string
+          default_landing_tab: string
+          financial_year_start: string
+          health_weight_cashflow: number
+          health_weight_debt: number
+          health_weight_investments: number
+          health_weight_savings: number
+          id: string
+          insight_frequency: string
+          language: string
+          low_balance_threshold: number
+          notify_budget_exceeded: boolean
+          notify_debt_reminder: boolean
+          notify_goal_progress: boolean
+          notify_low_balance: boolean
+          notify_monthly_report: boolean
+          notify_risk_alerts: boolean
+          notify_weekly_summary: boolean
+          performance_mode: boolean
+          realtime_recalculation: boolean
+          savings_auto_percentage: number | null
+          savings_round_up: boolean
+          theme: string
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_advice_mode?: string
+          ai_enabled?: boolean
+          ai_risk_tolerance?: string
+          budget_mode?: string
+          budget_rollover?: boolean
+          chart_preference?: string
+          created_at?: string
+          dashboard_density?: string
+          data_cache_days?: number
+          date_format?: string
+          debt_strategy?: string
+          default_landing_tab?: string
+          financial_year_start?: string
+          health_weight_cashflow?: number
+          health_weight_debt?: number
+          health_weight_investments?: number
+          health_weight_savings?: number
+          id?: string
+          insight_frequency?: string
+          language?: string
+          low_balance_threshold?: number
+          notify_budget_exceeded?: boolean
+          notify_debt_reminder?: boolean
+          notify_goal_progress?: boolean
+          notify_low_balance?: boolean
+          notify_monthly_report?: boolean
+          notify_risk_alerts?: boolean
+          notify_weekly_summary?: boolean
+          performance_mode?: boolean
+          realtime_recalculation?: boolean
+          savings_auto_percentage?: number | null
+          savings_round_up?: boolean
+          theme?: string
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_advice_mode?: string
+          ai_enabled?: boolean
+          ai_risk_tolerance?: string
+          budget_mode?: string
+          budget_rollover?: boolean
+          chart_preference?: string
+          created_at?: string
+          dashboard_density?: string
+          data_cache_days?: number
+          date_format?: string
+          debt_strategy?: string
+          default_landing_tab?: string
+          financial_year_start?: string
+          health_weight_cashflow?: number
+          health_weight_debt?: number
+          health_weight_investments?: number
+          health_weight_savings?: number
+          id?: string
+          insight_frequency?: string
+          language?: string
+          low_balance_threshold?: number
+          notify_budget_exceeded?: boolean
+          notify_debt_reminder?: boolean
+          notify_goal_progress?: boolean
+          notify_low_balance?: boolean
+          notify_monthly_report?: boolean
+          notify_risk_alerts?: boolean
+          notify_weekly_summary?: boolean
+          performance_mode?: boolean
+          realtime_recalculation?: boolean
+          savings_auto_percentage?: number | null
+          savings_round_up?: boolean
+          theme?: string
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_streaks: {
         Row: {
