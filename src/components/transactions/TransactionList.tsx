@@ -249,7 +249,12 @@ export default function TransactionList({ transactions, categories, accounts, on
       const txn = transactions.find(t => t.id === id);
       if (!txn) throw new Error('Not found');
       const account = accounts.find(a => a.id === txn.account_id);
-      const { error } = await supabase.from('transactions').delete().eq('id', id);
+      // Soft delete instead of hard delete
+      const { error } = await supabase.from('transactions').update({
+        is_deleted: true,
+        deleted_at: new Date().toISOString(),
+        status: 'deleted',
+      } as any).eq('id', id);
       if (error) throw error;
       if (account) {
         const reverse = txn.type === 'income' ? -Number(txn.amount) : Number(txn.amount);
@@ -263,7 +268,7 @@ export default function TransactionList({ transactions, categories, accounts, on
           Number(txn.amount), txn.description || 'Transaction', txn.account_id
         );
       }
-      toast.success('Transaction deleted'); setDeleteConfirmId(null); onRefresh();
+      toast.success('Transaction archived (soft deleted)'); setDeleteConfirmId(null); onRefresh();
     } catch { toast.error('Failed to delete'); }
     finally { setDeleting(null); }
   };
