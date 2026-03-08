@@ -337,9 +337,7 @@ export default function Dashboard() {
     </Sheet>
   );
 
-  // Animated tab indicator ref
-  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  // Indicator position effect
   
   useEffect(() => {
     const el = tabRefs.current[activeTab];
