@@ -813,7 +813,13 @@ export default function Dashboard() {
 
           {/* Learn Tab */}
           <TabsContent value="learn" className="space-y-6">
-            <FinancialLessons />
+            <FinancialLessons
+              transactions={transactions}
+              categories={categories}
+              budgets={budgets}
+              savingsGoals={savingsGoals}
+              accounts={accounts}
+            />
           </TabsContent>
         </Tabs>
       </main>
