@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Dark theme - Premium Finance App */
+    /* Dark theme - Premium Finance App (default) */
     --background: 222 47% 6%;
     --foreground: 210 40% 98%;
 
@@ -83,6 +83,77 @@
     --chart-4: 38 92% 50%;
     --chart-5: 280 65% 60%;
     --chart-6: 0 84% 60%;
+  }
+
+  /* Light theme */
+  .light {
+    --background: 0 0% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 173 80% 35%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 173 80% 45%;
+
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 173 50% 92%;
+    --accent-foreground: 173 80% 25%;
+
+    --success: 152 69% 35%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 15%;
+
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --income: 152 69% 35%;
+    --expense: 0 84% 50%;
+    --transfer: 217 91% 50%;
+
+    --border: 220 13% 87%;
+    --input: 220 13% 91%;
+    --ring: 173 80% 35%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(173 80% 35%), hsl(173 80% 45%));
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(220 14% 96%));
+    --gradient-income: linear-gradient(135deg, hsl(152 69% 35%), hsl(152 69% 45%));
+    --gradient-expense: linear-gradient(135deg, hsl(0 84% 50%), hsl(0 84% 60%));
+    --gradient-glass: linear-gradient(135deg, rgba(0,0,0,0.02), rgba(0,0,0,0.01));
+
+    --shadow-sm: 0 2px 8px -2px hsl(0 0% 0% / 0.08);
+    --shadow-md: 0 4px 16px -4px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 8px 32px -8px hsl(0 0% 0% / 0.12);
+    --shadow-glow: 0 0 40px hsl(173 80% 40% / 0.1);
+    --shadow-income: 0 4px 20px hsl(152 69% 45% / 0.15);
+    --shadow-expense: 0 4px 20px hsl(0 84% 60% / 0.15);
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 173 80% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 220 13% 87%;
+    --sidebar-ring: 173 80% 35%;
+
+    --chart-1: 173 80% 35%;
+    --chart-2: 152 69% 35%;
+    --chart-3: 217 91% 50%;
+    --chart-4: 38 92% 45%;
+    --chart-5: 280 65% 50%;
+    --chart-6: 0 84% 50%;
   }
 }
 
