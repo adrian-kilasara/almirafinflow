@@ -181,6 +181,35 @@ export default function Dashboard() {
     });
   }, [budgets, currentMonthTransactions, settings.budget_mode]);
 
+  // Goal progress alerts
+  const goalAlerts = useMemo(() => {
+    if (!settings.notify_goal_progress) return [];
+    return savingsGoals.filter(g => {
+      const pct = (Number(g.current_amount) / Number(g.target_amount)) * 100;
+      return pct >= 80 && !g.is_completed;
+    });
+  }, [savingsGoals, settings.notify_goal_progress]);
+
+  // Budget exceeded notification alerts
+  const budgetExceededAlerts = useMemo(() => {
+    if (!settings.notify_budget_exceeded) return [];
+    return budgets.filter(b => {
+      const spent = currentMonthTransactions
+        .filter(t => t.type === 'expense' && (b.category_id ? t.category_id === b.category_id : true))
+        .reduce((s, t) => s + Number(t.amount), 0);
+      return spent > Number(b.amount);
+    });
+  }, [budgets, currentMonthTransactions, settings.notify_budget_exceeded]);
+
+  // Density classes
+  const densityClasses = useMemo(() => {
+    switch (settings.dashboard_density) {
+      case 'compact': return { gap: 'gap-3', padding: 'p-3', cardPadding: 'p-3 sm:p-4', textSize: 'text-sm' };
+      case 'detailed': return { gap: 'gap-8', padding: 'py-8', cardPadding: 'p-5 sm:p-8', textSize: 'text-base' };
+      default: return { gap: 'gap-4', padding: 'py-6', cardPadding: 'p-4 sm:p-6', textSize: 'text-sm' };
+    }
+  }, [settings.dashboard_density]);
+
   // Health score calculation (simplified for badge checking)
   const healthScore = Math.min(100, Math.round(
     (accounts.length > 0 ? 20 : 0) +
@@ -295,7 +324,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className={`container mx-auto px-4 ${densityClasses.padding}`}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="hidden md:flex mb-6 bg-muted/50">
             {navItems.map((item) => {
@@ -310,7 +339,7 @@ export default function Dashboard() {
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className={`space-y-6 ${densityClasses.gap}`}>
             {/* Live Alerts from Settings */}
             {lowBalanceAccounts.length > 0 && (
               <Card className="border-[hsl(var(--warning))]/50 bg-[hsl(var(--warning))]/5">
@@ -338,6 +367,32 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             )}
+            {budgetExceededAlerts.length > 0 && settings.budget_mode !== 'strict' && (
+              <Card className="border-[hsl(var(--warning))]/50 bg-[hsl(var(--warning))]/5">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-[hsl(var(--warning))] mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">Budget Alert</p>
+                    <p className="text-xs text-muted-foreground">
+                      {budgetExceededAlerts.map(b => b.name).join(', ')} over budget this month
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {goalAlerts.length > 0 && (
+              <Card className="border-[hsl(var(--income))]/50 bg-[hsl(var(--income))]/5">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <Target className="w-5 h-5 text-income mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">🎉 Goal Almost Reached!</p>
+                    <p className="text-xs text-muted-foreground">
+                      {goalAlerts.map(g => g.name).join(', ')} — over 80% complete
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Streak Tracker */}
             <StreakTracker 
@@ -346,7 +401,7 @@ export default function Dashboard() {
             />
 
             {/* Main Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className={`grid grid-cols-2 lg:grid-cols-4 ${densityClasses.gap}`}>
               <Card variant="glow" className="animate-fadeIn">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
