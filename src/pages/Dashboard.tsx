@@ -337,20 +337,6 @@ export default function Dashboard() {
     </Sheet>
   );
 
-  // Indicator position effect
-  
-  useEffect(() => {
-    const el = tabRefs.current[activeTab];
-    if (el) {
-      const parent = el.parentElement;
-      if (parent) {
-        setIndicatorStyle({
-          left: el.offsetLeft,
-          width: el.offsetWidth,
-        });
-      }
-    }
-  }, [activeTab]);
 
   return (
     <div className="min-h-screen bg-background">
