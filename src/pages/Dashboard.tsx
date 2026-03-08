@@ -286,16 +286,16 @@ export default function Dashboard() {
   }
 
   const navItems = [
-    { id: 'overview', label: 'Overview', icon: Wallet, badge: '' },
-    { id: 'accounts', label: 'Accounts', icon: CreditCard, badge: accounts.length > 0 ? String(accounts.length) : '' },
-    { id: 'transactions', label: 'Transactions', icon: Receipt, badge: '' },
-    { id: 'budgets', label: 'Budgets', icon: Folder, badge: overBudgetAlerts.length > 0 ? '!' : '' },
-    { id: 'bills', label: 'Bills', icon: CalendarClock, badge: '' },
-    { id: 'investments', label: 'Invest', icon: Briefcase, badge: '' },
-    { id: 'savings', label: 'Savings', icon: PiggyBank, badge: '' },
-    { id: 'reports', label: 'Reports', icon: BarChart3, badge: '' },
-    { id: 'learn', label: 'Learn', icon: GraduationCap, badge: '' },
-    { id: 'activity', label: 'Activity', icon: ScrollText, badge: '' },
+    { id: 'overview', label: 'Overview', shortLabel: 'Home', icon: Wallet, badge: '' },
+    { id: 'accounts', label: 'Accounts', shortLabel: 'Accounts', icon: CreditCard, badge: accounts.length > 0 ? String(accounts.length) : '' },
+    { id: 'transactions', label: 'Transactions', shortLabel: 'Txns', icon: Receipt, badge: '' },
+    { id: 'budgets', label: 'Budgets', shortLabel: 'Budget', icon: Folder, badge: overBudgetAlerts.length > 0 ? '!' : '' },
+    { id: 'bills', label: 'Bills', shortLabel: 'Bills', icon: CalendarClock, badge: '' },
+    { id: 'investments', label: 'Investments', shortLabel: 'Invest', icon: Briefcase, badge: '' },
+    { id: 'savings', label: 'Savings', shortLabel: 'Save', icon: PiggyBank, badge: '' },
+    { id: 'reports', label: 'Reports', shortLabel: 'Reports', icon: BarChart3, badge: '' },
+    { id: 'learn', label: 'Learn', shortLabel: 'Learn', icon: GraduationCap, badge: '' },
+    { id: 'activity', label: 'Activity', shortLabel: 'Log', icon: ScrollText, badge: '' },
   ];
 
   const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100) : 0;
@@ -437,9 +437,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Desktop Tabs — horizontally scrollable for all screen widths */}
+          {/* Desktop / Tablet Tab Bar — always shows icons + labels, adapts spacing */}
           <div className="hidden md:block relative -mb-px">
-            <div className="flex items-center gap-0.5 relative overflow-x-auto scrollbar-hide" role="tablist">
+            <nav className="flex items-center relative" role="tablist">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -450,29 +450,36 @@ export default function Dashboard() {
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => setActiveTab(item.id)}
-                    className={`relative flex items-center gap-1.5 px-3 py-2.5 text-[13px] font-medium transition-colors duration-200 whitespace-nowrap shrink-0 ${
-                      isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                    className={`group relative flex items-center gap-1.5 px-2 lg:px-3.5 xl:px-4 py-2.5 text-[12px] lg:text-[13px] font-medium transition-all duration-200 whitespace-nowrap ${
+                      isActive
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span className="hidden lg:inline">{item.label}</span>
-                    {item.badge === '!' && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
-                    {item.badge && item.badge !== '!' && <span className="text-[9px] text-muted-foreground bg-muted/50 px-1.5 rounded-full">{item.badge}</span>}
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="hidden md:inline">{item.label}</span>
+                    {item.badge === '!' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                    )}
+                    {item.badge && item.badge !== '!' && (
+                      <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-px rounded-full font-semibold">{item.badge}</span>
+                    )}
                   </button>
                 );
               })}
+              {/* Animated underline indicator */}
               <motion.div
-                className="absolute bottom-0 h-[2px] bg-primary rounded-full"
+                className="absolute bottom-0 h-[2px] rounded-full bg-primary"
                 animate={{ left: indicatorStyle.left, width: indicatorStyle.width }}
                 transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
-            </div>
+            </nav>
           </div>
         </div>
       </header>
 
       {/* ===== MAIN CONTENT ===== */}
-      <main className={`container mx-auto px-4 ${densityClasses.padding} pb-24 md:pb-8`}>
+      <main className={`container mx-auto px-4 ${densityClasses.padding} pb-32 md:pb-8`}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
 
           {/* ═══════════════════════════════════════════
@@ -1095,26 +1102,72 @@ export default function Dashboard() {
         </Tabs>
       </main>
 
-      {/* Mobile Bottom Navigation — scrollable to fit all tabs */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border safe-area-bottom">
-        <div className="flex items-center overflow-x-auto scrollbar-hide py-1.5 px-1 gap-0.5">
-          {navItems.map((item) => {
+      {/* Mobile Bottom Navigation — icon-only, all 10 tabs evenly distributed */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-2xl border-t border-border/50 safe-area-bottom">
+        <div className="grid grid-cols-5 gap-0 py-1 px-1">
+          {navItems.slice(0, 5).map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`relative flex flex-col items-center gap-0.5 min-w-[3.5rem] px-2 py-1.5 rounded-xl transition-colors shrink-0 ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                }`}
+                className="relative flex flex-col items-center justify-center py-1.5 rounded-lg transition-colors"
               >
                 {isActive && (
-                  <motion.div layoutId="mobile-bottom-indicator" className="absolute -top-1.5 w-6 h-0.5 bg-primary rounded-full" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
+                  <motion.div
+                    layoutId="mobile-nav-pill"
+                    className="absolute inset-1 bg-primary/10 rounded-lg"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
                 )}
-                <Icon className="w-4.5 h-4.5" />
-                <span className="text-[9px] font-medium leading-tight">{item.label}</span>
-                {item.badge === '!' && <span className="absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full bg-destructive" />}
+                <Icon className={`relative z-10 w-5 h-5 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                {isActive && (
+                  <motion.span
+                    initial={{ opacity: 0, y: 2 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative z-10 text-[9px] font-semibold text-primary mt-0.5 leading-none"
+                  >
+                    {item.shortLabel}
+                  </motion.span>
+                )}
+                {item.badge === '!' && (
+                  <span className="absolute top-1 right-1/4 w-1.5 h-1.5 rounded-full bg-destructive z-20" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div className="grid grid-cols-5 gap-0 pb-1 px-1">
+          {navItems.slice(5).map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className="relative flex flex-col items-center justify-center py-1.5 rounded-lg transition-colors"
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="mobile-nav-pill-2"
+                    className="absolute inset-1 bg-primary/10 rounded-lg"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <Icon className={`relative z-10 w-5 h-5 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                {isActive && (
+                  <motion.span
+                    initial={{ opacity: 0, y: 2 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative z-10 text-[9px] font-semibold text-primary mt-0.5 leading-none"
+                  >
+                    {item.shortLabel}
+                  </motion.span>
+                )}
+                {item.badge === '!' && (
+                  <span className="absolute top-1 right-1/4 w-1.5 h-1.5 rounded-full bg-destructive z-20" />
+                )}
               </button>
             );
           })}
