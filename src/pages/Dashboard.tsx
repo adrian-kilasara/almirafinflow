@@ -319,6 +319,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-2">
             <CategoryManager onSuccess={fetchData} />
+            <NotificationCenter />
             <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
               <Settings className="w-4 h-4" />
             </Button>
