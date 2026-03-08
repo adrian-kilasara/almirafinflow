@@ -177,13 +177,22 @@ export default function SavingsGoalCard({ goal, onRefresh }: SavingsGoalCardProp
         await supabase.from('savings_goals').update({ is_completed: true }).eq('id', goal.id);
         toast.success('🎉 Goal completed!');
       } else {
-        // Check milestones
         const oldPct = (Number(goal.current_amount) / Number(goal.target_amount)) * 100;
         const newPct = (newAmount / Number(goal.target_amount)) * 100;
         const milestone = milestones.find(m => oldPct < m && newPct >= m);
         if (milestone) toast.success(`🏆 ${milestone}% milestone reached!`);
         else toast.success('Funds allocated!');
       }
+
+      // Emit cross-module savings event (notifications, milestones)
+      await emitSavingsEvent(
+        userData.user.id,
+        goal.name,
+        amount,
+        newAmount,
+        Number(goal.target_amount),
+        goal.id
+      );
 
       setAddFundsOpen(false);
       addFundsForm.reset();

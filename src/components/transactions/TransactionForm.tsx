@@ -155,6 +155,16 @@ export default function TransactionForm({ accounts, categories, onSuccess }: Tra
         notes: `${data.type}: ${data.description || data.merchant || 'Transaction'}`,
       });
 
+      // Emit cross-module event (notifications, budget alerts, low balance)
+      await emitTransactionEvent(
+        userData.user.id,
+        data.type as 'income' | 'expense' | 'transfer',
+        Number(data.amount),
+        data.description || data.merchant || 'Transaction',
+        data.account_id,
+        data.category_id || null
+      );
+
       toast.success('Transaction added successfully!');
       reset();
       setTags([]);
