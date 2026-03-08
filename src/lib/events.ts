@@ -121,6 +121,7 @@ export async function emitTransactionEditEvent(
   categoryId?: string | null
 ) {
   logActivity(userId, 'transaction edited', 'transactions', { amount, description, accountId, categoryId });
+  emitDashboardRefresh();
 
   // Re-check budgets after edit
   if (type === 'expense' && categoryId) {
