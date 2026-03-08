@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner';
 import { Plus, Loader2, Lightbulb } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
+import { emitBudgetEvent } from '@/lib/events';
 import { cn } from '@/lib/utils';
 import type { Category, BudgetPeriod, CurrencyCode, Transaction, SavingsGoal } from '@/types/finance';
 
