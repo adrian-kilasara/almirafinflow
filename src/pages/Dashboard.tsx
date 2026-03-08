@@ -311,6 +311,34 @@ export default function Dashboard() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Live Alerts from Settings */}
+            {lowBalanceAccounts.length > 0 && (
+              <Card className="border-[hsl(var(--warning))]/50 bg-[hsl(var(--warning))]/5">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-[hsl(var(--warning))] mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">Low Balance Alert</p>
+                    <p className="text-xs text-muted-foreground">
+                      {lowBalanceAccounts.map(a => `${a.name} (${formatCurrency(Number(a.balance), a.currency)})`).join(', ')} — below {formatCurrency(settings.low_balance_threshold)} threshold
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {overBudgetAlerts.length > 0 && (
+              <Card className="border-destructive/50 bg-destructive/5">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">⚠ Budget Strict Mode — Over Budget!</p>
+                    <p className="text-xs text-muted-foreground">
+                      {overBudgetAlerts.map(b => b.name).join(', ')} exceeded their limits
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Streak Tracker */}
             <StreakTracker 
               transactions={transactions} 
