@@ -15,6 +15,7 @@ import FinancialRulesSettings from '@/components/settings/FinancialRulesSettings
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import AIInsightsSettings from '@/components/settings/AIInsightsSettings';
 import DataManagementSettings from '@/components/settings/DataManagementSettings';
+import ImportExportSettings from '@/components/settings/ImportExportSettings';
 import DisplaySettings from '@/components/settings/DisplaySettings';
 import AdvancedSettings from '@/components/settings/AdvancedSettings';
 
