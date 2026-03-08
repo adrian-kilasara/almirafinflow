@@ -313,8 +313,8 @@ export default function Dashboard() {
           <Menu className="w-5 h-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-72 p-0 border-r-border/30">
-        <div className="flex items-center gap-3 p-5 border-b border-border/30">
+      <SheetContent side="left" className="w-72 p-0 border-r-border/30 flex flex-col">
+        <div className="flex items-center gap-3 p-5 border-b border-border/30 shrink-0">
           <motion.div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center" whileHover={{ rotate: -5 }}>
             <Wallet className="w-5 h-5 text-primary-foreground" />
           </motion.div>
@@ -323,7 +323,7 @@ export default function Dashboard() {
             <p className="text-[10px] text-muted-foreground">2026 Edition</p>
           </div>
         </div>
-        <nav className="p-3 space-y-0.5">
+        <nav className="p-3 space-y-0.5 flex-1 overflow-y-auto">
           {navItems.map((item, i) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -348,7 +348,7 @@ export default function Dashboard() {
             );
           })}
         </nav>
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/30">
+        <div className="p-4 border-t border-border/30 shrink-0">
           <div className="flex items-center gap-3 mb-3 px-1">
             <Avatar className="w-8 h-8 border border-primary/20">
               {settings.avatar_url && <AvatarImage src={settings.avatar_url} alt={settings.username || 'Avatar'} />}
@@ -490,9 +490,9 @@ export default function Dashboard() {
               OVERVIEW TAB — Compact Summary Dashboard
           ═══════════════════════════════════════════ */}
           <TabsContent value="overview">
-            <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-4">
+            <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-5">
 
-              {/* Row 0: Live Alerts */}
+              {/* Alerts */}
               <AnimatePresence>
                 {lowBalanceAccounts.length > 0 && (
                   <motion.div variants={staggerItem} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
@@ -512,57 +512,34 @@ export default function Dashboard() {
                 )}
               </AnimatePresence>
 
-              {/* Row 1: Hero — Net Worth + Monthly Pulse */}
+              {/* === SECTION 1: Hero Stats — 4 metric cards on desktop, 2x2 on mobile === */}
               <motion.div variants={staggerItem}>
-                <Card className="relative overflow-hidden border-primary/10">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-40 h-40 bg-income/5 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl pointer-events-none" />
-                  <CardContent className="relative p-4 sm:p-5">
-                    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Wallet className="w-3 h-3 text-primary" />
+                <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Net Worth', value: formatCurrency(totalBalance), icon: Wallet, color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/15' },
+                    { label: 'Monthly Income', value: formatCurrency(totalIncome), icon: ArrowUpRight, color: 'text-income', bg: 'bg-income/10', border: 'border-income/15' },
+                    { label: 'Monthly Expenses', value: formatCurrency(totalExpenses), icon: ArrowDownRight, color: 'text-expense', bg: 'bg-expense/10', border: 'border-expense/15' },
+                    { label: 'Savings Rate', value: `${savingsRate}%`, icon: Zap, color: savingsRate >= 20 ? 'text-income' : 'text-[hsl(var(--warning))]', bg: savingsRate >= 20 ? 'bg-income/10' : 'bg-[hsl(var(--warning))]/10', border: savingsRate >= 20 ? 'border-income/15' : 'border-[hsl(var(--warning))]/15' },
+                  ].map((stat, i) => (
+                    <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} whileHover={{ y: -2 }} className="group">
+                      <Card className={`h-full overflow-hidden relative border ${stat.border} hover:shadow-md transition-all duration-300`}>
+                        <div className={`absolute -top-6 -right-6 w-16 h-16 rounded-full ${stat.bg} blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} />
+                        <CardContent className="p-3 sm:p-4 relative z-10">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className={`w-7 h-7 rounded-lg ${stat.bg} flex items-center justify-center`}>
+                              <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{stat.label}</p>
                           </div>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Net Worth</p>
-                        </div>
-                        <motion.p
-                          className="text-3xl sm:text-4xl font-bold font-mono tracking-tight"
-                          initial={{ scale: 0.9, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ type: 'spring', stiffness: 200 }}
-                        >
-                          {formatCurrency(totalBalance)}
-                        </motion.p>
-                      </div>
-
-                      {/* Monthly pulse metrics */}
-                      <div className="grid grid-cols-4 gap-2">
-                        {[
-                          { label: 'Income', value: formatCurrency(totalIncome), color: 'text-income', icon: ArrowUpRight },
-                          { label: 'Expenses', value: formatCurrency(totalExpenses), color: 'text-expense', icon: ArrowDownRight },
-                          { label: 'Net Flow', value: `${netFlow >= 0 ? '+' : ''}${formatCurrency(netFlow)}`, color: netFlow >= 0 ? 'text-income' : 'text-expense', icon: Activity },
-                          { label: 'Save Rate', value: `${savingsRate}%`, color: savingsRate >= 20 ? 'text-income' : 'text-[hsl(var(--warning))]', icon: Zap },
-                        ].map((s, i) => (
-                          <motion.div
-                            key={s.label}
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.15 + i * 0.04 }}
-                            className="px-2.5 py-2 rounded-xl bg-muted/30 border border-border/20 text-center"
-                          >
-                            <s.icon className={`w-3 h-3 mx-auto mb-0.5 ${s.color}`} />
-                            <p className="text-[9px] text-muted-foreground">{s.label}</p>
-                            <p className={`text-[11px] font-bold font-mono ${s.color}`}>{s.value}</p>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                          <p className={`text-lg sm:text-xl xl:text-2xl font-bold font-mono tracking-tight ${stat.color}`}>{stat.value}</p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
               </motion.div>
 
-              {/* Row 2: Streak + Health */}
+              {/* === SECTION 2: Streak + Health Score side by side === */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <motion.div variants={staggerItem}>
                   <StreakTracker transactions={transactions} onStreakUpdate={setCurrentStreak} />
@@ -572,10 +549,14 @@ export default function Dashboard() {
                 </motion.div>
               </div>
 
-              {/* Row 3: Accounts | Budgets */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* === SECTION 3: Net Worth Chart (full width) === */}
+              <motion.div variants={staggerItem}>
+                <NetWorthChart accounts={accounts} transactions={transactions} />
+              </motion.div>
 
-                {/* Accounts Summary */}
+              {/* === SECTION 4: Accounts + Budgets + Savings (3-col on xl, 2-col on md) === */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {/* Accounts Mini */}
                 <motion.div variants={staggerItem}>
                   <Card className="h-full border-primary/10">
                     <CardContent className="p-4">
@@ -590,12 +571,8 @@ export default function Dashboard() {
                       </div>
                       {accounts.length > 0 ? (
                         <div className="space-y-1.5">
-                          {accounts.filter(a => a.is_active).slice(0, 4).map((a, i) => (
-                            <motion.div
-                              key={a.id}
-                              initial={{ opacity: 0, x: -6 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.1 + i * 0.04 }}
+                          {accounts.filter(a => a.is_active).slice(0, 5).map((a, i) => (
+                            <motion.div key={a.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04 }}
                               whileHover={{ x: 2 }}
                               className="flex items-center justify-between p-2 rounded-lg bg-muted/20 hover:bg-muted/35 transition-all cursor-pointer"
                               onClick={() => { setSelectedAccount(a); setActiveTab('accounts'); }}
@@ -609,8 +586,8 @@ export default function Dashboard() {
                               </p>
                             </motion.div>
                           ))}
-                          {accounts.filter(a => a.is_active).length > 4 && (
-                            <p className="text-[9px] text-muted-foreground text-center pt-1">+{accounts.filter(a => a.is_active).length - 4} more</p>
+                          {accounts.filter(a => a.is_active).length > 5 && (
+                            <p className="text-[9px] text-muted-foreground text-center pt-1">+{accounts.filter(a => a.is_active).length - 5} more</p>
                           )}
                         </div>
                       ) : (
@@ -623,7 +600,7 @@ export default function Dashboard() {
                   </Card>
                 </motion.div>
 
-                {/* Budgets Summary */}
+                {/* Budgets Mini */}
                 <motion.div variants={staggerItem}>
                   <Card className="h-full border-primary/10">
                     <CardContent className="p-4">
@@ -638,7 +615,7 @@ export default function Dashboard() {
                       </div>
                       {budgets.length > 0 ? (
                         <div className="space-y-2">
-                          {budgets.slice(0, 4).map((b, i) => {
+                          {budgets.slice(0, 5).map((b, i) => {
                             const spent = currentMonthTransactions
                               .filter(t => t.type === 'expense' && (b.category_id ? t.category_id === b.category_id : true))
                               .reduce((s, t) => s + Number(t.amount), 0);
@@ -671,29 +648,23 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
                 </motion.div>
-              </div>
 
-              {/* Row 3: Net Worth (wide) + Savings & AI Advisor */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <motion.div variants={staggerItem} className="lg:col-span-2">
-                  <NetWorthChart accounts={accounts} transactions={transactions} />
-                </motion.div>
-                <motion.div variants={staggerItem} className="flex flex-col gap-4">
-                  {/* Savings mini */}
-                  <Card className="flex-1 border-primary/10">
+                {/* Savings Mini */}
+                <motion.div variants={staggerItem}>
+                  <Card className="h-full border-primary/10">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
                             <PiggyBank className="w-3 h-3 text-primary" />
                           </div>
-                          <p className="text-xs font-semibold">Savings</p>
+                          <p className="text-xs font-semibold">Savings Goals</p>
                         </div>
                         <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2" onClick={() => setActiveTab('savings')}>View All</Button>
                       </div>
                       {savingsGoals.length > 0 ? (
                         <div className="space-y-2">
-                          {savingsGoals.slice(0, 3).map((g, i) => {
+                          {savingsGoals.slice(0, 4).map((g, i) => {
                             const pct = Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100);
                             return (
                               <motion.div key={g.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04 }} className="space-y-1">
@@ -705,68 +676,66 @@ export default function Dashboard() {
                                   <span className={`text-[10px] font-mono font-semibold ${pct >= 80 ? 'text-income' : 'text-muted-foreground'}`}>{pct}%</span>
                                 </div>
                                 <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
-                                  <motion.div
-                                    className="h-full rounded-full bg-primary"
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${Math.min(pct, 100)}%` }}
-                                    transition={{ duration: 0.6, delay: 0.2 + i * 0.08 }}
-                                  />
+                                  <motion.div className="h-full rounded-full bg-primary" initial={{ width: 0 }} animate={{ width: `${Math.min(pct, 100)}%` }} transition={{ duration: 0.6, delay: 0.2 + i * 0.08 }} />
                                 </div>
                               </motion.div>
                             );
                           })}
                         </div>
                       ) : (
-                        <div className="text-center py-3">
+                        <div className="text-center py-4">
                           <PiggyBank className="w-6 h-6 mx-auto mb-1 text-muted-foreground/20" />
                           <p className="text-[10px] text-muted-foreground">No goals yet</p>
                         </div>
                       )}
                     </CardContent>
                   </Card>
-                  {/* AI Advisor */}
-                  <Card className="flex-1 border-primary/10 bg-gradient-to-br from-card to-primary/[0.02]">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Sparkles className="w-3 h-3 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold">AI Advisor</p>
-                            <p className="text-[9px] text-muted-foreground">Personalized insights</p>
-                          </div>
-                        </div>
-                        <Button onClick={getFinancialTip} disabled={loadingTip} size="sm" variant="outline" className="rounded-xl h-7 text-[10px] gap-1">
-                          {loadingTip ? (
-                            <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full" /> Analyzing</>
-                          ) : (
-                            <><Sparkles className="w-3 h-3" /> Get Insights</>
-                          )}
-                        </Button>
-                      </div>
-                      <AnimatePresence mode="wait">
-                        {aiTip ? (
-                          <motion.p key="tip" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                            className="text-xs text-muted-foreground leading-relaxed line-clamp-4"
-                          >{aiTip}</motion.p>
-                        ) : (
-                          <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2.5 py-1">
-                            <div className="w-8 h-8 rounded-lg bg-primary/5 flex items-center justify-center shrink-0">
-                              <Sparkles className="w-3.5 h-3.5 text-primary/30" />
-                            </div>
-                            <p className="text-[11px] text-muted-foreground">
-                              Tap <span className="font-medium text-foreground">"Get Insights"</span> for AI-powered advice.
-                            </p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </CardContent>
-                  </Card>
                 </motion.div>
               </div>
 
-              {/* Row 4: AI Insights + Smart Detection + Calendar (3-col on xl) */}
+              {/* === SECTION 5: AI Advisor (full width) === */}
+              <motion.div variants={staggerItem}>
+                <Card className="border-primary/10 bg-gradient-to-br from-card to-primary/[0.02]">
+                  <CardContent className="p-4 sm:p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                          <Sparkles className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold">AI Financial Advisor</p>
+                          <p className="text-[10px] text-muted-foreground">Personalized insights based on your data</p>
+                        </div>
+                      </div>
+                      <Button onClick={getFinancialTip} disabled={loadingTip} size="sm" variant="outline" className="rounded-xl h-8 text-xs gap-1.5 self-start sm:self-auto">
+                        {loadingTip ? (
+                          <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full" /> Analyzing</>
+                        ) : (
+                          <><Sparkles className="w-3 h-3" /> Get Insights</>
+                        )}
+                      </Button>
+                    </div>
+                    <AnimatePresence mode="wait">
+                      {aiTip ? (
+                        <motion.p key="tip" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                          className="text-sm text-muted-foreground leading-relaxed"
+                        >{aiTip}</motion.p>
+                      ) : (
+                        <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 py-1">
+                          <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center shrink-0">
+                            <Sparkles className="w-4 h-4 text-primary/30" />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Tap <span className="font-medium text-foreground">"Get Insights"</span> for AI-powered financial advice tailored to your spending patterns.
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* === SECTION 6: Intelligence Grid — 2x3 on xl, 2x2 on lg, 1-col on mobile === */}
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 <motion.div variants={staggerItem}>
                   <AISmartInsights accounts={accounts} transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} />
@@ -775,22 +744,13 @@ export default function Dashboard() {
                   <SmartSpendingDetection transactions={transactions} categories={categories} budgets={budgets} />
                 </motion.div>
                 <motion.div variants={staggerItem}>
-                  <CalendarSummary
-                    transactions={transactions}
-                    budgets={budgets}
-                    savingsGoals={savingsGoals}
-                    onNavigate={() => setActiveTab('activity')}
-                  />
-                </motion.div>
-              </div>
-
-              {/* Row 5: Predictive + Heatmap + Badges (3-col on xl) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                <motion.div variants={staggerItem}>
                   <PredictiveCashFlow accounts={accounts} transactions={transactions} />
                 </motion.div>
                 <motion.div variants={staggerItem}>
                   <SpendingHeatmap transactions={transactions} categories={categories} />
+                </motion.div>
+                <motion.div variants={staggerItem}>
+                  <CalendarSummary transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} onNavigate={() => setActiveTab('activity')} />
                 </motion.div>
                 <motion.div variants={staggerItem}>
                   <UserBadges
@@ -805,8 +765,7 @@ export default function Dashboard() {
                 </motion.div>
               </div>
 
-
-              {/* Row 8: Recent Transactions */}
+              {/* === SECTION 7: Recent Transactions === */}
               <motion.div variants={staggerItem}>
                 <Card className="border-primary/10">
                   <CardContent className="p-4">
@@ -819,12 +778,7 @@ export default function Dashboard() {
                       </div>
                       <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2" onClick={() => setActiveTab('transactions')}>View All</Button>
                     </div>
-                    <TransactionList
-                      transactions={transactions.slice(0, 5)}
-                      categories={categories}
-                      accounts={accounts}
-                      onRefresh={fetchData}
-                    />
+                    <TransactionList transactions={transactions.slice(0, 5)} categories={categories} accounts={accounts} onRefresh={fetchData} />
                   </CardContent>
                 </Card>
               </motion.div>
@@ -1102,71 +1056,31 @@ export default function Dashboard() {
         </Tabs>
       </main>
 
-      {/* Mobile Bottom Navigation — icon-only, all 10 tabs evenly distributed */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-2xl border-t border-border/50 safe-area-bottom">
-        <div className="grid grid-cols-5 gap-0 py-1 px-1">
-          {navItems.slice(0, 5).map((item) => {
+      {/* Mobile Bottom Navigation — scrollable single row */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-2xl border-t border-border/50">
+        <div className="flex overflow-x-auto no-scrollbar py-1.5 px-2 gap-0.5" style={{ paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}>
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className="relative flex flex-col items-center justify-center py-1.5 rounded-lg transition-colors"
+                className="relative flex flex-col items-center justify-center min-w-[3.25rem] flex-shrink-0 py-1 px-1.5 rounded-lg transition-colors"
               >
                 {isActive && (
                   <motion.div
                     layoutId="mobile-nav-pill"
-                    className="absolute inset-1 bg-primary/10 rounded-lg"
+                    className="absolute inset-0.5 bg-primary/10 rounded-lg"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
-                <Icon className={`relative z-10 w-5 h-5 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                {isActive && (
-                  <motion.span
-                    initial={{ opacity: 0, y: 2 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="relative z-10 text-[9px] font-semibold text-primary mt-0.5 leading-none"
-                  >
-                    {item.shortLabel}
-                  </motion.span>
-                )}
+                <Icon className={`relative z-10 w-[18px] h-[18px] transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className={`relative z-10 text-[8px] font-medium mt-0.5 leading-none transition-colors ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
+                  {item.shortLabel}
+                </span>
                 {item.badge === '!' && (
-                  <span className="absolute top-1 right-1/4 w-1.5 h-1.5 rounded-full bg-destructive z-20" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <div className="grid grid-cols-5 gap-0 pb-1 px-1">
-          {navItems.slice(5).map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className="relative flex flex-col items-center justify-center py-1.5 rounded-lg transition-colors"
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="mobile-nav-pill-2"
-                    className="absolute inset-1 bg-primary/10 rounded-lg"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <Icon className={`relative z-10 w-5 h-5 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                {isActive && (
-                  <motion.span
-                    initial={{ opacity: 0, y: 2 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="relative z-10 text-[9px] font-semibold text-primary mt-0.5 leading-none"
-                  >
-                    {item.shortLabel}
-                  </motion.span>
-                )}
-                {item.badge === '!' && (
-                  <span className="absolute top-1 right-1/4 w-1.5 h-1.5 rounded-full bg-destructive z-20" />
+                  <span className="absolute top-0.5 right-1 w-1.5 h-1.5 rounded-full bg-destructive z-20" />
                 )}
               </button>
             );
