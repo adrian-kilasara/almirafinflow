@@ -902,7 +902,7 @@ export default function Dashboard() {
                             className="w-7 h-7 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center shadow-glow"
                           >
                             <Sparkles className="w-3.5 h-3.5 text-primary" />
-                          </motion.div>
+                          </div>
                           <p className="text-xs font-bold">AI Advisor</p>
                         </div>
                         <Button onClick={getFinancialTip} disabled={loadingTip} size="sm" variant="ghost" className="rounded-full h-7 text-[10px] gap-1 hover:bg-primary/10">
