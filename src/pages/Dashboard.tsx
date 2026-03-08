@@ -1219,6 +1219,7 @@ export default function Dashboard() {
                 </div>
               </motion.div>
             )}
+          </Suspense>
           </TabsContent>
 
           {/* ═══ BILLS TAB ═══ */}
