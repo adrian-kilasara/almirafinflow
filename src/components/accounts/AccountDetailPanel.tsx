@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate } from '@/lib/format';
 import {
   TrendingUp, TrendingDown, ArrowLeft, Activity, History,
-  Search, Download, BarChart3, AlertTriangle, Shield, ChevronRight,
+  Search, Download, BarChart3, AlertTriangle, Shield, ChevronRight, Scale,
   ArrowUpRight, ArrowDownRight, Zap, Clock, Wallet, Calendar,
 } from 'lucide-react';
 import {
