@@ -313,8 +313,8 @@ export default function Dashboard() {
           <Menu className="w-5 h-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-72 p-0 border-r-border/30">
-        <div className="flex items-center gap-3 p-5 border-b border-border/30">
+      <SheetContent side="left" className="w-72 p-0 border-r-border/30 flex flex-col">
+        <div className="flex items-center gap-3 p-5 border-b border-border/30 shrink-0">
           <motion.div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center" whileHover={{ rotate: -5 }}>
             <Wallet className="w-5 h-5 text-primary-foreground" />
           </motion.div>
@@ -323,7 +323,7 @@ export default function Dashboard() {
             <p className="text-[10px] text-muted-foreground">2026 Edition</p>
           </div>
         </div>
-        <nav className="p-3 space-y-0.5">
+        <nav className="p-3 space-y-0.5 flex-1 overflow-y-auto">
           {navItems.map((item, i) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -348,7 +348,7 @@ export default function Dashboard() {
             );
           })}
         </nav>
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/30">
+        <div className="p-4 border-t border-border/30 shrink-0">
           <div className="flex items-center gap-3 mb-3 px-1">
             <Avatar className="w-8 h-8 border border-primary/20">
               {settings.avatar_url && <AvatarImage src={settings.avatar_url} alt={settings.username || 'Avatar'} />}
