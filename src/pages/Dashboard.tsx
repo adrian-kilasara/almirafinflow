@@ -755,10 +755,10 @@ export default function Dashboard() {
                   ║  WEALTH PANORAMA — Net Worth + Savings sidebar    ║
                   ╚═══════════════════════════════════════════════════╝ */}
               <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-                <motion.div variants={staggerItem} className="xl:col-span-8">
+                <motion.div variants={staggerItem} className="xl:col-span-8 2xl:col-span-9">
                   <NetWorthChart accounts={accounts} transactions={transactions} />
                 </motion.div>
-                <motion.div variants={staggerItem} className="xl:col-span-4 flex flex-col gap-4">
+                <motion.div variants={staggerItem} className="xl:col-span-4 2xl:col-span-3 flex flex-col gap-4">
                   {/* Savings Goals with circular progress */}
                   <Card className="flex-1 border-border/50 bg-card/50 backdrop-blur-sm">
                     <CardContent className="p-4">
