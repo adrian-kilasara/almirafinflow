@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logActivity } from '@/lib/activityLogger';
 
 /**
  * Cross-module event system. Call these after mutations to propagate
