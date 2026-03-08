@@ -274,6 +274,7 @@ export async function emitBudgetEvent(
   period: string
 ) {
   logActivity(userId, 'budget created', 'budgets', { budgetName, amount, period });
+  emitDashboardRefresh();
   await supabase.from('notifications').insert({
     user_id: userId,
     type: 'info',
