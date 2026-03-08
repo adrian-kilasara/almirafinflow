@@ -1,13 +1,65 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/format';
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useSettings } from '@/hooks/useSettings';
+import {
+  AreaChart, Area, BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+} from 'recharts';
 import { TrendingUp, BarChart3 } from 'lucide-react';
 import type { TrendPoint } from '../hooks/useReportData';
 
 interface Props { data: TrendPoint[]; }
 
 export default function TrendChart({ data }: Props) {
+  const { settings } = useSettings();
   if (data.length === 0) return null;
+
+  const tooltipStyle = {
+    backgroundColor: 'hsl(var(--card))',
+    border: '1px solid hsl(var(--border))',
+    borderRadius: '8px',
+    fontSize: '12px',
+    color: 'hsl(var(--card-foreground))',
+  };
+
+  const renderCashFlowChart = () => {
+    switch (settings.chart_preference) {
+      case 'line':
+        return (
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
+            <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} />
+            <Line type="monotone" dataKey="income" stroke="hsl(var(--income))" strokeWidth={2} dot={false} name="Income" />
+            <Line type="monotone" dataKey="expense" stroke="hsl(var(--expense))" strokeWidth={2} dot={false} name="Expenses" />
+          </LineChart>
+        );
+      case 'bar':
+        return (
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
+            <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} />
+            <Bar dataKey="income" fill="hsl(var(--income))" radius={[4, 4, 0, 0]} name="Income" />
+            <Bar dataKey="expense" fill="hsl(var(--expense))" radius={[4, 4, 0, 0]} name="Expenses" />
+          </BarChart>
+        );
+      default: // area (default)
+        return (
+          <AreaChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
+            <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} />
+            <Area type="monotone" dataKey="income" stroke="hsl(var(--income))" fill="hsl(var(--income))" fillOpacity={0.2} name="Income" />
+            <Area type="monotone" dataKey="expense" stroke="hsl(var(--expense))" fill="hsl(var(--expense))" fillOpacity={0.2} name="Expenses" />
+          </AreaChart>
+        );
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Card>
@@ -18,14 +70,7 @@ export default function TrendChart({ data }: Props) {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} />
-              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
-              <Area type="monotone" dataKey="income" stroke="#22c55e" fill="#22c55e" fillOpacity={0.2} name="Income" />
-              <Area type="monotone" dataKey="expense" stroke="#ef4444" fill="#ef4444" fillOpacity={0.2} name="Expenses" />
-            </AreaChart>
+            {renderCashFlowChart()}
           </ResponsiveContainer>
         </CardContent>
       </Card>
@@ -41,9 +86,9 @@ export default function TrendChart({ data }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} />
               <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
+              <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={tooltipStyle} />
               <Bar dataKey="net" radius={[4, 4, 0, 0]} name="Net">
-                {data.map((entry, i) => <Cell key={i} fill={entry.net >= 0 ? '#22c55e' : '#ef4444'} />)}
+                {data.map((entry, i) => <Cell key={i} fill={entry.net >= 0 ? 'hsl(var(--income))' : 'hsl(var(--expense))'} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>

@@ -253,3 +253,12 @@
     to { box-shadow: 0 0 40px hsl(173 80% 40% / 0.4); }
   }
 }
+
+/* Performance mode: disable animations */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
