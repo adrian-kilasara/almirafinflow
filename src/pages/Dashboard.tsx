@@ -286,16 +286,16 @@ export default function Dashboard() {
   }
 
   const navItems = [
-    { id: 'overview', label: 'Overview', icon: Wallet, badge: '' },
-    { id: 'accounts', label: 'Accounts', icon: CreditCard, badge: accounts.length > 0 ? String(accounts.length) : '' },
-    { id: 'transactions', label: 'Transactions', icon: Receipt, badge: '' },
-    { id: 'budgets', label: 'Budgets', icon: Folder, badge: overBudgetAlerts.length > 0 ? '!' : '' },
-    { id: 'bills', label: 'Bills', icon: CalendarClock, badge: '' },
-    { id: 'investments', label: 'Invest', icon: Briefcase, badge: '' },
-    { id: 'savings', label: 'Savings', icon: PiggyBank, badge: '' },
-    { id: 'reports', label: 'Reports', icon: BarChart3, badge: '' },
-    { id: 'learn', label: 'Learn', icon: GraduationCap, badge: '' },
-    { id: 'activity', label: 'Activity', icon: ScrollText, badge: '' },
+    { id: 'overview', label: 'Overview', shortLabel: 'Home', icon: Wallet, badge: '' },
+    { id: 'accounts', label: 'Accounts', shortLabel: 'Accounts', icon: CreditCard, badge: accounts.length > 0 ? String(accounts.length) : '' },
+    { id: 'transactions', label: 'Transactions', shortLabel: 'Txns', icon: Receipt, badge: '' },
+    { id: 'budgets', label: 'Budgets', shortLabel: 'Budget', icon: Folder, badge: overBudgetAlerts.length > 0 ? '!' : '' },
+    { id: 'bills', label: 'Bills', shortLabel: 'Bills', icon: CalendarClock, badge: '' },
+    { id: 'investments', label: 'Investments', shortLabel: 'Invest', icon: Briefcase, badge: '' },
+    { id: 'savings', label: 'Savings', shortLabel: 'Save', icon: PiggyBank, badge: '' },
+    { id: 'reports', label: 'Reports', shortLabel: 'Reports', icon: BarChart3, badge: '' },
+    { id: 'learn', label: 'Learn', shortLabel: 'Learn', icon: GraduationCap, badge: '' },
+    { id: 'activity', label: 'Activity', shortLabel: 'Log', icon: ScrollText, badge: '' },
   ];
 
   const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100) : 0;
