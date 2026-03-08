@@ -62,7 +62,13 @@ const CalendarSummary = lazy(() => import('@/components/dashboard/CalendarSummar
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
-// Shared animation variants
+const TabFallback = () => (
+  <div className="flex items-center justify-center py-20">
+    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
+// Shared animation variants — reduced for performance
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 14 },
   animate: { opacity: 1, y: 0 },
