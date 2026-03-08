@@ -9,6 +9,9 @@ export interface UserSettings {
   default_currency: CurrencyCode;
   full_name: string | null;
   phone: string | null;
+  username: string | null;
+  dob: string | null;
+  gender: string | null;
   avatar_url: string | null;
 
   // Localization (from user_settings table)
