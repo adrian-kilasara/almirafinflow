@@ -134,6 +134,10 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       fetchData();
+      // Listen for cross-module refresh signals
+      const handler = () => fetchData();
+      window.addEventListener('dashboard-refresh', handler);
+      return () => window.removeEventListener('dashboard-refresh', handler);
     }
   }, [user, fetchData]);
 
