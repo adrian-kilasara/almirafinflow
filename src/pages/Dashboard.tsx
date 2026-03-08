@@ -747,6 +747,46 @@ export default function Dashboard() {
                         </CardContent>
                       </Card>
                     </motion.div>
+
+                    {/* Savings Quick View — visible on 2xl+ to fill the 3rd column */}
+                    <motion.div variants={staggerItem} className="hidden 2xl:block">
+                      <Card className="h-full border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-colors duration-300">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                                <PiggyBank className="w-3 h-3 text-primary" />
+                              </div>
+                              <p className="text-xs font-bold">Savings</p>
+                            </div>
+                            <Button variant="ghost" size="sm" className="text-[10px] text-primary h-6 px-2 hover:bg-primary/10 rounded-full" onClick={() => setActiveTab('savings')}>View →</Button>
+                          </div>
+                          {savingsGoals.length > 0 ? (
+                            <div className="space-y-1.5">
+                              {savingsGoals.slice(0, 4).map((g, i) => {
+                                const pct = Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100);
+                                return (
+                                  <motion.div key={g.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.04 }}
+                                    className="flex items-center justify-between p-2 rounded-xl bg-muted/15 hover:bg-muted/30 transition-all"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <span className="text-sm">{g.icon || '🎯'}</span>
+                                      <p className="font-medium text-[11px] truncate">{g.name}</p>
+                                    </div>
+                                    <p className={`text-[11px] font-mono font-semibold ${pct >= 80 ? 'text-income' : 'text-primary'}`}>{pct}%</p>
+                                  </motion.div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-center py-6">
+                              <PiggyBank className="w-8 h-8 mx-auto mb-2 text-muted-foreground/15" />
+                              <p className="text-[10px] text-muted-foreground">No savings goals</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   </div>
                 </div>
               </div>
