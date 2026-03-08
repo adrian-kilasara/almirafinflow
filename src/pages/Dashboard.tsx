@@ -558,7 +558,6 @@ export default function Dashboard() {
                         <PiggyBank className="w-4 h-4" />
                         Savings Goals
                       </CardTitle>
-                      <SavingsGoalForm onSuccess={fetchData} />
                     </CardHeader>
                     <CardContent>
                       {savingsGoals.length > 0 ? (
