@@ -1190,6 +1190,7 @@ export default function Dashboard() {
 
           {/* ═══ BUDGETS TAB ═══ */}
           <TabsContent value="budgets" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <motion.div {...fadeUp()} className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center"><Folder className="w-4 h-4 text-primary" /></div>
