@@ -20,6 +20,8 @@ import type { Account, Transaction, Category, Budget, SavingsGoal, UserStreak, T
 import TransactionList from '@/components/transactions/TransactionList';
 import AccountForm from '@/components/accounts/AccountForm';
 import AccountCard from '@/components/accounts/AccountCard';
+import AccountDetailPanel from '@/components/accounts/AccountDetailPanel';
+import TransferForm from '@/components/accounts/TransferForm';
 import BudgetForm from '@/components/budgets/BudgetForm';
 import BudgetCard from '@/components/budgets/BudgetCard';
 import SavingsGoalForm from '@/components/savings/SavingsGoalForm';
@@ -50,6 +52,7 @@ export default function Dashboard() {
   const [currentStreak, setCurrentStreak] = useState<UserStreak | null>(null);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [transactionFormType, setTransactionFormType] = useState<'income' | 'expense' | 'transfer'>('expense');
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -599,27 +602,141 @@ export default function Dashboard() {
 
           {/* Accounts Tab */}
           <TabsContent value="accounts" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <CreditCard className="w-5 h-5" />
-                Your Accounts
-              </h2>
-              <AccountForm onSuccess={fetchData} />
-            </div>
-            {accounts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {accounts.map((account) => (
-                  <AccountCard key={account.id} account={account} onRefresh={fetchData} />
-                ))}
-              </div>
+            {selectedAccount ? (
+              <AccountDetailPanel
+                account={selectedAccount}
+                transactions={transactions}
+                budgets={budgets}
+                savingsGoals={savingsGoals}
+                onBack={() => setSelectedAccount(null)}
+              />
             ) : (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No accounts yet</p>
-                  <p className="text-sm">Add your bank accounts, mobile money, and cash</p>
-                </CardContent>
-              </Card>
+              <>
+                {/* Net Position Summary */}
+                {accounts.length > 0 && (() => {
+                  const activeAccounts = accounts.filter(a => a.is_active && !(a as any).is_archived);
+                  const totalAssets = activeAccounts
+                    .filter(a => (a as any).classification !== 'liability')
+                    .reduce((s, a) => s + Number(a.balance), 0);
+                  const totalLiabilities = activeAccounts
+                    .filter(a => (a as any).classification === 'liability')
+                    .reduce((s, a) => s + Math.abs(Number(a.balance)), 0);
+                  const netPosition = totalAssets - totalLiabilities;
+                  return (
+                    <div className="grid grid-cols-3 gap-4">
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-xs text-muted-foreground">Total Assets</p>
+                          <p className="text-lg font-bold font-mono text-income">{formatCurrency(totalAssets)}</p>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardContent className="p-4 text-center">
+                          <p className="text-xs text-muted-foreground">Total Liabilities</p>
+                          <p className="text-lg font-bold font-mono text-expense">-{formatCurrency(totalLiabilities)}</p>
+                        </CardContent>
+                      </Card>
+                      <Card variant="glow">
+                        <CardContent className="p-4 text-center">
+                          <p className="text-xs text-muted-foreground">Net Position</p>
+                          <p className={`text-lg font-bold font-mono ${netPosition >= 0 ? 'text-income' : 'text-expense'}`}>
+                            {formatCurrency(netPosition)}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  );
+                })()}
+
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <CreditCard className="w-5 h-5" /> Your Accounts
+                  </h2>
+                  <div className="flex gap-2">
+                    <TransferForm accounts={accounts} onSuccess={fetchData} />
+                    <AccountForm onSuccess={fetchData} />
+                  </div>
+                </div>
+
+                {accounts.length > 0 ? (() => {
+                  const active = accounts.filter(a => a.is_active && !(a as any).is_archived);
+                  const archived = accounts.filter(a => (a as any).is_archived);
+                  const assets = active.filter(a => (a as any).classification !== 'liability');
+                  const liabilities = active.filter(a => (a as any).classification === 'liability');
+
+                  return (
+                    <div className="space-y-6">
+                      {/* Assets */}
+                      {assets.length > 0 && (
+                        <div className="space-y-3">
+                          <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                            📈 Assets ({assets.length})
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {assets.map(account => (
+                              <AccountCard
+                                key={account.id}
+                                account={account}
+                                transactions={transactions}
+                                onRefresh={fetchData}
+                                onSelect={setSelectedAccount}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Liabilities */}
+                      {liabilities.length > 0 && (
+                        <div className="space-y-3">
+                          <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                            📉 Liabilities ({liabilities.length})
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {liabilities.map(account => (
+                              <AccountCard
+                                key={account.id}
+                                account={account}
+                                transactions={transactions}
+                                onRefresh={fetchData}
+                                onSelect={setSelectedAccount}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Archived */}
+                      {archived.length > 0 && (
+                        <div className="space-y-3">
+                          <h3 className="text-sm font-semibold text-muted-foreground">
+                            📦 Archived ({archived.length})
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {archived.map(account => (
+                              <AccountCard
+                                key={account.id}
+                                account={account}
+                                transactions={transactions}
+                                onRefresh={fetchData}
+                                onSelect={setSelectedAccount}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })() : (
+                  <Card>
+                    <CardContent className="py-12 text-center text-muted-foreground">
+                      <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No accounts yet</p>
+                      <p className="text-sm">Add your bank accounts, mobile money, and cash</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
           </TabsContent>
 
