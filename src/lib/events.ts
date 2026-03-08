@@ -239,6 +239,7 @@ export async function emitSavingsWithdrawEvent(
   goalId: string
 ) {
   logActivity(userId, 'savings withdrawal', 'savings', { goalName, amount });
+  emitDashboardRefresh();
   await supabase.from('notifications').insert({
     user_id: userId,
     type: 'info',
