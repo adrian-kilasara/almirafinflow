@@ -89,11 +89,52 @@ export default function FinancialLessons({ transactions = [], categories = [], b
     return lessons.filter(l => l.category === categoryFilter);
   }, [lessons, categoryFilter]);
 
-  // Recommended: incomplete lessons from categories with most completions
+  // Smart recommendations based on user behavior
   const recommended = useMemo(() => {
     const incomplete = lessons.filter(l => !isCompleted(l.id));
-    return incomplete.slice(0, 3);
-  }, [lessons, progress]);
+    if (incomplete.length === 0) return [];
+
+    // Analyze user behavior to prioritize lesson categories
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const monthTxns = transactions.filter(t => t.date >= monthStart);
+    const income = monthTxns.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+    const expenses = monthTxns.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+    const savingsRate = income > 0 ? (income - expenses) / income : 0;
+
+    const priorityMap: Record<string, number> = {};
+
+    // Low savings rate → prioritize savings/budgeting lessons
+    if (savingsRate < 0.1) {
+      priorityMap['savings'] = 10;
+      priorityMap['budgeting'] = 8;
+    }
+    // No budgets set → recommend budgeting
+    if (budgets.length === 0) {
+      priorityMap['budgeting'] = (priorityMap['budgeting'] || 0) + 5;
+    }
+    // No savings goals → recommend savings
+    if (savingsGoals.length === 0) {
+      priorityMap['savings'] = (priorityMap['savings'] || 0) + 5;
+    }
+    // Few accounts → recommend basics
+    if (accounts.length <= 1) {
+      priorityMap['basics'] = (priorityMap['basics'] || 0) + 5;
+    }
+    // Has investments → investing lessons
+    if (accounts.some(a => a.type === 'investment' || a.type === 'crypto')) {
+      priorityMap['investing'] = (priorityMap['investing'] || 0) + 5;
+    }
+
+    // Sort incomplete lessons by priority
+    const sorted = [...incomplete].sort((a, b) => {
+      const aPri = priorityMap[a.category] || 0;
+      const bPri = priorityMap[b.category] || 0;
+      return bPri - aPri;
+    });
+
+    return sorted.slice(0, 3);
+  }, [lessons, progress, transactions, budgets, savingsGoals, accounts]);
 
   // Continue learning: next incomplete after last completed
   const continueLesson = useMemo(() => {
