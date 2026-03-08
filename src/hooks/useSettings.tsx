@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { setGlobalCurrency } from '@/lib/format';
+import { setGlobalCurrency, setGlobalDateFormat } from '@/lib/format';
 import type { CurrencyCode } from '@/types/finance';
 
 export interface UserSettings {
@@ -125,7 +125,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setGlobalCurrency(settings.default_currency);
-  }, [settings.default_currency]);
+    setGlobalDateFormat(settings.date_format);
+  }, [settings.default_currency, settings.date_format]);
 
   const loadSettings = useCallback(async () => {
     if (!user) {

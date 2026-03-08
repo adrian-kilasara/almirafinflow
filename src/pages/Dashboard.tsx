@@ -10,7 +10,7 @@ import { formatCurrency } from '@/lib/format';
 import { 
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
   LogOut, Sparkles, Target, CreditCard, BarChart3,
-  Receipt, Folder, Menu, GraduationCap, Settings
+  Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
@@ -37,6 +37,7 @@ import { Progress } from '@/components/ui/progress';
 
 export default function Dashboard() {
   const { user, loading, signOut } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -45,7 +46,7 @@ export default function Dashboard() {
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
   const [aiTip, setAiTip] = useState<string>('');
   const [loadingTip, setLoadingTip] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(settings.default_landing_tab || 'overview');
   const [currentStreak, setCurrentStreak] = useState<UserStreak | null>(null);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [transactionFormType, setTransactionFormType] = useState<'income' | 'expense' | 'transfer'>('expense');
@@ -80,14 +81,16 @@ export default function Dashboard() {
   }, [user, fetchData]);
 
   const getFinancialTip = async () => {
+    if (!settings.ai_enabled) {
+      toast.info('AI insights are disabled. Enable them in Settings → AI & Insights.');
+      return;
+    }
     setLoadingTip(true);
     try {
-      // Calculate comprehensive metrics from real data
       const incomeTotal = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
       const expenseTotal = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
       const savingsRate = incomeTotal > 0 ? ((incomeTotal - expenseTotal) / incomeTotal) * 100 : 0;
       
-      // Get spending by category
       const categorySpending: Record<string, number> = {};
       transactions.filter(t => t.type === 'expense').forEach(t => {
         const cat = categories.find(c => c.id === t.category_id);
@@ -95,20 +98,13 @@ export default function Dashboard() {
         categorySpending[catName] = (categorySpending[catName] || 0) + Number(t.amount);
       });
       
-      // Budget performance
       const budgetPerformance = budgets.map(b => {
         const spent = transactions
           .filter(t => t.type === 'expense' && t.category_id === b.category_id)
           .reduce((sum, t) => sum + Number(t.amount), 0);
-        return {
-          name: b.name,
-          budgeted: Number(b.amount),
-          spent,
-          overBudget: spent > Number(b.amount),
-        };
+        return { name: b.name, budgeted: Number(b.amount), spent, overBudget: spent > Number(b.amount) };
       });
       
-      // Savings goals progress
       const goalsProgress = savingsGoals.map(g => ({
         name: g.name,
         targetAmount: Number(g.target_amount),
@@ -133,6 +129,12 @@ export default function Dashboard() {
             healthScore,
           },
           tipType: 'general',
+          // Pass user AI settings for personalized advice
+          aiSettings: {
+            adviceMode: settings.ai_advice_mode,
+            riskTolerance: settings.ai_risk_tolerance,
+            currency: settings.default_currency,
+          },
         },
       });
       
@@ -161,6 +163,23 @@ export default function Dashboard() {
   const totalExpenses = currentMonthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
   const netFlow = totalIncome - totalExpenses;
   const totalSavings = savingsGoals.reduce((sum, g) => sum + Number(g.current_amount), 0);
+
+  // Low balance alerts from settings
+  const lowBalanceAccounts = useMemo(() => {
+    if (!settings.notify_low_balance) return [];
+    return accounts.filter(a => a.is_active && Number(a.balance) < settings.low_balance_threshold);
+  }, [accounts, settings.notify_low_balance, settings.low_balance_threshold]);
+
+  // Budget mode strict warnings
+  const overBudgetAlerts = useMemo(() => {
+    if (settings.budget_mode !== 'strict') return [];
+    return budgets.filter(b => {
+      const spent = currentMonthTransactions
+        .filter(t => t.type === 'expense' && (b.category_id ? t.category_id === b.category_id : true))
+        .reduce((s, t) => s + Number(t.amount), 0);
+      return spent > Number(b.amount);
+    });
+  }, [budgets, currentMonthTransactions, settings.budget_mode]);
 
   // Health score calculation (simplified for badge checking)
   const healthScore = Math.min(100, Math.round(
@@ -292,6 +311,34 @@ export default function Dashboard() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Live Alerts from Settings */}
+            {lowBalanceAccounts.length > 0 && (
+              <Card className="border-[hsl(var(--warning))]/50 bg-[hsl(var(--warning))]/5">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-[hsl(var(--warning))] mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">Low Balance Alert</p>
+                    <p className="text-xs text-muted-foreground">
+                      {lowBalanceAccounts.map(a => `${a.name} (${formatCurrency(Number(a.balance), a.currency)})`).join(', ')} — below {formatCurrency(settings.low_balance_threshold)} threshold
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {overBudgetAlerts.length > 0 && (
+              <Card className="border-destructive/50 bg-destructive/5">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">⚠ Budget Strict Mode — Over Budget!</p>
+                    <p className="text-xs text-muted-foreground">
+                      {overBudgetAlerts.map(b => b.name).join(', ')} exceeded their limits
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Streak Tracker */}
             <StreakTracker 
               transactions={transactions} 

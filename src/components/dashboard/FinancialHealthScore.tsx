@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
+import { useSettings } from '@/hooks/useSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Heart, TrendingUp, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
+import { Heart, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
 import type { Account, Transaction, Budget, SavingsGoal } from '@/types/finance';
 
 interface FinancialHealthScoreProps {
@@ -20,222 +21,113 @@ interface HealthFactor {
 }
 
 export default function FinancialHealthScore({
-  accounts,
-  transactions,
-  budgets,
-  savingsGoals,
+  accounts, transactions, budgets, savingsGoals,
 }: FinancialHealthScoreProps) {
+  const { settings } = useSettings();
+
   const healthAnalysis = useMemo(() => {
     const factors: HealthFactor[] = [];
-    
-    // Factor 1: Savings Rate (0-25 points)
-    const totalIncome = transactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
-    const totalExpenses = transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    // Use weights from settings (each out of 100, we normalize to the factor's max score)
+    const wSavings = settings.health_weight_savings; // e.g. 30
+    const wDebt = settings.health_weight_debt; // e.g. 25 → maps to budget discipline
+    const wInvestments = settings.health_weight_investments; // e.g. 20 → maps to account diversification
+    const wCashflow = settings.health_weight_cashflow; // e.g. 25 → maps to goals + tracking
+
+    // Factor 1: Savings Rate (weighted by health_weight_savings)
+    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+    const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
     
     let savingsScore = 0;
     let savingsStatus: 'good' | 'warning' | 'poor' = 'poor';
     let savingsTip = '';
     
-    if (savingsRate >= 20) {
-      savingsScore = 25;
-      savingsStatus = 'good';
-      savingsTip = 'Excellent! You are saving more than 20% of your income.';
-    } else if (savingsRate >= 10) {
-      savingsScore = 15;
-      savingsStatus = 'warning';
-      savingsTip = 'Good progress! Try to increase savings to 20% for optimal financial health.';
-    } else if (savingsRate > 0) {
-      savingsScore = 8;
-      savingsStatus = 'warning';
-      savingsTip = 'You are saving, but aim for at least 10-20% of income.';
-    } else {
-      savingsScore = 0;
-      savingsStatus = 'poor';
-      savingsTip = 'You are spending more than you earn. Review your expenses immediately.';
-    }
+    if (savingsRate >= 20) { savingsScore = wSavings; savingsStatus = 'good'; savingsTip = `Excellent! Saving ${savingsRate.toFixed(0)}% of income.`; }
+    else if (savingsRate >= 10) { savingsScore = wSavings * 0.6; savingsStatus = 'warning'; savingsTip = `Saving ${savingsRate.toFixed(0)}%. Aim for 20%.`; }
+    else if (savingsRate > 0) { savingsScore = wSavings * 0.3; savingsStatus = 'warning'; savingsTip = `Only saving ${savingsRate.toFixed(0)}%. Target 10-20%.`; }
+    else { savingsScore = 0; savingsStatus = 'poor'; savingsTip = 'Spending exceeds income. Review expenses.'; }
     
-    factors.push({
-      name: 'Savings Rate',
-      score: savingsScore,
-      maxScore: 25,
-      status: savingsStatus,
-      tip: savingsTip,
-    });
+    factors.push({ name: 'Savings Rate', score: Math.round(savingsScore), maxScore: wSavings, status: savingsStatus, tip: savingsTip });
     
-    // Factor 2: Budget Adherence (0-25 points)
-    const activeBudgets = budgets.filter(b => {
-      const now = new Date();
-      const start = new Date(b.start_date);
-      const end = b.end_date ? new Date(b.end_date) : null;
-      return start <= now && (!end || end >= now);
-    });
-    
+    // Factor 2: Budget Discipline (weighted by health_weight_debt)
+    const activeBudgets = budgets;
     let budgetScore = 0;
     let budgetStatus: 'good' | 'warning' | 'poor' = 'poor';
     let budgetTip = '';
     
     if (activeBudgets.length === 0) {
-      budgetScore = 5;
-      budgetStatus = 'warning';
-      budgetTip = 'Set up budgets to track and control your spending.';
+      budgetScore = wDebt * 0.2; budgetStatus = 'warning'; budgetTip = 'Set up budgets to track spending.';
     } else {
-      // Calculate how many budgets are within limit
       const budgetsWithSpending = activeBudgets.map(budget => {
-        const spent = transactions
-          .filter(t => t.type === 'expense' && t.category_id === budget.category_id)
-          .reduce((sum, t) => sum + Number(t.amount), 0);
-        return { ...budget, spent, overBudget: spent > Number(budget.amount) };
+        const spent = transactions.filter(t => t.type === 'expense' && t.category_id === budget.category_id).reduce((sum, t) => sum + Number(t.amount), 0);
+        return { overBudget: spent > Number(budget.amount) };
       });
-      
       const overBudgetCount = budgetsWithSpending.filter(b => b.overBudget).length;
       const adherenceRate = (activeBudgets.length - overBudgetCount) / activeBudgets.length;
       
-      if (adherenceRate >= 0.9) {
-        budgetScore = 25;
-        budgetStatus = 'good';
-        budgetTip = 'Great job staying within your budgets!';
-      } else if (adherenceRate >= 0.7) {
-        budgetScore = 18;
-        budgetStatus = 'warning';
-        budgetTip = 'Most budgets are on track. Review the ones that are over.';
-      } else {
-        budgetScore = 8;
-        budgetStatus = 'poor';
-        budgetTip = 'Multiple budgets exceeded. Consider adjusting limits or cutting expenses.';
-      }
+      if (adherenceRate >= 0.9) { budgetScore = wDebt; budgetStatus = 'good'; budgetTip = 'Great budget discipline!'; }
+      else if (adherenceRate >= 0.7) { budgetScore = wDebt * 0.7; budgetStatus = 'warning'; budgetTip = 'Most budgets on track. Review over-budget ones.'; }
+      else { budgetScore = wDebt * 0.3; budgetStatus = 'poor'; budgetTip = 'Multiple budgets exceeded. Cut expenses.'; }
     }
     
-    factors.push({
-      name: 'Budget Discipline',
-      score: budgetScore,
-      maxScore: 25,
-      status: budgetStatus,
-      tip: budgetTip,
-    });
+    factors.push({ name: 'Budget Discipline', score: Math.round(budgetScore), maxScore: wDebt, status: budgetStatus, tip: budgetTip });
     
-    // Factor 3: Account Diversification (0-20 points)
+    // Factor 3: Account Diversification (weighted by health_weight_investments)
     const activeAccounts = accounts.filter(a => a.is_active);
-    let diversificationScore = 0;
-    let diversificationStatus: 'good' | 'warning' | 'poor' = 'poor';
-    let diversificationTip = '';
-    
     const accountTypes = new Set(activeAccounts.map(a => a.type));
+    let divScore = 0;
+    let divStatus: 'good' | 'warning' | 'poor' = 'poor';
+    let divTip = '';
     
-    if (accountTypes.size >= 3) {
-      diversificationScore = 20;
-      diversificationStatus = 'good';
-      diversificationTip = 'Well-diversified accounts across different types.';
-    } else if (accountTypes.size >= 2) {
-      diversificationScore = 12;
-      diversificationStatus = 'warning';
-      diversificationTip = 'Consider adding different account types for better money management.';
-    } else if (activeAccounts.length > 0) {
-      diversificationScore = 5;
-      diversificationStatus = 'warning';
-      diversificationTip = 'Add more account types (savings, investment) for better financial structure.';
-    } else {
-      diversificationScore = 0;
-      diversificationStatus = 'poor';
-      diversificationTip = 'Add your accounts to start tracking your finances.';
-    }
+    if (accountTypes.size >= 3) { divScore = wInvestments; divStatus = 'good'; divTip = 'Well-diversified accounts.'; }
+    else if (accountTypes.size >= 2) { divScore = wInvestments * 0.6; divStatus = 'warning'; divTip = 'Add more account types for diversification.'; }
+    else if (activeAccounts.length > 0) { divScore = wInvestments * 0.25; divStatus = 'warning'; divTip = 'Add savings/investment accounts.'; }
+    else { divScore = 0; divStatus = 'poor'; divTip = 'Add accounts to start tracking.'; }
     
-    factors.push({
-      name: 'Account Setup',
-      score: diversificationScore,
-      maxScore: 20,
-      status: diversificationStatus,
-      tip: diversificationTip,
-    });
+    factors.push({ name: 'Account Setup', score: Math.round(divScore), maxScore: wInvestments, status: divStatus, tip: divTip });
     
-    // Factor 4: Savings Goals Progress (0-20 points)
+    // Factor 4: Goals + Tracking (weighted by health_weight_cashflow)
+    const halfWeight = Math.round(wCashflow / 2);
+    
+    // Goals
     let goalsScore = 0;
     let goalsStatus: 'good' | 'warning' | 'poor' = 'poor';
     let goalsTip = '';
-    
-    if (savingsGoals.length === 0) {
-      goalsScore = 5;
-      goalsStatus = 'warning';
-      goalsTip = 'Set savings goals to stay motivated and track progress.';
-    } else {
-      const avgProgress = savingsGoals.reduce((sum, g) => {
-        return sum + (Number(g.current_amount) / Number(g.target_amount)) * 100;
-      }, 0) / savingsGoals.length;
-      
-      if (avgProgress >= 50) {
-        goalsScore = 20;
-        goalsStatus = 'good';
-        goalsTip = 'Excellent progress on your savings goals!';
-      } else if (avgProgress >= 25) {
-        goalsScore = 12;
-        goalsStatus = 'warning';
-        goalsTip = 'Making progress! Keep contributing to reach your goals faster.';
-      } else {
-        goalsScore = 6;
-        goalsStatus = 'warning';
-        goalsTip = 'Goals are set but need more contributions. Try automating savings.';
-      }
+    if (savingsGoals.length === 0) { goalsScore = halfWeight * 0.2; goalsStatus = 'warning'; goalsTip = 'Set savings goals.'; }
+    else {
+      const avgProgress = savingsGoals.reduce((s, g) => s + (Number(g.current_amount) / Number(g.target_amount)) * 100, 0) / savingsGoals.length;
+      if (avgProgress >= 50) { goalsScore = halfWeight; goalsStatus = 'good'; goalsTip = 'Great goal progress!'; }
+      else if (avgProgress >= 25) { goalsScore = halfWeight * 0.6; goalsStatus = 'warning'; goalsTip = 'Keep contributing to goals.'; }
+      else { goalsScore = halfWeight * 0.3; goalsStatus = 'warning'; goalsTip = 'Goals need more contributions.'; }
     }
+    factors.push({ name: 'Goals Progress', score: Math.round(goalsScore), maxScore: halfWeight, status: goalsStatus, tip: goalsTip });
     
-    factors.push({
-      name: 'Goals Progress',
-      score: goalsScore,
-      maxScore: 20,
-      status: goalsStatus,
-      tip: goalsTip,
-    });
-    
-    // Factor 5: Tracking Consistency (0-10 points)
-    let trackingScore = 0;
-    let trackingStatus: 'good' | 'warning' | 'poor' = 'poor';
-    let trackingTip = '';
-    
+    // Tracking consistency
     const last30Days = transactions.filter(t => {
       const date = new Date(t.date);
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return date >= thirtyDaysAgo;
+      const ago = new Date(); ago.setDate(ago.getDate() - 30);
+      return date >= ago;
     });
+    const remainingWeight = wCashflow - halfWeight;
+    let trackScore = 0;
+    let trackStatus: 'good' | 'warning' | 'poor' = 'poor';
+    let trackTip = '';
+    if (last30Days.length >= 20) { trackScore = remainingWeight; trackStatus = 'good'; trackTip = 'Great tracking consistency!'; }
+    else if (last30Days.length >= 10) { trackScore = remainingWeight * 0.6; trackStatus = 'warning'; trackTip = 'Log more transactions.'; }
+    else if (last30Days.length > 0) { trackScore = remainingWeight * 0.3; trackStatus = 'warning'; trackTip = 'More frequent logging needed.'; }
+    else { trackScore = 0; trackStatus = 'poor'; trackTip = 'Start logging transactions.'; }
+    factors.push({ name: 'Tracking', score: Math.round(trackScore), maxScore: remainingWeight, status: trackStatus, tip: trackTip });
     
-    if (last30Days.length >= 20) {
-      trackingScore = 10;
-      trackingStatus = 'good';
-      trackingTip = 'Great tracking consistency! Keep it up.';
-    } else if (last30Days.length >= 10) {
-      trackingScore = 6;
-      trackingStatus = 'warning';
-      trackingTip = 'Good tracking. Try to log every transaction for better insights.';
-    } else if (last30Days.length > 0) {
-      trackingScore = 3;
-      trackingStatus = 'warning';
-      trackingTip = 'Log more transactions to get accurate financial insights.';
-    } else {
-      trackingScore = 0;
-      trackingStatus = 'poor';
-      trackingTip = 'Start logging transactions to understand your spending.';
-    }
-    
-    factors.push({
-      name: 'Tracking Consistency',
-      score: trackingScore,
-      maxScore: 10,
-      status: trackingStatus,
-      tip: trackingTip,
-    });
-    
-    const totalScore = factors.reduce((sum, f) => sum + f.score, 0);
-    const maxPossibleScore = factors.reduce((sum, f) => sum + f.maxScore, 0);
+    const totalScore = factors.reduce((s, f) => s + f.score, 0);
+    const maxPossibleScore = factors.reduce((s, f) => s + f.maxScore, 0);
     
     return { factors, totalScore, maxPossibleScore };
-  }, [accounts, transactions, budgets, savingsGoals]);
+  }, [accounts, transactions, budgets, savingsGoals, settings]);
 
   const getScoreColor = (score: number) => {
     if (score >= 75) return 'text-income';
-    if (score >= 50) return 'text-warning';
+    if (score >= 50) return 'text-[hsl(var(--warning))]';
     return 'text-expense';
   };
 
@@ -248,14 +140,9 @@ export default function FinancialHealthScore({
   };
 
   const getStatusIcon = (status: 'good' | 'warning' | 'poor') => {
-    switch (status) {
-      case 'good':
-        return <CheckCircle className="w-4 h-4 text-income" />;
-      case 'warning':
-        return <AlertCircle className="w-4 h-4 text-warning" />;
-      case 'poor':
-        return <TrendingDown className="w-4 h-4 text-expense" />;
-    }
+    if (status === 'good') return <CheckCircle className="w-4 h-4 text-income" />;
+    if (status === 'warning') return <AlertCircle className="w-4 h-4 text-[hsl(var(--warning))]" />;
+    return <TrendingDown className="w-4 h-4 text-expense" />;
   };
 
   return (
@@ -267,7 +154,6 @@ export default function FinancialHealthScore({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Main Score */}
         <div className="text-center">
           <div className={`text-5xl font-bold ${getScoreColor(healthAnalysis.totalScore)}`}>
             {healthAnalysis.totalScore}
@@ -276,13 +162,8 @@ export default function FinancialHealthScore({
           <p className={`text-lg font-semibold mt-2 ${getScoreColor(healthAnalysis.totalScore)}`}>
             {getScoreLabel(healthAnalysis.totalScore)}
           </p>
-          <Progress 
-            value={(healthAnalysis.totalScore / healthAnalysis.maxPossibleScore) * 100} 
-            className="mt-4 h-3"
-          />
+          <Progress value={(healthAnalysis.totalScore / healthAnalysis.maxPossibleScore) * 100} className="mt-4 h-3" />
         </div>
-
-        {/* Breakdown */}
         <div className="space-y-3">
           {healthAnalysis.factors.map((factor, index) => (
             <div key={index} className="p-3 rounded-lg bg-muted/30">
@@ -291,14 +172,13 @@ export default function FinancialHealthScore({
                   {getStatusIcon(factor.status)}
                   <span className="font-medium text-sm">{factor.name}</span>
                 </div>
-                <span className="text-sm font-mono">
-                  {factor.score}/{factor.maxScore}
-                </span>
+                <span className="text-sm font-mono">{factor.score}/{factor.maxScore}</span>
               </div>
               <p className="text-xs text-muted-foreground">{factor.tip}</p>
             </div>
           ))}
         </div>
+        <p className="text-[10px] text-muted-foreground text-center">Weights configurable in Settings → Financial Rules</p>
       </CardContent>
     </Card>
   );
