@@ -1185,6 +1185,7 @@ export default function Dashboard() {
               <TransactionRulesManager categories={categories} onRulesChange={fetchData} />
             </motion.div>
             <TransactionList transactions={transactions} categories={categories} accounts={accounts} onRefresh={fetchData} />
+          </Suspense>
           </TabsContent>
 
           {/* ═══ BUDGETS TAB ═══ */}
