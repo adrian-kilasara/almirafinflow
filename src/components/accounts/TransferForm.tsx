@@ -136,6 +136,9 @@ export default function TransferForm({ accounts, onSuccess }: TransferFormProps)
         } as any),
       ]);
 
+      // Emit cross-module transfer event
+      await emitTransferEvent(userData.user.id, from.name, to.name, amt, from.id, to.id);
+
       toast.success(`Transferred ${formatCurrency(amt, from.currency)} → ${formatCurrency(converted, to.currency)}`);
       reset();
       setOpen(false);

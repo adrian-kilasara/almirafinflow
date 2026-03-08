@@ -125,6 +125,9 @@ export default function BudgetForm({ categories, transactions = [], savingsGoals
 
       if (error) throw error;
 
+      // Emit budget event
+      await emitBudgetEvent(userData.user.id, data.name, Number(data.amount), data.period);
+
       toast.success('Budget created!');
       reset();
       setOpen(false);

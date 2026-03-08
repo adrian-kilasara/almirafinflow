@@ -255,6 +255,14 @@ export default function TransactionList({ transactions, categories, accounts, on
         const reverse = txn.type === 'income' ? -Number(txn.amount) : Number(txn.amount);
         await supabase.from('accounts').update({ balance: Number(account.balance) + reverse }).eq('id', account.id);
       }
+      // Emit delete event for balance alerts
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        await emitTransactionDeleteEvent(
+          userData.user.id, txn.type as 'income' | 'expense' | 'transfer',
+          Number(txn.amount), txn.description || 'Transaction', txn.account_id
+        );
+      }
       toast.success('Transaction deleted'); setDeleteConfirmId(null); onRefresh();
     } catch { toast.error('Failed to delete'); }
     finally { setDeleting(null); }

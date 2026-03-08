@@ -187,6 +187,8 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
       if (goal.is_completed && newCurrent < Number(goal.target_amount)) {
         await supabase.from('savings_goals').update({ is_completed: false }).eq('id', goal.id);
       }
+      // Emit withdrawal event
+      await emitSavingsWithdrawEvent(userData.user.id, goal.name, amount, goal.id);
       toast.success('Funds withdrawn'); setWithdrawOpen(false); withdrawForm.reset(); onRefresh();
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };
