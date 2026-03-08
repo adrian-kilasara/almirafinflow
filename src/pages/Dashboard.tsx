@@ -270,6 +270,7 @@ export default function Dashboard() {
     { id: 'accounts', label: 'Accounts', icon: CreditCard, badge: accounts.length > 0 ? String(accounts.length) : '' },
     { id: 'transactions', label: 'Transactions', icon: Receipt, badge: '' },
     { id: 'budgets', label: 'Budgets', icon: Folder, badge: overBudgetAlerts.length > 0 ? '!' : '' },
+    { id: 'bills', label: 'Bills', icon: CalendarClock, badge: '' },
     { id: 'savings', label: 'Savings', icon: PiggyBank, badge: '' },
     { id: 'reports', label: 'Reports', icon: BarChart3, badge: '' },
     { id: 'learn', label: 'Learn', icon: GraduationCap, badge: '' },
