@@ -2,14 +2,23 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Download, Trash2, Loader2, Database, RotateCcw } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Download, Trash2, Loader2, Database, RotateCcw, FileJson, FileSpreadsheet } from 'lucide-react';
+
+const stagger = {
+  container: { hidden: {}, show: { transition: { staggerChildren: 0.06 } } },
+  item: {
+    hidden: { opacity: 0, y: 14 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
+  },
+};
 
 export default function DataManagementSettings() {
   const { user, signOut } = useAuth();
@@ -29,7 +38,6 @@ export default function DataManagementSettings() {
         supabase.from('savings_goals').select('*').eq('user_id', user.id),
         supabase.from('categories').select('*').eq('user_id', user.id),
       ]);
-
       const exportData = {
         exported_at: new Date().toISOString(),
         user_email: user.email,
@@ -39,7 +47,6 @@ export default function DataManagementSettings() {
         savings_goals: goalsRes.data || [],
         categories: categoriesRes.data || [],
       };
-
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -63,19 +70,16 @@ export default function DataManagementSettings() {
     try {
       const { data: transactions } = await supabase
         .from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false });
-
       if (!transactions?.length) {
         toast.error('No transactions to export');
         setExporting(false);
         return;
       }
-
       const headers = ['Date', 'Type', 'Amount', 'Currency', 'Description', 'Notes', 'Tags'];
       const rows = transactions.map(t => [
         t.date, t.type, t.amount, t.currency, t.description || '', t.notes || '', (t.tags || []).join(';')
       ]);
       const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -134,90 +138,110 @@ export default function DataManagementSettings() {
   };
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Download className="w-5 h-5" />
-            Export Data
-          </CardTitle>
-          <CardDescription>Download your financial data</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={handleExportJSON} disabled={exporting}>
-              {exporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
-              Export JSON
-            </Button>
-            <Button variant="secondary" onClick={handleExportCSV} disabled={exporting}>
-              <Database className="w-4 h-4 mr-2" />
-              Export CSV (Transactions)
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <motion.div variants={stagger.container} initial="hidden" animate="show" className="space-y-5">
+      {/* Export */}
+      <motion.div variants={stagger.item}>
+        <Card className="overflow-hidden relative group/card">
+          <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full bg-primary/5 blur-3xl opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          <CardContent className="pt-5 pb-5 space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Download className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-bold">Export Data</p>
+                <p className="text-[9px] text-muted-foreground">Download your financial data</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
+                <Button onClick={handleExportJSON} disabled={exporting} variant="outline" className="w-full h-20 flex-col gap-2 rounded-xl">
+                  {exporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileJson className="w-5 h-5 text-primary" />}
+                  <span className="text-[10px] font-bold">Export JSON</span>
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }}>
+                <Button onClick={handleExportCSV} disabled={exporting} variant="outline" className="w-full h-20 flex-col gap-2 rounded-xl">
+                  {exporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileSpreadsheet className="w-5 h-5 text-income" />}
+                  <span className="text-[10px] font-bold">Export CSV</span>
+                </Button>
+              </motion.div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
-      <Card className="border-warning/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-warning">
-            <RotateCcw className="w-5 h-5" />
-            Clear Transactions
-          </CardTitle>
-          <CardDescription>Remove all transactions but keep accounts and settings</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" disabled={clearing}>
-                {clearing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
-                Clear All Transactions
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Clear all transactions?</AlertDialogTitle>
-                <AlertDialogDescription>This removes all transaction records. Accounts, budgets, and goals will remain.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleClearTransactions}>Clear Transactions</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardContent>
-      </Card>
+      {/* Clear */}
+      <motion.div variants={stagger.item}>
+        <Card className="overflow-hidden border-[hsl(var(--warning))]/20">
+          <CardContent className="pt-5 pb-5 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-[hsl(var(--warning))]/10 flex items-center justify-center">
+                <RotateCcw className="w-4 h-4 text-[hsl(var(--warning))]" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-[hsl(var(--warning))]">Clear Transactions</p>
+                <p className="text-[9px] text-muted-foreground">Remove all transactions but keep accounts and settings</p>
+              </div>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" disabled={clearing} className="rounded-xl border-[hsl(var(--warning))]/30 text-[hsl(var(--warning))]">
+                  {clearing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RotateCcw className="w-4 h-4 mr-2" />}
+                  Clear All Transactions
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Clear all transactions?</AlertDialogTitle>
+                  <AlertDialogDescription>This removes all transaction records. Accounts, budgets, and goals will remain.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleClearTransactions}>Clear Transactions</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      </motion.div>
 
-      <Card className="border-destructive/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-destructive">
-            <Trash2 className="w-5 h-5" />
-            Delete Account
-          </CardTitle>
-          <CardDescription>Permanently delete your account and all data</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" disabled={deleting}>
-                {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                Delete Account
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>This permanently deletes your account and all associated data. This cannot be undone.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+      {/* Delete */}
+      <motion.div variants={stagger.item}>
+        <Card className="overflow-hidden border-destructive/30">
+          <CardContent className="pt-5 pb-5 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-destructive">Delete Account</p>
+                <p className="text-[9px] text-muted-foreground">Permanently delete your account and all data</p>
+              </div>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={deleting} className="rounded-xl">
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
                   Delete Account
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardContent>
-      </Card>
-    </div>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>This permanently deletes your account and all associated data. This cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }
