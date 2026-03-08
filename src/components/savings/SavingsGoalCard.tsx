@@ -28,6 +28,7 @@ import {
   TrendingUp, Calendar, History, ArrowDownLeft, Trophy, Clock,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { emitSavingsEvent } from '@/lib/events';
 import { differenceInDays, differenceInMonths } from 'date-fns';
 import type { SavingsGoal, Account } from '@/types/finance';
 
