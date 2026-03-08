@@ -324,7 +324,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className={`container mx-auto px-4 ${densityClasses.padding}`}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="hidden md:flex mb-6 bg-muted/50">
             {navItems.map((item) => {
@@ -339,7 +339,7 @@ export default function Dashboard() {
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className={`space-y-6 ${densityClasses.gap}`}>
             {/* Live Alerts from Settings */}
             {lowBalanceAccounts.length > 0 && (
               <Card className="border-[hsl(var(--warning))]/50 bg-[hsl(var(--warning))]/5">
@@ -349,6 +349,45 @@ export default function Dashboard() {
                     <p className="font-medium text-sm">Low Balance Alert</p>
                     <p className="text-xs text-muted-foreground">
                       {lowBalanceAccounts.map(a => `${a.name} (${formatCurrency(Number(a.balance), a.currency)})`).join(', ')} — below {formatCurrency(settings.low_balance_threshold)} threshold
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {overBudgetAlerts.length > 0 && (
+              <Card className="border-destructive/50 bg-destructive/5">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">⚠ Budget Strict Mode — Over Budget!</p>
+                    <p className="text-xs text-muted-foreground">
+                      {overBudgetAlerts.map(b => b.name).join(', ')} exceeded their limits
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {budgetExceededAlerts.length > 0 && settings.budget_mode !== 'strict' && (
+              <Card className="border-[hsl(var(--warning))]/50 bg-[hsl(var(--warning))]/5">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-[hsl(var(--warning))] mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">Budget Alert</p>
+                    <p className="text-xs text-muted-foreground">
+                      {budgetExceededAlerts.map(b => b.name).join(', ')} over budget this month
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {goalAlerts.length > 0 && (
+              <Card className="border-[hsl(var(--income))]/50 bg-[hsl(var(--income))]/5">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <Target className="w-5 h-5 text-income mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm">🎉 Goal Almost Reached!</p>
+                    <p className="text-xs text-muted-foreground">
+                      {goalAlerts.map(g => g.name).join(', ')} — over 80% complete
                     </p>
                   </div>
                 </CardContent>
