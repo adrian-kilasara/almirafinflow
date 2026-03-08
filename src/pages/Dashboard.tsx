@@ -401,7 +401,7 @@ export default function Dashboard() {
             />
 
             {/* Main Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className={`grid grid-cols-2 lg:grid-cols-4 ${densityClasses.gap}`}>
               <Card variant="glow" className="animate-fadeIn">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
