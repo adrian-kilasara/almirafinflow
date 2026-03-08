@@ -26,6 +26,7 @@ interface AccountDetailPanelProps {
 
 const tabItems = [
   { id: 'transactions', label: 'Transactions', icon: Zap },
+  { id: 'reconcile', label: 'Reconcile', icon: Scale },
   { id: 'linked', label: 'Linked', icon: ChevronRight },
   { id: 'audit', label: 'Audit Log', icon: History },
 ] as const;
