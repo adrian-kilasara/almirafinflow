@@ -656,7 +656,7 @@ export default function Dashboard() {
                   </motion.div>
                   
                   {/* Side-by-side mini dashlets */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-4">
                     {/* Accounts */}
                     <motion.div variants={staggerItem}>
                       <Card className="h-full border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/20 transition-colors duration-300">
