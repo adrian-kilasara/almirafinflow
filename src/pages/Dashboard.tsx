@@ -75,6 +75,7 @@ export default function Dashboard() {
     }
   }, [activeTab]);
 
+  useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
     }
