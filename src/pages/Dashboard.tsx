@@ -896,23 +896,18 @@ export default function Dashboard() {
                 </motion.div>
               </div>
 
-              {/* Bottom row: Calendar + Badges */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <motion.div variants={staggerItem}>
-                  <CalendarSummary transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} onNavigate={() => setActiveTab('activity')} />
-                </motion.div>
-                <motion.div variants={staggerItem}>
-                  <UserBadges
-                    transactionCount={transactions.length}
-                    accountCount={accounts.length}
-                    budgetCount={budgets.length}
-                    savingsGoalCount={savingsGoals.length}
-                    currentStreak={currentStreak?.current_streak || 0}
-                    totalSaved={totalSavings}
-                    healthScore={healthScore}
-                  />
-                </motion.div>
-              </div>
+              {/* Bottom row: Badges */}
+              <motion.div variants={staggerItem}>
+                <UserBadges
+                  transactionCount={transactions.length}
+                  accountCount={accounts.length}
+                  budgetCount={budgets.length}
+                  savingsGoalCount={savingsGoals.length}
+                  currentStreak={currentStreak?.current_streak || 0}
+                  totalSaved={totalSavings}
+                  healthScore={healthScore}
+                />
+              </motion.div>
 
               {/* ╔═══════════════════════════════════════════════════╗
                   ║  RECENT TRANSACTIONS — Editorial list             ║
