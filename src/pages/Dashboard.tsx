@@ -35,6 +35,7 @@ import StreakTracker from '@/components/gamification/StreakTracker';
 import FinancialLessons from '@/components/education/FinancialLessons';
 import TransactionRulesManager from '@/components/rules/TransactionRulesManager';
 import FloatingTransactionForm from '@/components/transactions/FloatingTransactionForm';
+import NotificationCenter from '@/components/notifications/NotificationCenter';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
