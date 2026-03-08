@@ -11,7 +11,7 @@ import {
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
   LogOut, Sparkles, Target, CreditCard, BarChart3,
   Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle,
-  User, ChevronDown, X, Archive
+  User, ChevronDown, X, Archive, CalendarClock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
@@ -46,6 +46,9 @@ import FinancialLessons from '@/components/education/FinancialLessons';
 import TransactionRulesManager from '@/components/rules/TransactionRulesManager';
 import FloatingTransactionForm from '@/components/transactions/FloatingTransactionForm';
 import NotificationCenter from '@/components/notifications/NotificationCenter';
+import NetWorthChart from '@/components/dashboard/NetWorthChart';
+import AISmartInsights from '@/components/dashboard/AISmartInsights';
+import BillsSubscriptions from '@/components/bills/BillsSubscriptions';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
@@ -267,6 +270,7 @@ export default function Dashboard() {
     { id: 'accounts', label: 'Accounts', icon: CreditCard, badge: accounts.length > 0 ? String(accounts.length) : '' },
     { id: 'transactions', label: 'Transactions', icon: Receipt, badge: '' },
     { id: 'budgets', label: 'Budgets', icon: Folder, badge: overBudgetAlerts.length > 0 ? '!' : '' },
+    { id: 'bills', label: 'Bills', icon: CalendarClock, badge: '' },
     { id: 'savings', label: 'Savings', icon: PiggyBank, badge: '' },
     { id: 'reports', label: 'Reports', icon: BarChart3, badge: '' },
     { id: 'learn', label: 'Learn', icon: GraduationCap, badge: '' },
@@ -555,6 +559,11 @@ export default function Dashboard() {
               </Card>
             </motion.div>
 
+            {/* Net Worth Chart */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
+              <NetWorthChart accounts={accounts} transactions={transactions} />
+            </motion.div>
+
             {/* Streak + Badges */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
@@ -743,6 +752,17 @@ export default function Dashboard() {
                 </Card>
               </motion.div>
             </div>
+
+            {/* AI Smart Insights */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+              <AISmartInsights
+                accounts={accounts}
+                transactions={transactions}
+                categories={categories}
+                budgets={budgets}
+                savingsGoals={savingsGoals}
+              />
+            </motion.div>
 
             {/* Recent Transactions */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
@@ -1098,6 +1118,24 @@ export default function Dashboard() {
                 </div>
               </motion.div>
             )}
+          </TabsContent>
+
+          {/* Bills & Subscriptions Tab */}
+          <TabsContent value="bills" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2.5"
+            >
+              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <CalendarClock className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-extrabold">Bills & Subscriptions</h2>
+                <p className="text-[10px] text-muted-foreground">Track recurring payments and due dates</p>
+              </div>
+            </motion.div>
+            <BillsSubscriptions />
           </TabsContent>
 
           {/* Savings Tab */}

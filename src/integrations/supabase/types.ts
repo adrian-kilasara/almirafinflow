@@ -163,6 +163,69 @@ export type Database = {
         }
         Relationships: []
       }
+      bills_subscriptions: {
+        Row: {
+          amount: number
+          auto_pay: boolean
+          category: string
+          color: string | null
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          due_date: string | null
+          frequency: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          last_paid_date: string | null
+          name: string
+          next_due_date: string | null
+          notes: string | null
+          provider: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          auto_pay?: boolean
+          category?: string
+          color?: string | null
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          due_date?: string | null
+          frequency?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          last_paid_date?: string | null
+          name: string
+          next_due_date?: string | null
+          notes?: string | null
+          provider?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          auto_pay?: boolean
+          category?: string
+          color?: string | null
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          due_date?: string | null
+          frequency?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          last_paid_date?: string | null
+          name?: string
+          next_due_date?: string | null
+          notes?: string | null
+          provider?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       budgets: {
         Row: {
           amount: number
