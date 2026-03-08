@@ -69,6 +69,12 @@ export default function Dashboard() {
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 
   useEffect(() => {
+    const el = tabRefs.current[activeTab];
+    if (el) {
+      setIndicatorStyle({ left: el.offsetLeft, width: el.offsetWidth });
+    }
+  }, [activeTab]);
+
     if (!loading && !user) {
       navigate('/auth');
     }
