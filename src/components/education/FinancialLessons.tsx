@@ -272,7 +272,7 @@ export default function FinancialLessons({ transactions = [], categories = [], b
               onClick={() => setCategoryFilter(null)}
               className="text-xs"
             >All</Button>
-            {categories.map(cat => (
+            {lessonCategories.map(cat => (
               <Button
                 key={cat}
                 size="sm"
