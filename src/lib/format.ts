@@ -32,12 +32,25 @@ export function formatCompactNumber(num: number): string {
   return num.toFixed(0);
 }
 
+// Global date format setting
+let globalDateFormat: string = 'DD/MM/YYYY';
+
+export function setGlobalDateFormat(format: string): void {
+  globalDateFormat = format;
+}
+
 export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  const date = new Date(dateString);
+  const d = date.getDate().toString().padStart(2, '0');
+  const m = (date.getMonth() + 1).toString().padStart(2, '0');
+  const y = date.getFullYear();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  switch (globalDateFormat) {
+    case 'MM/DD/YYYY': return `${monthNames[date.getMonth()]} ${d}, ${y}`;
+    case 'YYYY-MM-DD': return `${y}-${m}-${d}`;
+    default: return `${d} ${monthNames[date.getMonth()]} ${y}`;
+  }
 }
 
 export function formatRelativeDate(dateString: string): string {
