@@ -559,6 +559,11 @@ export default function Dashboard() {
               </Card>
             </motion.div>
 
+            {/* Net Worth Chart */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
+              <NetWorthChart accounts={accounts} transactions={transactions} />
+            </motion.div>
+
             {/* Streak + Badges */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
