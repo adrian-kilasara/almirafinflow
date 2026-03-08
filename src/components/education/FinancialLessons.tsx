@@ -79,7 +79,7 @@ export default function FinancialLessons({ transactions = [], categories = [], b
   const totalCount = lessons.length;
   const completionPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
-  const categories = useMemo(() => {
+  const lessonCategories = useMemo(() => {
     const cats = [...new Set(lessons.map(l => l.category))];
     return cats;
   }, [lessons]);
