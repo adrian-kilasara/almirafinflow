@@ -377,31 +377,40 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           default_currency: Database["public"]["Enums"]["currency_code"] | null
+          dob: string | null
           full_name: string | null
+          gender: string | null
           id: string
           phone: string | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           default_currency?: Database["public"]["Enums"]["currency_code"] | null
+          dob?: string | null
           full_name?: string | null
+          gender?: string | null
           id?: string
           phone?: string | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           default_currency?: Database["public"]["Enums"]["currency_code"] | null
+          dob?: string | null
           full_name?: string | null
+          gender?: string | null
           id?: string
           phone?: string | null
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }
