@@ -437,9 +437,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Desktop Tabs — horizontally scrollable for all screen widths */}
+          {/* Desktop / Tablet Tab Bar — always shows icons + labels, adapts spacing */}
           <div className="hidden md:block relative -mb-px">
-            <div className="flex items-center gap-0.5 relative overflow-x-auto scrollbar-hide" role="tablist">
+            <nav className="flex items-center relative" role="tablist">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
@@ -450,23 +450,30 @@ export default function Dashboard() {
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => setActiveTab(item.id)}
-                    className={`relative flex items-center gap-1.5 px-3 py-2.5 text-[13px] font-medium transition-colors duration-200 whitespace-nowrap shrink-0 ${
-                      isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                    className={`group relative flex items-center gap-1.5 px-2 lg:px-3.5 xl:px-4 py-2.5 text-[12px] lg:text-[13px] font-medium transition-all duration-200 whitespace-nowrap ${
+                      isActive
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span className="hidden lg:inline">{item.label}</span>
-                    {item.badge === '!' && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
-                    {item.badge && item.badge !== '!' && <span className="text-[9px] text-muted-foreground bg-muted/50 px-1.5 rounded-full">{item.badge}</span>}
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="hidden md:inline">{item.label}</span>
+                    {item.badge === '!' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                    )}
+                    {item.badge && item.badge !== '!' && (
+                      <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-px rounded-full font-semibold">{item.badge}</span>
+                    )}
                   </button>
                 );
               })}
+              {/* Animated underline indicator */}
               <motion.div
-                className="absolute bottom-0 h-[2px] bg-primary rounded-full"
+                className="absolute bottom-0 h-[2px] rounded-full bg-primary"
                 animate={{ left: indicatorStyle.left, width: indicatorStyle.width }}
                 transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
-            </div>
+            </nav>
           </div>
         </div>
       </header>
