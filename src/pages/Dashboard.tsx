@@ -11,7 +11,7 @@ import {
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
   LogOut, Sparkles, Target, CreditCard, BarChart3,
   Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle,
-  User, ChevronDown, X, Archive, CalendarClock, Briefcase
+  User, ChevronDown, X, Archive, CalendarClock, Briefcase, ScrollText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
@@ -51,6 +51,10 @@ import AISmartInsights from '@/components/dashboard/AISmartInsights';
 import BillsSubscriptions from '@/components/bills/BillsSubscriptions';
 import InvestmentTracker from '@/components/investments/InvestmentTracker';
 import FinancialCalendar from '@/components/calendar/FinancialCalendar';
+import SpendingHeatmap from '@/components/dashboard/SpendingHeatmap';
+import PredictiveCashFlow from '@/components/dashboard/PredictiveCashFlow';
+import SmartSpendingDetection from '@/components/dashboard/SmartSpendingDetection';
+import ActivityLog from '@/components/activity/ActivityLog';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
@@ -277,6 +281,7 @@ export default function Dashboard() {
     { id: 'savings', label: 'Savings', icon: PiggyBank, badge: '' },
     { id: 'reports', label: 'Reports', icon: BarChart3, badge: '' },
     { id: 'learn', label: 'Learn', icon: GraduationCap, badge: '' },
+    { id: 'activity', label: 'Activity', icon: ScrollText, badge: '' },
   ];
 
   const MobileNav = () => (
@@ -756,16 +761,35 @@ export default function Dashboard() {
               </motion.div>
             </div>
 
-            {/* AI Smart Insights */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-              <AISmartInsights
-                accounts={accounts}
-                transactions={transactions}
-                categories={categories}
-                budgets={budgets}
-                savingsGoals={savingsGoals}
-              />
-            </motion.div>
+            {/* AI Smart Insights + Smart Detection */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+                <AISmartInsights
+                  accounts={accounts}
+                  transactions={transactions}
+                  categories={categories}
+                  budgets={budgets}
+                  savingsGoals={savingsGoals}
+                />
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}>
+                <SmartSpendingDetection
+                  transactions={transactions}
+                  categories={categories}
+                  budgets={budgets}
+                />
+              </motion.div>
+            </div>
+
+            {/* Predictive Cash Flow + Spending Heatmap */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                <PredictiveCashFlow accounts={accounts} transactions={transactions} />
+              </motion.div>
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}>
+                <SpendingHeatmap transactions={transactions} />
+              </motion.div>
+            </div>
 
             {/* Financial Calendar */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}>
@@ -1194,6 +1218,20 @@ export default function Dashboard() {
               savingsGoals={savingsGoals}
               accounts={accounts}
             />
+          </TabsContent>
+
+          {/* Activity Log Tab */}
+          <TabsContent value="activity" className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <ScrollText className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-extrabold">Activity Log</h2>
+                <p className="text-[10px] text-muted-foreground">Full audit trail of all your actions</p>
+              </div>
+            </motion.div>
+            <ActivityLog />
           </TabsContent>
         </Tabs>
       </main>

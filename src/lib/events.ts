@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logActivity } from '@/lib/activityLogger';
 
 /**
  * Cross-module event system. Call these after mutations to propagate
@@ -13,6 +14,9 @@ export async function emitTransactionEvent(
   accountId: string,
   categoryId?: string | null
 ) {
+  // 0. Log activity
+  logActivity(userId, `${type} recorded`, 'transactions', { amount, description, accountId, categoryId });
+
   // 1. Create notification
   await supabase.from('notifications').insert({
     user_id: userId,
@@ -103,6 +107,7 @@ export async function emitSavingsEvent(
   goalId: string
 ) {
   const pct = (currentAmount / targetAmount) * 100;
+  logActivity(userId, 'savings contribution', 'savings', { goalName, amount, currentAmount, targetAmount });
 
   if (currentAmount >= targetAmount) {
     await supabase.from('notifications').insert({
@@ -134,6 +139,7 @@ export async function emitSavingsEvent(
 export async function emitStreakEvent(userId: string, streak: number) {
   const milestones = [7, 14, 30, 60, 90, 180, 365];
   if (milestones.includes(streak)) {
+    logActivity(userId, `${streak}-day streak milestone`, 'system', { streak });
     await supabase.from('notifications').insert({
       user_id: userId,
       type: 'success',
