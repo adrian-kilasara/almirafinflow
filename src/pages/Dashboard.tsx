@@ -377,7 +377,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* ===== HEADER ===== */}
-      <header className="border-b border-border/40 bg-card/70 backdrop-blur-2xl sticky top-0 z-50 pt-[env(safe-area-inset-top,0px)]">
+      <header className="border-b border-border/40 bg-card/70 backdrop-blur-2xl sticky top-0 z-50 pt-[max(env(safe-area-inset-top,0px),0.75rem)] md:pt-0">
         <div className="w-full max-w-[2400px] mx-auto px-4 lg:px-6 xl:px-10 2xl:px-16 3xl:px-24">
           <div className="flex items-center justify-between h-16 md:h-14">
             <div className="flex items-center gap-2.5">

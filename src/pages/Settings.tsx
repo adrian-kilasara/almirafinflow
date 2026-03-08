@@ -68,7 +68,7 @@ export default function SettingsPage() {
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="sticky top-0 z-30 backdrop-blur-xl bg-background/80 border-b border-border/50"
+        className="sticky top-0 z-30 backdrop-blur-xl bg-background/80 border-b border-border/50 pt-[max(env(safe-area-inset-top,0px),0.75rem)] md:pt-0"
       >
         <div className="container max-w-6xl mx-auto flex items-center gap-4 py-4 px-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="shrink-0 rounded-xl hover:bg-muted/50">
