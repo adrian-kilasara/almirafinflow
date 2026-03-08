@@ -198,17 +198,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
       if (Object.keys(profileUpdate).length > 0) {
         promises.push(
-          supabase.from('profiles').update(profileUpdate).eq('user_id', user.id)
+          supabase.from('profiles').update(profileUpdate).eq('user_id', user.id).then()
         );
       }
 
       if (Object.keys(settingsUpdate).length > 0) {
-        // Upsert to handle cases where settings row doesn't exist yet
         promises.push(
           supabase.from('user_settings').upsert(
-            { user_id: user.id, ...settingsUpdate, updated_at: new Date().toISOString() },
+            { user_id: user.id, ...settingsUpdate, updated_at: new Date().toISOString() } as any,
             { onConflict: 'user_id' }
-          )
+          ).then()
         );
       }
 

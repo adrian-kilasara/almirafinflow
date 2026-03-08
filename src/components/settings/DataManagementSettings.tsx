@@ -110,15 +110,19 @@ export default function DataManagementSettings() {
     if (!user) return;
     setDeleting(true);
     try {
-      const tables = [
-        'transactions', 'budgets', 'savings_allocations', 'savings_goals',
-        'accounts', 'categories', 'user_streaks', 'user_badges',
-        'user_lesson_progress', 'financial_tips', 'transaction_rules',
-        'user_settings', 'profiles',
-      ];
-      for (const table of tables) {
-        await supabase.from(table).delete().eq('user_id', user.id);
-      }
+      await supabase.from('transactions').delete().eq('user_id', user.id);
+      await supabase.from('budgets').delete().eq('user_id', user.id);
+      await supabase.from('savings_allocations').delete().eq('user_id', user.id);
+      await supabase.from('savings_goals').delete().eq('user_id', user.id);
+      await supabase.from('accounts').delete().eq('user_id', user.id);
+      await supabase.from('categories').delete().eq('user_id', user.id);
+      await supabase.from('user_streaks').delete().eq('user_id', user.id);
+      await supabase.from('user_badges').delete().eq('user_id', user.id);
+      await supabase.from('user_lesson_progress').delete().eq('user_id', user.id);
+      await supabase.from('financial_tips').delete().eq('user_id', user.id);
+      await supabase.from('transaction_rules').delete().eq('user_id', user.id);
+      await (supabase.from('user_settings') as any).delete().eq('user_id', user.id);
+      await supabase.from('profiles').delete().eq('user_id', user.id);
       await signOut();
       toast.success('Account deleted');
       navigate('/auth');
