@@ -761,65 +761,104 @@ export default function Dashboard() {
               >
                 {/* Net Position Hero */}
                 {accounts.length > 0 && (() => {
-                  const activeAccts = accounts.filter(a => a.is_active && !(a as any).is_archived);
+                  const activeAccts = accounts.filter(a => a.is_active && !a.is_archived);
                   const totalAssets = activeAccts
-                    .filter(a => (a as any).classification !== 'liability')
+                    .filter(a => a.classification !== 'liability')
                     .reduce((s, a) => s + Number(a.balance), 0);
                   const totalLiabilities = activeAccts
-                    .filter(a => (a as any).classification === 'liability')
+                    .filter(a => a.classification === 'liability')
                     .reduce((s, a) => s + Math.abs(Number(a.balance)), 0);
                   const netPosition = totalAssets - totalLiabilities;
                   const assetPct = totalAssets + totalLiabilities > 0 ? (totalAssets / (totalAssets + totalLiabilities)) * 100 : 100;
+                  const accountCount = activeAccts.length;
                   return (
-                    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-                      <Card className="relative overflow-hidden border-primary/10 bg-gradient-to-br from-card via-card to-primary/5">
-                        <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-                        <CardContent className="relative p-5">
-                          <div className="grid grid-cols-3 gap-4 mb-4">
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
+                      <Card className="relative overflow-hidden border-primary/10">
+                        {/* Multi-layer ambient */}
+                        <div className="absolute top-0 right-0 w-72 h-72 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
+                        <div className="absolute bottom-0 left-0 w-48 h-48 bg-income/5 rounded-full translate-y-1/3 -translate-x-1/4 blur-3xl" />
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-32 bg-primary/3 rounded-full blur-[60px]" />
+                        
+                        <CardContent className="relative p-5 sm:p-6">
+                          {/* Top row: Net Position + Account Count */}
+                          <div className="flex items-start justify-between mb-5">
                             <div>
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total Assets</p>
-                              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xl font-bold font-mono text-income">
-                                {formatCurrency(totalAssets)}
-                              </motion.p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Liabilities</p>
-                              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }} className="text-xl font-bold font-mono text-expense">
-                                -{formatCurrency(totalLiabilities)}
-                              </motion.p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Net Position</p>
-                              <motion.p 
-                                initial={{ scale: 0.9, opacity: 0 }} 
-                                animate={{ scale: 1, opacity: 1 }} 
-                                transition={{ delay: 0.1, type: 'spring' }}
-                                className={`text-xl font-bold font-mono ${netPosition >= 0 ? 'text-primary' : 'text-expense'}`}
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className="w-7 h-7 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                                  <CreditCard className="w-3.5 h-3.5 text-primary" />
+                                </div>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Net Position</p>
+                              </div>
+                              <motion.p
+                                initial={{ scale: 0.85, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: 'spring', stiffness: 180, delay: 0.1 }}
+                                className={`text-3xl sm:text-4xl font-extrabold font-mono tracking-tight ${netPosition >= 0 ? '' : 'text-expense'}`}
                               >
                                 {formatCurrency(netPosition)}
                               </motion.p>
                             </div>
-                          </div>
-                          {/* Asset/Liability ratio bar */}
-                          <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-muted/50">
                             <motion.div
-                              className="bg-income rounded-full"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${assetPct}%` }}
-                              transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-                            />
-                            {totalLiabilities > 0 && (
-                              <motion.div
-                                className="bg-expense rounded-full"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${100 - assetPct}%` }}
-                                transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
-                              />
-                            )}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: 0.2 }}
+                              className="text-right"
+                            >
+                              <p className="text-3xl font-extrabold font-mono text-primary/20">{accountCount}</p>
+                              <p className="text-[9px] text-muted-foreground uppercase tracking-wider -mt-0.5">Accounts</p>
+                            </motion.div>
                           </div>
-                          <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
-                            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-income" /> Assets</span>
-                            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-expense" /> Liabilities</span>
+
+                          {/* Asset / Liability breakdown */}
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <motion.div
+                              initial={{ opacity: 0, x: -12 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.15 }}
+                              className="p-3 rounded-xl bg-income/5 border border-income/10"
+                            >
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <TrendingUp className="w-3 h-3 text-income" />
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Assets</p>
+                              </div>
+                              <p className="text-lg font-bold font-mono text-income">{formatCurrency(totalAssets)}</p>
+                            </motion.div>
+                            <motion.div
+                              initial={{ opacity: 0, x: 12 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.2 }}
+                              className="p-3 rounded-xl bg-expense/5 border border-expense/10"
+                            >
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <TrendingDown className="w-3 h-3 text-expense" />
+                                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">Liabilities</p>
+                              </div>
+                              <p className="text-lg font-bold font-mono text-expense">-{formatCurrency(totalLiabilities)}</p>
+                            </motion.div>
+                          </div>
+
+                          {/* Ratio bar */}
+                          <div className="space-y-1.5">
+                            <div className="flex gap-1 h-2.5 rounded-full overflow-hidden bg-muted/30">
+                              <motion.div
+                                className="bg-gradient-to-r from-income to-income/80 rounded-full"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${assetPct}%` }}
+                                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
+                              />
+                              {totalLiabilities > 0 && (
+                                <motion.div
+                                  className="bg-gradient-to-r from-expense/80 to-expense rounded-full"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${100 - assetPct}%` }}
+                                  transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.4 }}
+                                />
+                              )}
+                            </div>
+                            <div className="flex justify-between text-[10px] text-muted-foreground">
+                              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-income" /> Assets {Math.round(assetPct)}%</span>
+                              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-expense" /> Liabilities {Math.round(100 - assetPct)}%</span>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
@@ -828,18 +867,18 @@ export default function Dashboard() {
                 })()}
 
                 {/* Action bar */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 12 }} 
-                  animate={{ opacity: 1, y: 0 }} 
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 }}
                   className="flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                       <CreditCard className="w-4 h-4 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold">Your Accounts</h2>
+                      <h2 className="text-lg font-extrabold">Your Accounts</h2>
                       <p className="text-[10px] text-muted-foreground">{accounts.filter(a => a.is_active).length} active · {accounts.length} total</p>
                     </div>
                   </div>
@@ -850,20 +889,25 @@ export default function Dashboard() {
                 </motion.div>
 
                 {accounts.length > 0 ? (() => {
-                  const active = accounts.filter(a => a.is_active && !(a as any).is_archived);
-                  const archived = accounts.filter(a => (a as any).is_archived);
-                  const assets = active.filter(a => (a as any).classification !== 'liability');
-                  const liabilities = active.filter(a => (a as any).classification === 'liability');
+                  const active = accounts.filter(a => a.is_active && !a.is_archived);
+                  const archived = accounts.filter(a => a.is_archived);
+                  const assets = active.filter(a => a.classification !== 'liability');
+                  const liabilities = active.filter(a => a.classification === 'liability');
 
                   return (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                       {/* Assets */}
                       {assets.length > 0 && (
-                        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">📈</span>
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assets ({assets.length})</h3>
-                            <div className="flex-1 h-px bg-border/30" />
+                        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-6 h-6 rounded-lg bg-income/10 flex items-center justify-center">
+                              <TrendingUp className="w-3 h-3 text-income" />
+                            </div>
+                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Assets ({assets.length})</h3>
+                            <div className="flex-1 h-px bg-gradient-to-r from-border/30 to-transparent" />
+                            <span className="text-[10px] font-mono font-semibold text-income">
+                              {formatCurrency(assets.reduce((s, a) => s + Number(a.balance), 0))}
+                            </span>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {assets.map((account, i) => (
@@ -882,11 +926,16 @@ export default function Dashboard() {
 
                       {/* Liabilities */}
                       {liabilities.length > 0 && (
-                        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">📉</span>
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Liabilities ({liabilities.length})</h3>
-                            <div className="flex-1 h-px bg-border/30" />
+                        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-6 h-6 rounded-lg bg-expense/10 flex items-center justify-center">
+                              <TrendingDown className="w-3 h-3 text-expense" />
+                            </div>
+                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Liabilities ({liabilities.length})</h3>
+                            <div className="flex-1 h-px bg-gradient-to-r from-border/30 to-transparent" />
+                            <span className="text-[10px] font-mono font-semibold text-expense">
+                              -{formatCurrency(liabilities.reduce((s, a) => s + Math.abs(Number(a.balance)), 0))}
+                            </span>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {liabilities.map((account, i) => (
@@ -905,11 +954,13 @@ export default function Dashboard() {
 
                       {/* Archived */}
                       {archived.length > 0 && (
-                        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">📦</span>
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Archived ({archived.length})</h3>
-                            <div className="flex-1 h-px bg-border/30" />
+                        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="space-y-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-6 h-6 rounded-lg bg-muted/50 flex items-center justify-center">
+                              <Archive className="w-3 h-3 text-muted-foreground" />
+                            </div>
+                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Archived ({archived.length})</h3>
+                            <div className="flex-1 h-px bg-gradient-to-r from-border/30 to-transparent" />
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {archived.map((account, i) => (
@@ -930,15 +981,17 @@ export default function Dashboard() {
                 })() : (
                   <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
                     <Card className="border-dashed border-2">
-                      <CardContent className="py-16 text-center">
+                      <CardContent className="py-20 text-center">
                         <motion.div
-                          animate={{ y: [0, -6, 0] }}
-                          transition={{ repeat: Infinity, duration: 2.5 }}
+                          animate={{ y: [0, -8, 0] }}
+                          transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+                          className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/30 flex items-center justify-center"
                         >
-                          <CreditCard className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
+                          <CreditCard className="w-8 h-8 text-muted-foreground/30" />
                         </motion.div>
-                        <p className="font-semibold text-foreground">No accounts yet</p>
-                        <p className="text-sm text-muted-foreground mt-1">Add your bank accounts, mobile money, and cash to get started</p>
+                        <p className="font-bold text-lg">No accounts yet</p>
+                        <p className="text-sm text-muted-foreground mt-1 mb-4">Add your bank accounts, mobile money, and cash to get started</p>
+                        <AccountForm onSuccess={fetchData} />
                       </CardContent>
                     </Card>
                   </motion.div>
