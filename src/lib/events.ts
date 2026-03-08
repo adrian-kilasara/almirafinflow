@@ -97,7 +97,12 @@ export async function emitTransactionEvent(
     });
   }
 
-  // 4. Update streak
+  // 4. Smart insight: spending velocity check
+  if (type === 'expense') {
+    await checkSpendingVelocity(userId);
+  }
+
+  // 5. Update streak
   await updateStreak(userId);
 }
 
