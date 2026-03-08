@@ -81,14 +81,16 @@ export default function Dashboard() {
   }, [user, fetchData]);
 
   const getFinancialTip = async () => {
+    if (!settings.ai_enabled) {
+      toast.info('AI insights are disabled. Enable them in Settings → AI & Insights.');
+      return;
+    }
     setLoadingTip(true);
     try {
-      // Calculate comprehensive metrics from real data
       const incomeTotal = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
       const expenseTotal = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
       const savingsRate = incomeTotal > 0 ? ((incomeTotal - expenseTotal) / incomeTotal) * 100 : 0;
       
-      // Get spending by category
       const categorySpending: Record<string, number> = {};
       transactions.filter(t => t.type === 'expense').forEach(t => {
         const cat = categories.find(c => c.id === t.category_id);
@@ -96,20 +98,13 @@ export default function Dashboard() {
         categorySpending[catName] = (categorySpending[catName] || 0) + Number(t.amount);
       });
       
-      // Budget performance
       const budgetPerformance = budgets.map(b => {
         const spent = transactions
           .filter(t => t.type === 'expense' && t.category_id === b.category_id)
           .reduce((sum, t) => sum + Number(t.amount), 0);
-        return {
-          name: b.name,
-          budgeted: Number(b.amount),
-          spent,
-          overBudget: spent > Number(b.amount),
-        };
+        return { name: b.name, budgeted: Number(b.amount), spent, overBudget: spent > Number(b.amount) };
       });
       
-      // Savings goals progress
       const goalsProgress = savingsGoals.map(g => ({
         name: g.name,
         targetAmount: Number(g.target_amount),
@@ -134,6 +129,12 @@ export default function Dashboard() {
             healthScore,
           },
           tipType: 'general',
+          // Pass user AI settings for personalized advice
+          aiSettings: {
+            adviceMode: settings.ai_advice_mode,
+            riskTolerance: settings.ai_risk_tolerance,
+            currency: settings.default_currency,
+          },
         },
       });
       
