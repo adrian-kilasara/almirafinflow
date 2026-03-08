@@ -1245,38 +1245,6 @@ export default function Dashboard() {
         </Tabs>
       </main>
 
-      {/* Mobile Bottom Navigation — scrollable single row */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-2xl border-t border-border/50">
-        <div className="flex overflow-x-auto no-scrollbar py-1.5 px-2 gap-0.5" style={{ paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className="relative flex flex-col items-center justify-center min-w-[3.25rem] flex-shrink-0 py-1 px-1.5 rounded-lg transition-colors"
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="mobile-nav-pill"
-                    className="absolute inset-0.5 bg-primary/10 rounded-lg"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <Icon className={`relative z-10 w-[18px] h-[18px] transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                <span className={`relative z-10 text-[8px] font-medium mt-0.5 leading-none transition-colors ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
-                  {item.shortLabel}
-                </span>
-                {item.badge === '!' && (
-                  <span className="absolute top-0.5 right-1 w-1.5 h-1.5 rounded-full bg-destructive z-20" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
       {/* Floating Action Button */}
       <FloatingTransactionForm accounts={accounts} categories={categories} onSuccess={fetchData} />
     </div>
