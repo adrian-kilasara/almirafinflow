@@ -154,6 +154,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         merged.full_name = profileRes.data.full_name;
         merged.phone = (profileRes.data as any).phone || null;
         merged.avatar_url = profileRes.data.avatar_url;
+        merged.username = (profileRes.data as any).username || null;
+        merged.dob = (profileRes.data as any).dob || null;
+        merged.gender = (profileRes.data as any).gender || null;
       }
 
       if (settingsRes.data) {
