@@ -324,11 +324,15 @@ export default function Dashboard() {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/30">
           <div className="flex items-center gap-3 mb-3 px-1">
             <Avatar className="w-8 h-8 border border-primary/20">
+              {settings.avatar_url && <AvatarImage src={settings.avatar_url} alt={settings.username || 'Avatar'} />}
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                {user?.email?.charAt(0).toUpperCase() || 'U'}
+                {(settings.username || settings.full_name || user?.email || 'U').charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <p className="text-xs font-medium truncate flex-1">{user?.email}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate">{settings.username || settings.full_name || 'User'}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="flex-1 rounded-xl text-xs h-8" onClick={() => navigate('/settings')}>
