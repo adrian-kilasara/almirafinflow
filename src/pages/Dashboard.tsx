@@ -26,8 +26,7 @@ import TransferForm from '@/components/accounts/TransferForm';
 import BudgetForm from '@/components/budgets/BudgetForm';
 import BudgetList from '@/components/budgets/BudgetList';
 import BudgetCard from '@/components/budgets/BudgetCard';
-import SavingsGoalForm from '@/components/savings/SavingsGoalForm';
-import SavingsGoalCard from '@/components/savings/SavingsGoalCard';
+import SavingsDashboard from '@/components/savings/SavingsDashboard';
 import CategoryManager from '@/components/categories/CategoryManager';
 import EnhancedReports from '@/components/reports/EnhancedReports';
 import FinancialHealthScore from '@/components/dashboard/FinancialHealthScore';
@@ -559,7 +558,6 @@ export default function Dashboard() {
                         <PiggyBank className="w-4 h-4" />
                         Savings Goals
                       </CardTitle>
-                      <SavingsGoalForm onSuccess={fetchData} />
                     </CardHeader>
                     <CardContent>
                       {savingsGoals.length > 0 ? (
@@ -792,28 +790,12 @@ export default function Dashboard() {
 
           {/* Savings Tab */}
           <TabsContent value="savings" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <PiggyBank className="w-5 h-5" />
-                Savings Goals
-              </h2>
-              <SavingsGoalForm onSuccess={fetchData} />
-            </div>
-            {savingsGoals.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {savingsGoals.map((goal) => (
-                  <SavingsGoalCard key={goal.id} goal={goal} onRefresh={fetchData} />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <PiggyBank className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No savings goals yet</p>
-                  <p className="text-sm">Start saving for your dreams</p>
-                </CardContent>
-              </Card>
-            )}
+            <SavingsDashboard
+              savingsGoals={savingsGoals}
+              transactions={transactions}
+              accounts={accounts}
+              onRefresh={fetchData}
+            />
           </TabsContent>
 
           {/* Reports Tab */}
