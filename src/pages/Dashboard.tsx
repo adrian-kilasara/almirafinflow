@@ -519,23 +519,11 @@ export default function Dashboard() {
                   ╚═══════════════════════════════════════════════════╝ */}
               <motion.div variants={staggerItem}>
                 <div className="relative rounded-3xl overflow-hidden border border-primary/10">
-                  {/* Animated mesh gradient background */}
+                  {/* Static gradient background — no continuous animations */}
                   <div className="absolute inset-0 overflow-hidden">
-                    <motion.div
-                      className="absolute w-[500px] h-[500px] rounded-full bg-primary/8 blur-[120px]"
-                      animate={{ x: ['-20%', '60%', '-20%'], y: ['-30%', '40%', '-30%'] }}
-                      transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                    <motion.div
-                      className="absolute w-[400px] h-[400px] rounded-full bg-income/6 blur-[100px]"
-                      animate={{ x: ['80%', '10%', '80%'], y: ['60%', '-10%', '60%'] }}
-                      transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                    <motion.div
-                      className="absolute w-[300px] h-[300px] rounded-full bg-accent/8 blur-[80px]"
-                      animate={{ x: ['40%', '70%', '40%'], y: ['10%', '70%', '10%'] }}
-                      transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-                    />
+                    <div className="absolute w-[500px] h-[500px] rounded-full bg-primary/8 blur-[120px] -top-1/4 -left-1/4" />
+                    <div className="absolute w-[400px] h-[400px] rounded-full bg-income/6 blur-[100px] -bottom-1/4 -right-1/4" />
+                    <div className="absolute w-[300px] h-[300px] rounded-full bg-accent/8 blur-[80px] top-1/3 left-1/2" />
                     <div className="absolute inset-0 bg-card/60 backdrop-blur-sm" />
                   </div>
                   
