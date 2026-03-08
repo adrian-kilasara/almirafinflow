@@ -483,7 +483,7 @@ export default function Dashboard() {
       </header>
 
       {/* ===== MAIN CONTENT ===== */}
-      <main className={`w-full max-w-[1800px] mx-auto px-4 lg:px-6 xl:px-10 2xl:px-16 ${densityClasses.padding} pb-32 md:pb-8`}>
+      <main className={`w-full max-w-[2400px] mx-auto px-4 lg:px-6 xl:px-10 2xl:px-16 3xl:px-24 ${densityClasses.padding} pb-32 md:pb-8`}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
 
           {/* ═══════════════════════════════════════════
