@@ -402,7 +402,13 @@ export default function FinancialLessons({ transactions = [], categories = [], b
 
         {/* AI Coach Tab */}
         <TabsContent value="coach">
-          <AIFinancialCoach />
+          <AIFinancialCoach
+            accounts={accounts}
+            transactions={transactions}
+            categories={categories}
+            budgets={budgets}
+            savingsGoals={savingsGoals}
+          />
         </TabsContent>
 
         {/* Tips Tab */}
