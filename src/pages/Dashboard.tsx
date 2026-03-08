@@ -562,20 +562,17 @@ export default function Dashboard() {
                 </Card>
               </motion.div>
 
-              {/* Row 2: Streak + Health Score */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <motion.div variants={staggerItem}>
+              {/* Row 2: Streak + Health + Accounts + Budgets (6-col bento on xl) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
+                <motion.div variants={staggerItem} className="xl:col-span-3">
                   <StreakTracker transactions={transactions} onStreakUpdate={setCurrentStreak} />
                 </motion.div>
-                <motion.div variants={staggerItem}>
+                <motion.div variants={staggerItem} className="xl:col-span-3">
                   <FinancialHealthScore accounts={accounts} transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
                 </motion.div>
-              </div>
 
-              {/* Row 3: Bento — Accounts + Budgets + Savings + Calendar */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Accounts Summary */}
-                <motion.div variants={staggerItem}>
+                <motion.div variants={staggerItem} className="xl:col-span-2">
                   <Card className="h-full border-primary/10">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -589,7 +586,7 @@ export default function Dashboard() {
                       </div>
                       {accounts.length > 0 ? (
                         <div className="space-y-1.5">
-                          {accounts.filter(a => a.is_active).slice(0, 3).map((a, i) => (
+                          {accounts.filter(a => a.is_active).slice(0, 4).map((a, i) => (
                             <motion.div
                               key={a.id}
                               initial={{ opacity: 0, x: -6 }}
@@ -608,8 +605,8 @@ export default function Dashboard() {
                               </p>
                             </motion.div>
                           ))}
-                          {accounts.filter(a => a.is_active).length > 3 && (
-                            <p className="text-[9px] text-muted-foreground text-center pt-1">+{accounts.filter(a => a.is_active).length - 3} more</p>
+                          {accounts.filter(a => a.is_active).length > 4 && (
+                            <p className="text-[9px] text-muted-foreground text-center pt-1">+{accounts.filter(a => a.is_active).length - 4} more</p>
                           )}
                         </div>
                       ) : (
@@ -623,7 +620,7 @@ export default function Dashboard() {
                 </motion.div>
 
                 {/* Budgets Summary */}
-                <motion.div variants={staggerItem}>
+                <motion.div variants={staggerItem} className="xl:col-span-2">
                   <Card className="h-full border-primary/10">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -637,7 +634,7 @@ export default function Dashboard() {
                       </div>
                       {budgets.length > 0 ? (
                         <div className="space-y-2">
-                          {budgets.slice(0, 3).map((b, i) => {
+                          {budgets.slice(0, 4).map((b, i) => {
                             const spent = currentMonthTransactions
                               .filter(t => t.type === 'expense' && (b.category_id ? t.category_id === b.category_id : true))
                               .reduce((s, t) => s + Number(t.amount), 0);
@@ -671,9 +668,9 @@ export default function Dashboard() {
                   </Card>
                 </motion.div>
 
-                {/* Savings Summary */}
-                <motion.div variants={staggerItem}>
-                  <Card className="h-full border-primary/10">
+                {/* Savings + Calendar stacked on xl */}
+                <motion.div variants={staggerItem} className="xl:col-span-2 flex flex-col gap-4">
+                  <Card className="flex-1 border-primary/10">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -717,10 +714,6 @@ export default function Dashboard() {
                       )}
                     </CardContent>
                   </Card>
-                </motion.div>
-
-                {/* Calendar Summary */}
-                <motion.div variants={staggerItem}>
                   <CalendarSummary
                     transactions={transactions}
                     budgets={budgets}
@@ -730,15 +723,13 @@ export default function Dashboard() {
                 </motion.div>
               </div>
 
-              {/* Row 4: Net Worth Chart (full width) */}
-              <motion.div variants={staggerItem}>
-                <NetWorthChart accounts={accounts} transactions={transactions} />
-              </motion.div>
-
-              {/* Row 5: AI Advisor + Badges */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <motion.div variants={staggerItem}>
-                  <Card className="h-full border-primary/10 bg-gradient-to-br from-card to-primary/[0.02]">
+              {/* Row 3: Net Worth + AI Advisor + Badges (3-col on xl) */}
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                <motion.div variants={staggerItem} className="xl:col-span-2">
+                  <NetWorthChart accounts={accounts} transactions={transactions} />
+                </motion.div>
+                <motion.div variants={staggerItem} className="flex flex-col gap-4">
+                  <Card className="flex-1 border-primary/10 bg-gradient-to-br from-card to-primary/[0.02]">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -776,8 +767,6 @@ export default function Dashboard() {
                       </AnimatePresence>
                     </CardContent>
                   </Card>
-                </motion.div>
-                <motion.div variants={staggerItem}>
                   <UserBadges
                     transactionCount={transactions.length}
                     accountCount={accounts.length}
@@ -790,7 +779,7 @@ export default function Dashboard() {
                 </motion.div>
               </div>
 
-              {/* Row 6: AI Insights + Smart Detection (compact) */}
+              {/* Row 4: AI Insights + Smart Detection + Predictive + Heatmap (2x2 on xl) */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <motion.div variants={staggerItem}>
                   <AISmartInsights accounts={accounts} transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} />
@@ -798,10 +787,6 @@ export default function Dashboard() {
                 <motion.div variants={staggerItem}>
                   <SmartSpendingDetection transactions={transactions} categories={categories} budgets={budgets} />
                 </motion.div>
-              </div>
-
-              {/* Row 7: Predictive + Heatmap */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <motion.div variants={staggerItem}>
                   <PredictiveCashFlow accounts={accounts} transactions={transactions} />
                 </motion.div>
