@@ -17,6 +17,9 @@ export async function emitTransactionEvent(
   // 0. Log activity
   logActivity(userId, `${type} recorded`, 'transactions', { amount, description, accountId, categoryId });
 
+  // Signal dashboard refresh
+  emitDashboardRefresh();
+
   // 1. Create notification
   await supabase.from('notifications').insert({
     user_id: userId,
@@ -97,7 +100,12 @@ export async function emitTransactionEvent(
     });
   }
 
-  // 4. Update streak
+  // 4. Smart insight: spending velocity check
+  if (type === 'expense') {
+    await checkSpendingVelocity(userId);
+  }
+
+  // 5. Update streak
   await updateStreak(userId);
 }
 
@@ -113,6 +121,7 @@ export async function emitTransactionEditEvent(
   categoryId?: string | null
 ) {
   logActivity(userId, 'transaction edited', 'transactions', { amount, description, accountId, categoryId });
+  emitDashboardRefresh();
 
   // Re-check budgets after edit
   if (type === 'expense' && categoryId) {
@@ -162,6 +171,7 @@ export async function emitTransactionDeleteEvent(
   accountId: string
 ) {
   logActivity(userId, 'transaction deleted', 'transactions', { type, amount, description, accountId });
+  emitDashboardRefresh();
 
   // Check low balance after deletion (income removed could lower balance)
   if (type === 'income') {
@@ -187,6 +197,7 @@ export async function emitSavingsEvent(
 ) {
   const pct = (currentAmount / targetAmount) * 100;
   logActivity(userId, 'savings contribution', 'savings', { goalName, amount, currentAmount, targetAmount });
+  emitDashboardRefresh();
 
   if (currentAmount >= targetAmount) {
     await supabase.from('notifications').insert({
@@ -228,6 +239,7 @@ export async function emitSavingsWithdrawEvent(
   goalId: string
 ) {
   logActivity(userId, 'savings withdrawal', 'savings', { goalName, amount });
+  emitDashboardRefresh();
   await supabase.from('notifications').insert({
     user_id: userId,
     type: 'info',
@@ -262,6 +274,7 @@ export async function emitBudgetEvent(
   period: string
 ) {
   logActivity(userId, 'budget created', 'budgets', { budgetName, amount, period });
+  emitDashboardRefresh();
   await supabase.from('notifications').insert({
     user_id: userId,
     type: 'info',
@@ -382,9 +395,96 @@ export async function getExchangeRate(from: string, to: string): Promise<number>
 }
 
 /**
+ * Smart insight: Check if spending velocity this week exceeds last week by 50%+
+ * Generates a proactive AI notification with actionable advice
+ */
+async function checkSpendingVelocity(userId: string) {
+  try {
+    const now = new Date();
+    const thisWeekStart = new Date(now.getTime() - 7 * 86400000).toISOString().split('T')[0];
+    const lastWeekStart = new Date(now.getTime() - 14 * 86400000).toISOString().split('T')[0];
+
+    const { data: thisWeekTxns } = await supabase
+      .from('transactions').select('amount')
+      .eq('user_id', userId).eq('type', 'expense')
+      .gte('date', thisWeekStart);
+
+    const { data: lastWeekTxns } = await supabase
+      .from('transactions').select('amount')
+      .eq('user_id', userId).eq('type', 'expense')
+      .gte('date', lastWeekStart).lt('date', thisWeekStart);
+
+    const thisWeekTotal = (thisWeekTxns || []).reduce((s, t) => s + Number(t.amount), 0);
+    const lastWeekTotal = (lastWeekTxns || []).reduce((s, t) => s + Number(t.amount), 0);
+
+    if (lastWeekTotal > 0 && thisWeekTotal > lastWeekTotal * 1.5) {
+      const pct = Math.round(((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100);
+      // Only notify once per day to avoid spam
+      const today = now.toISOString().split('T')[0];
+      const { data: existing } = await supabase.from('notifications')
+        .select('id').eq('user_id', userId).eq('module', 'ai_insights')
+        .gte('created_at', today + 'T00:00:00').limit(1);
+
+      if (!existing || existing.length === 0) {
+        await supabase.from('notifications').insert({
+          user_id: userId,
+          type: 'warning',
+          title: '⚡ AI Spending Alert',
+          message: `Your spending is ${pct}% higher than last week. Consider pausing non-essential purchases to stay on track.`,
+          module: 'ai_insights',
+        });
+      }
+    }
+
+    // Also check if an expense just pushed a category to anomalous levels
+    const { data: recentTxns } = await supabase
+      .from('transactions').select('amount, category_id')
+      .eq('user_id', userId).eq('type', 'expense')
+      .gte('date', new Date(now.getTime() - 30 * 86400000).toISOString().split('T')[0]);
+
+    if (recentTxns && recentTxns.length >= 5) {
+      const catTotals: Record<string, number[]> = {};
+      recentTxns.forEach(t => {
+        const key = t.category_id || 'other';
+        if (!catTotals[key]) catTotals[key] = [];
+        catTotals[key].push(Number(t.amount));
+      });
+
+      // Check for categories where latest transaction is 3x the average
+      for (const [catId, amounts] of Object.entries(catTotals)) {
+        if (amounts.length >= 3) {
+          const avg = amounts.slice(0, -1).reduce((s, a) => s + a, 0) / (amounts.length - 1);
+          const latest = amounts[amounts.length - 1];
+          if (latest > avg * 3 && latest > 1000) {
+            const { data: cat } = await supabase.from('categories').select('name').eq('id', catId).single();
+            await supabase.from('notifications').insert({
+              user_id: userId,
+              type: 'warning',
+              title: '🔍 Unusual Spending Detected',
+              message: `A recent ${cat?.name || 'category'} expense is ${Math.round(latest / avg)}x your average. Was this intentional?`,
+              module: 'ai_insights',
+            });
+            break;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Spending velocity check failed:', e);
+  }
+}
+
+/**
  * Convert amount between currencies using stored rates
  */
 export async function convertCurrency(amount: number, from: string, to: string): Promise<number> {
   const rate = await getExchangeRate(from, to);
   return amount * rate;
+}
+
+/**
+ * Custom event for dashboard refresh signaling
+ */
+export function emitDashboardRefresh() {
+  window.dispatchEvent(new CustomEvent('dashboard-refresh'));
 }
