@@ -442,261 +442,307 @@ export default function Dashboard() {
       <main className={`container mx-auto px-4 ${densityClasses.padding}`}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           {/* Overview Tab */}
-          <TabsContent value="overview" className={`space-y-6 ${densityClasses.gap}`}>
-            {/* Live Alerts from Settings */}
-            {lowBalanceAccounts.length > 0 && (
-              <Card className="border-[hsl(var(--warning))]/50 bg-[hsl(var(--warning))]/5">
-                <CardContent className="p-4 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-[hsl(var(--warning))] mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-medium text-sm">Low Balance Alert</p>
-                    <p className="text-xs text-muted-foreground">
-                      {lowBalanceAccounts.map(a => `${a.name} (${formatCurrency(Number(a.balance), a.currency)})`).join(', ')} — below {formatCurrency(settings.low_balance_threshold)} threshold
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {overBudgetAlerts.length > 0 && (
-              <Card className="border-destructive/50 bg-destructive/5">
-                <CardContent className="p-4 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-medium text-sm">⚠ Budget Strict Mode — Over Budget!</p>
-                    <p className="text-xs text-muted-foreground">
-                      {overBudgetAlerts.map(b => b.name).join(', ')} exceeded their limits
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {budgetExceededAlerts.length > 0 && settings.budget_mode !== 'strict' && (
-              <Card className="border-[hsl(var(--warning))]/50 bg-[hsl(var(--warning))]/5">
-                <CardContent className="p-4 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-[hsl(var(--warning))] mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-medium text-sm">Budget Alert</p>
-                    <p className="text-xs text-muted-foreground">
-                      {budgetExceededAlerts.map(b => b.name).join(', ')} over budget this month
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {goalAlerts.length > 0 && (
-              <Card className="border-[hsl(var(--income))]/50 bg-[hsl(var(--income))]/5">
-                <CardContent className="p-4 flex items-start gap-3">
-                  <Target className="w-5 h-5 text-income mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-medium text-sm">🎉 Goal Almost Reached!</p>
-                    <p className="text-xs text-muted-foreground">
-                      {goalAlerts.map(g => g.name).join(', ')} — over 80% complete
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+          <TabsContent value="overview" className="space-y-5">
+            {/* Live Alerts */}
+            <AnimatePresence>
+              {lowBalanceAccounts.length > 0 && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                  <Card className="border-[hsl(var(--warning))]/30 bg-[hsl(var(--warning))]/5">
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <AlertTriangle className="w-4 h-4 text-[hsl(var(--warning))] shrink-0" />
+                      <p className="text-xs"><span className="font-medium">Low Balance:</span> {lowBalanceAccounts.map(a => `${a.name} (${formatCurrency(Number(a.balance), a.currency)})`).join(', ')}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+              {overBudgetAlerts.length > 0 && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                  <Card className="border-destructive/30 bg-destructive/5">
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+                      <p className="text-xs"><span className="font-medium">Over Budget:</span> {overBudgetAlerts.map(b => b.name).join(', ')}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+              {goalAlerts.length > 0 && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                  <Card className="border-[hsl(var(--income))]/30 bg-[hsl(var(--income))]/5">
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <Target className="w-4 h-4 text-income shrink-0" />
+                      <p className="text-xs"><span className="font-medium">🎉 Almost there:</span> {goalAlerts.map(g => g.name).join(', ')} — 80%+ complete</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {/* Streak Tracker */}
-            <StreakTracker 
-              transactions={transactions} 
-              onStreakUpdate={setCurrentStreak}
-            />
-
-            {/* Main Stats */}
-            <div className={`grid grid-cols-2 lg:grid-cols-4 ${densityClasses.gap}`}>
-              <Card variant="glow" className="animate-fadeIn">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between">
+            {/* Hero Net Worth Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="relative overflow-hidden border-primary/10 bg-gradient-to-br from-card via-card to-primary/5">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+                <CardContent className="relative p-5 sm:p-7">
+                  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                     <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Net Worth</p>
-                      <p className="text-lg sm:text-2xl font-bold font-mono mt-1">{formatCurrency(totalBalance)}</p>
+                      <p className="text-sm text-muted-foreground mb-1">Total Net Worth</p>
+                      <motion.p
+                        className="text-3xl sm:text-4xl font-bold font-mono tracking-tight"
+                        initial={{ scale: 0.9 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 200 }}
+                      >
+                        {formatCurrency(totalBalance)}
+                      </motion.p>
+                      <div className="flex items-center gap-4 mt-3">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-income" />
+                          <span className="text-xs text-muted-foreground">Income</span>
+                          <span className="text-xs font-mono font-semibold text-income">{formatCurrency(totalIncome)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-expense" />
+                          <span className="text-xs text-muted-foreground">Expenses</span>
+                          <span className="text-xs font-mono font-semibold text-expense">{formatCurrency(totalExpenses)}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                      <Wallet className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                    <div className="flex gap-3">
+                      <motion.div 
+                        whileHover={{ scale: 1.03 }} 
+                        className="px-4 py-2.5 rounded-xl bg-muted/50 border border-border text-center min-w-[100px]"
+                      >
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Net Flow</p>
+                        <p className={`text-lg font-bold font-mono ${netFlow >= 0 ? 'text-income' : 'text-expense'}`}>
+                          {netFlow >= 0 ? '+' : ''}{formatCurrency(netFlow)}
+                        </p>
+                      </motion.div>
+                      <motion.div 
+                        whileHover={{ scale: 1.03 }}
+                        className="px-4 py-2.5 rounded-xl bg-muted/50 border border-border text-center min-w-[100px]"
+                      >
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Savings</p>
+                        <p className="text-lg font-bold font-mono text-primary">{formatCurrency(totalSavings)}</p>
+                      </motion.div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+            </motion.div>
 
-              <Card variant="income" className="animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Income (This Month)</p>
-                      <p className="text-lg sm:text-2xl font-bold font-mono mt-1 text-income">{formatCurrency(totalIncome)}</p>
-                    </div>
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-income/10 rounded-xl flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-income" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card variant="expense" className="animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Expenses (This Month)</p>
-                      <p className="text-lg sm:text-2xl font-bold font-mono mt-1 text-expense">{formatCurrency(totalExpenses)}</p>
-                    </div>
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-expense/10 rounded-xl flex items-center justify-center">
-                      <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-expense" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="animate-fadeIn" style={{ animationDelay: '0.3s' }}>
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Net Flow (This Month)</p>
-                      <p className={`text-lg sm:text-2xl font-bold font-mono mt-1 ${netFlow >= 0 ? 'text-income' : 'text-expense'}`}>
-                        {netFlow >= 0 ? '+' : ''}{formatCurrency(netFlow)}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-warning/10 rounded-xl flex items-center justify-center">
-                      <Target className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Streak + Badges row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
+                <StreakTracker transactions={transactions} onStreakUpdate={setCurrentStreak} />
+              </motion.div>
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
+                <UserBadges
+                  transactionCount={transactions.length}
+                  accountCount={accounts.length}
+                  budgetCount={budgets.length}
+                  savingsGoalCount={savingsGoals.length}
+                  currentStreak={currentStreak?.current_streak || 0}
+                  totalSaved={totalSavings}
+                  healthScore={healthScore}
+                />
+              </motion.div>
             </div>
 
-            {/* Badges */}
-            <UserBadges
-              transactionCount={transactions.length}
-              accountCount={accounts.length}
-              budgetCount={budgets.length}
-              savingsGoalCount={savingsGoals.length}
-              currentStreak={currentStreak?.current_streak || 0}
-              totalSaved={totalSavings}
-              healthScore={healthScore}
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Financial Health Score */}
-              <div className="lg:col-span-1">
+            {/* Bento Grid: Health + AI + Accounts + Savings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {/* Health Score */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                transition={{ delay: 0.2 }}
+                className="md:row-span-2"
+              >
                 <FinancialHealthScore
                   accounts={accounts}
                   transactions={transactions}
                   budgets={budgets}
                   savingsGoals={savingsGoals}
                 />
-              </div>
+              </motion.div>
 
-              {/* AI Tips & Accounts */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* AI Financial Tips */}
-                <Card variant="glass">
+              {/* AI Financial Advisor */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                transition={{ delay: 0.25 }}
+                className="lg:col-span-2"
+              >
+                <Card className="h-full border-primary/10 bg-gradient-to-br from-card to-primary/[0.02]">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-primary" />
-                      <CardTitle className="text-base">AI Financial Advisor</CardTitle>
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-base">AI Financial Advisor</CardTitle>
+                        <p className="text-[10px] text-muted-foreground">Personalized insights from your data</p>
+                      </div>
                     </div>
-                    <Button onClick={getFinancialTip} disabled={loadingTip} size="sm" variant="outline">
-                      {loadingTip ? 'Analyzing...' : 'Get Tips'}
+                    <Button onClick={getFinancialTip} disabled={loadingTip} size="sm" variant="outline" className="rounded-xl">
+                      {loadingTip ? (
+                        <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full mr-1" /> Analyzing</>
+                      ) : (
+                        <><Sparkles className="w-3 h-3 mr-1" /> Get Insights</>
+                      )}
                     </Button>
                   </CardHeader>
                   <CardContent>
-                    {aiTip ? (
-                      <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                        {aiTip}
+                    <AnimatePresence mode="wait">
+                      {aiTip ? (
+                        <motion.div
+                          key="tip"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed"
+                        >
+                          {aiTip}
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="empty"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex items-center gap-3 py-3"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center shrink-0">
+                            <Sparkles className="w-5 h-5 text-primary/40" />
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Tap <span className="font-medium text-foreground">"Get Insights"</span> for AI-powered financial advice based on your real spending patterns.
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Accounts Summary */}
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                <Card className="h-full">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <CreditCard className="w-4 h-4 text-primary" />
+                      Accounts
+                    </CardTitle>
+                    <AccountForm onSuccess={fetchData} />
+                  </CardHeader>
+                  <CardContent>
+                    {accounts.length > 0 ? (
+                      <div className="space-y-2">
+                        {accounts.slice(0, 4).map((account, i) => (
+                          <motion.div
+                            key={account.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.35 + i * 0.05 }}
+                            whileHover={{ x: 3 }}
+                            className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group"
+                            onClick={() => { setSelectedAccount(account); setActiveTab('accounts'); }}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="text-base">{ACCOUNT_TYPE_ICONS[account.type] || '💰'}</span>
+                              <div>
+                                <p className="font-medium text-sm group-hover:text-primary transition-colors">{account.name}</p>
+                                <p className="text-[10px] text-muted-foreground capitalize">{account.type.replace('_', ' ')}</p>
+                              </div>
+                            </div>
+                            <p className="font-mono text-sm font-semibold">{formatCurrency(Number(account.balance), account.currency)}</p>
+                          </motion.div>
+                        ))}
+                        {accounts.length > 4 && (
+                          <button onClick={() => setActiveTab('accounts')} className="w-full text-xs text-center text-primary hover:underline pt-1">
+                            View all {accounts.length} accounts →
+                          </button>
+                        )}
                       </div>
                     ) : (
-                      <p className="text-muted-foreground text-sm">
-                        Click "Get Tips" to receive personalized 2026 financial advice based on your spending patterns.
-                      </p>
+                      <div className="text-center py-6">
+                        <CreditCard className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-muted-foreground text-sm">Add your first account</p>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
+              </motion.div>
 
-                {/* Accounts & Savings Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Accounts */}
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <CreditCard className="w-4 h-4" />
-                        Accounts
-                      </CardTitle>
-                      <AccountForm onSuccess={fetchData} />
-                    </CardHeader>
-                    <CardContent>
-                      {accounts.length > 0 ? (
-                        <div className="space-y-2">
-                          {accounts.slice(0, 4).map((account) => (
-                            <div key={account.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">{ACCOUNT_TYPE_ICONS[account.type] || '💰'}</span>
-                                <div>
-                                  <p className="font-medium text-sm">{account.name}</p>
-                                  <p className="text-[10px] text-muted-foreground capitalize">{account.type.replace('_', ' ')}</p>
+              {/* Savings Goals */}
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+                <Card className="h-full">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <PiggyBank className="w-4 h-4 text-primary" />
+                      Savings Goals
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={() => setActiveTab('savings')}>
+                      View All
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {savingsGoals.length > 0 ? (
+                      <div className="space-y-3">
+                        {savingsGoals.slice(0, 3).map((goal, i) => {
+                          const percentage = Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100);
+                          return (
+                            <motion.div
+                              key={goal.id}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.4 + i * 0.05 }}
+                              className="p-2.5 rounded-xl bg-muted/30"
+                            >
+                              <div className="flex justify-between mb-1.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm">{goal.icon || '🎯'}</span>
+                                  <p className="font-medium text-sm">{goal.name}</p>
                                 </div>
+                                <span className={`text-xs font-mono font-semibold ${percentage >= 80 ? 'text-income' : 'text-muted-foreground'}`}>{percentage}%</span>
                               </div>
-                              <p className="font-mono text-sm font-semibold">{formatCurrency(Number(account.balance), account.currency)}</p>
-                            </div>
-                          ))}
-                          {accounts.length > 4 && (
-                            <p className="text-xs text-center text-muted-foreground pt-2">
-                              +{accounts.length - 4} more accounts
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-6 text-sm">Add your first account!</p>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Savings Goals */}
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <PiggyBank className="w-4 h-4" />
-                        Savings Goals
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {savingsGoals.length > 0 ? (
-                        <div className="space-y-3">
-                          {savingsGoals.slice(0, 3).map((goal) => {
-                            const percentage = Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100);
-                            return (
-                              <div key={goal.id} className="p-2 rounded-lg bg-muted/30">
-                                <div className="flex justify-between mb-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm">{goal.icon || '🎯'}</span>
-                                    <p className="font-medium text-sm">{goal.name}</p>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground">{percentage}%</p>
-                                </div>
-                                <Progress value={percentage} className="h-1.5 mb-1" />
-                                <div className="flex justify-between text-[10px] text-muted-foreground">
-                                  <span>{formatCurrency(Number(goal.current_amount), goal.currency)}</span>
-                                  <span>{formatCurrency(Number(goal.target_amount), goal.currency)}</span>
-                                </div>
+                              <div className="relative h-2 rounded-full bg-muted overflow-hidden">
+                                <motion.div
+                                  className="absolute inset-y-0 left-0 rounded-full bg-primary"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${Math.min(percentage, 100)}%` }}
+                                  transition={{ duration: 0.8, delay: 0.5 + i * 0.1, ease: 'easeOut' }}
+                                />
                               </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-center py-6 text-sm">Start saving today!</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
+                              <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
+                                <span>{formatCurrency(Number(goal.current_amount), goal.currency)}</span>
+                                <span>{formatCurrency(Number(goal.target_amount), goal.currency)}</span>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <PiggyBank className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-muted-foreground text-sm">Start saving today!</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
 
             {/* Recent Transactions */}
-            <TransactionList 
-              transactions={transactions.slice(0, 5)} 
-              categories={categories}
-              accounts={accounts}
-              onRefresh={fetchData}
-            />
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+              <TransactionList 
+                transactions={transactions.slice(0, 5)} 
+                categories={categories}
+                accounts={accounts}
+                onRefresh={fetchData}
+              />
+            </motion.div>
           </TabsContent>
 
           {/* Accounts Tab */}
