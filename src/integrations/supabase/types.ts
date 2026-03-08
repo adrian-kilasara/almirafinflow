@@ -399,6 +399,60 @@ export type Database = {
         }
         Relationships: []
       }
+      investments: {
+        Row: {
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          current_price: number
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          platform: string | null
+          purchase_date: string | null
+          purchase_price: number
+          quantity: number
+          symbol: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          current_price?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          platform?: string | null
+          purchase_date?: string | null
+          purchase_price?: number
+          quantity?: number
+          symbol?: string | null
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_code"]
+          current_price?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          platform?: string | null
+          purchase_date?: string | null
+          purchase_price?: number
+          quantity?: number
+          symbol?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -582,10 +636,12 @@ export type Database = {
           created_at: string
           currency: Database["public"]["Enums"]["currency_code"]
           current_amount: number
+          goal_type: string
           icon: string | null
           id: string
           is_completed: boolean | null
           name: string
+          priority: string
           target_amount: number
           target_date: string | null
           updated_at: string
@@ -596,10 +652,12 @@ export type Database = {
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
           current_amount?: number
+          goal_type?: string
           icon?: string | null
           id?: string
           is_completed?: boolean | null
           name: string
+          priority?: string
           target_amount: number
           target_date?: string | null
           updated_at?: string
@@ -610,10 +668,12 @@ export type Database = {
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_code"]
           current_amount?: number
+          goal_type?: string
           icon?: string | null
           id?: string
           is_completed?: boolean | null
           name?: string
+          priority?: string
           target_amount?: number
           target_date?: string | null
           updated_at?: string

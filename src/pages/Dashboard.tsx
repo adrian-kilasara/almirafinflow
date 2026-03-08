@@ -11,7 +11,7 @@ import {
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
   LogOut, Sparkles, Target, CreditCard, BarChart3,
   Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle,
-  User, ChevronDown, X, Archive, CalendarClock
+  User, ChevronDown, X, Archive, CalendarClock, Briefcase
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
@@ -49,6 +49,8 @@ import NotificationCenter from '@/components/notifications/NotificationCenter';
 import NetWorthChart from '@/components/dashboard/NetWorthChart';
 import AISmartInsights from '@/components/dashboard/AISmartInsights';
 import BillsSubscriptions from '@/components/bills/BillsSubscriptions';
+import InvestmentTracker from '@/components/investments/InvestmentTracker';
+import FinancialCalendar from '@/components/calendar/FinancialCalendar';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
@@ -271,6 +273,7 @@ export default function Dashboard() {
     { id: 'transactions', label: 'Transactions', icon: Receipt, badge: '' },
     { id: 'budgets', label: 'Budgets', icon: Folder, badge: overBudgetAlerts.length > 0 ? '!' : '' },
     { id: 'bills', label: 'Bills', icon: CalendarClock, badge: '' },
+    { id: 'investments', label: 'Invest', icon: Briefcase, badge: '' },
     { id: 'savings', label: 'Savings', icon: PiggyBank, badge: '' },
     { id: 'reports', label: 'Reports', icon: BarChart3, badge: '' },
     { id: 'learn', label: 'Learn', icon: GraduationCap, badge: '' },
@@ -764,8 +767,17 @@ export default function Dashboard() {
               />
             </motion.div>
 
+            {/* Financial Calendar */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.38 }}>
+              <FinancialCalendar
+                transactions={transactions}
+                budgets={budgets}
+                savingsGoals={savingsGoals}
+              />
+            </motion.div>
+
             {/* Recent Transactions */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}>
               <TransactionList
                 transactions={transactions.slice(0, 5)}
                 categories={categories}
@@ -1136,6 +1148,20 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <BillsSubscriptions />
+          </TabsContent>
+
+          {/* Investments Tab */}
+          <TabsContent value="investments" className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Briefcase className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-extrabold">Investment Portfolio</h2>
+                <p className="text-[10px] text-muted-foreground">Track stocks, crypto, bonds & more</p>
+              </div>
+            </motion.div>
+            <InvestmentTracker />
           </TabsContent>
 
           {/* Savings Tab */}

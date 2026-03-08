@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import {
   Settings, User, Shield, Globe, Calculator, Bell, Sparkles,
-  Database, Monitor, Wrench, ArrowLeft, ChevronRight,
+  Database, Monitor, Wrench, ArrowLeft, ChevronRight, Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -15,6 +15,7 @@ import FinancialRulesSettings from '@/components/settings/FinancialRulesSettings
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import AIInsightsSettings from '@/components/settings/AIInsightsSettings';
 import DataManagementSettings from '@/components/settings/DataManagementSettings';
+import ImportExportSettings from '@/components/settings/ImportExportSettings';
 import DisplaySettings from '@/components/settings/DisplaySettings';
 import AdvancedSettings from '@/components/settings/AdvancedSettings';
 
@@ -26,6 +27,7 @@ const tabs = [
   { value: 'notifications', icon: Bell, label: 'Notifications', desc: 'Alerts & reminders' },
   { value: 'ai-insights', icon: Sparkles, label: 'AI & Insights', desc: 'AI engine configuration' },
   { value: 'data', icon: Database, label: 'Data', desc: 'Export & manage data' },
+  { value: 'import-export', icon: Upload, label: 'Import / Export', desc: 'CSV import & full backup' },
   { value: 'display', icon: Monitor, label: 'Display', desc: 'Theme & UI preferences' },
   { value: 'advanced', icon: Wrench, label: 'Advanced', desc: 'Performance & cache' },
 ];
@@ -40,6 +42,7 @@ const CONTENT: Record<string, React.FC> = {
   notifications: NotificationSettings,
   'ai-insights': AIInsightsSettings,
   data: DataManagementSettings,
+  'import-export': ImportExportSettings,
   display: DisplaySettings,
   advanced: AdvancedSettings,
 };
