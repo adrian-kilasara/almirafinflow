@@ -1102,26 +1102,72 @@ export default function Dashboard() {
         </Tabs>
       </main>
 
-      {/* Mobile Bottom Navigation — scrollable to fit all tabs */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border safe-area-bottom">
-        <div className="flex items-center overflow-x-auto scrollbar-hide py-1.5 px-1 gap-0.5">
-          {navItems.map((item) => {
+      {/* Mobile Bottom Navigation — icon-only, all 10 tabs evenly distributed */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-2xl border-t border-border/50 safe-area-bottom">
+        <div className="grid grid-cols-5 gap-0 py-1 px-1">
+          {navItems.slice(0, 5).map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`relative flex flex-col items-center gap-0.5 min-w-[3.5rem] px-2 py-1.5 rounded-xl transition-colors shrink-0 ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                }`}
+                className="relative flex flex-col items-center justify-center py-1.5 rounded-lg transition-colors"
               >
                 {isActive && (
-                  <motion.div layoutId="mobile-bottom-indicator" className="absolute -top-1.5 w-6 h-0.5 bg-primary rounded-full" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />
+                  <motion.div
+                    layoutId="mobile-nav-pill"
+                    className="absolute inset-1 bg-primary/10 rounded-lg"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
                 )}
-                <Icon className="w-4.5 h-4.5" />
-                <span className="text-[9px] font-medium leading-tight">{item.label}</span>
-                {item.badge === '!' && <span className="absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full bg-destructive" />}
+                <Icon className={`relative z-10 w-5 h-5 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                {isActive && (
+                  <motion.span
+                    initial={{ opacity: 0, y: 2 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative z-10 text-[9px] font-semibold text-primary mt-0.5 leading-none"
+                  >
+                    {item.shortLabel}
+                  </motion.span>
+                )}
+                {item.badge === '!' && (
+                  <span className="absolute top-1 right-1/4 w-1.5 h-1.5 rounded-full bg-destructive z-20" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div className="grid grid-cols-5 gap-0 pb-1 px-1">
+          {navItems.slice(5).map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className="relative flex flex-col items-center justify-center py-1.5 rounded-lg transition-colors"
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="mobile-nav-pill-2"
+                    className="absolute inset-1 bg-primary/10 rounded-lg"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <Icon className={`relative z-10 w-5 h-5 transition-colors ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                {isActive && (
+                  <motion.span
+                    initial={{ opacity: 0, y: 2 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative z-10 text-[9px] font-semibold text-primary mt-0.5 leading-none"
+                  >
+                    {item.shortLabel}
+                  </motion.span>
+                )}
+                {item.badge === '!' && (
+                  <span className="absolute top-1 right-1/4 w-1.5 h-1.5 rounded-full bg-destructive z-20" />
+                )}
               </button>
             );
           })}
