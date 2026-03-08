@@ -948,28 +948,30 @@ export default function Dashboard() {
                 </div>
               </motion.div>
 
+              <Suspense fallback={<TabFallback />}>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4">
                 {/* AI Smart Insights — wide */}
-                <motion.div variants={staggerItem} className="xl:col-span-7 2xl:col-span-6">
+                <div className="xl:col-span-7 2xl:col-span-6">
                   <div className="h-full"><AISmartInsights accounts={accounts} transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} /></div>
-                </motion.div>
+                </div>
                 {/* Smart Spending — narrow */}
-                <motion.div variants={staggerItem} className="xl:col-span-5 2xl:col-span-6">
+                <div className="xl:col-span-5 2xl:col-span-6">
                   <div className="h-full"><SmartSpendingDetection transactions={transactions} categories={categories} budgets={budgets} /></div>
-                </motion.div>
+                </div>
                 {/* Predictive — medium */}
-                <motion.div variants={staggerItem} className="xl:col-span-5 2xl:col-span-4">
+                <div className="xl:col-span-5 2xl:col-span-4">
                   <div className="h-full"><PredictiveCashFlow accounts={accounts} transactions={transactions} /></div>
-                </motion.div>
+                </div>
                 {/* Heatmap — wide */}
-                <motion.div variants={staggerItem} className="xl:col-span-7 2xl:col-span-4">
+                <div className="xl:col-span-7 2xl:col-span-4">
                   <div className="h-full"><SpendingHeatmap transactions={transactions} categories={categories} /></div>
-                </motion.div>
+                </div>
                 {/* Calendar on large screens fills remaining */}
-                <motion.div variants={staggerItem} className="xl:col-span-6 2xl:col-span-4">
+                <div className="xl:col-span-6 2xl:col-span-4">
                   <div className="h-full"><CalendarSummary transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} onNavigate={() => setActiveTab('activity')} /></div>
-                </motion.div>
+                </div>
               </div>
+              </Suspense>
 
               {/* Bottom row: Badges */}
               <motion.div variants={staggerItem}>
