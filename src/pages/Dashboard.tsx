@@ -747,6 +747,7 @@ export default function Dashboard() {
 
           {/* Accounts Tab */}
           <TabsContent value="accounts" className="space-y-6">
+            <AnimatePresence mode="wait">
             {selectedAccount ? (
               <AccountDetailPanel
                 account={selectedAccount}
@@ -756,52 +757,102 @@ export default function Dashboard() {
                 onBack={() => setSelectedAccount(null)}
               />
             ) : (
-              <>
-                {/* Net Position Summary */}
+              <motion.div
+                key="accounts-list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-6"
+              >
+                {/* Net Position Hero */}
                 {accounts.length > 0 && (() => {
-                  const activeAccounts = accounts.filter(a => a.is_active && !(a as any).is_archived);
-                  const totalAssets = activeAccounts
+                  const activeAccts = accounts.filter(a => a.is_active && !(a as any).is_archived);
+                  const totalAssets = activeAccts
                     .filter(a => (a as any).classification !== 'liability')
                     .reduce((s, a) => s + Number(a.balance), 0);
-                  const totalLiabilities = activeAccounts
+                  const totalLiabilities = activeAccts
                     .filter(a => (a as any).classification === 'liability')
                     .reduce((s, a) => s + Math.abs(Number(a.balance)), 0);
                   const netPosition = totalAssets - totalLiabilities;
+                  const assetPct = totalAssets + totalLiabilities > 0 ? (totalAssets / (totalAssets + totalLiabilities)) * 100 : 100;
                   return (
-                    <div className="grid grid-cols-3 gap-4">
-                      <Card>
-                        <CardContent className="p-4 text-center">
-                          <p className="text-xs text-muted-foreground">Total Assets</p>
-                          <p className="text-lg font-bold font-mono text-income">{formatCurrency(totalAssets)}</p>
+                    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                      <Card className="relative overflow-hidden border-primary/10 bg-gradient-to-br from-card via-card to-primary/5">
+                        <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+                        <CardContent className="relative p-5">
+                          <div className="grid grid-cols-3 gap-4 mb-4">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total Assets</p>
+                              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xl font-bold font-mono text-income">
+                                {formatCurrency(totalAssets)}
+                              </motion.p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Liabilities</p>
+                              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }} className="text-xl font-bold font-mono text-expense">
+                                -{formatCurrency(totalLiabilities)}
+                              </motion.p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Net Position</p>
+                              <motion.p 
+                                initial={{ scale: 0.9, opacity: 0 }} 
+                                animate={{ scale: 1, opacity: 1 }} 
+                                transition={{ delay: 0.1, type: 'spring' }}
+                                className={`text-xl font-bold font-mono ${netPosition >= 0 ? 'text-primary' : 'text-expense'}`}
+                              >
+                                {formatCurrency(netPosition)}
+                              </motion.p>
+                            </div>
+                          </div>
+                          {/* Asset/Liability ratio bar */}
+                          <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-muted/50">
+                            <motion.div
+                              className="bg-income rounded-full"
+                              initial={{ width: 0 }}
+                              animate={{ width: `${assetPct}%` }}
+                              transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+                            />
+                            {totalLiabilities > 0 && (
+                              <motion.div
+                                className="bg-expense rounded-full"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${100 - assetPct}%` }}
+                                transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
+                              />
+                            )}
+                          </div>
+                          <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground">
+                            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-income" /> Assets</span>
+                            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-expense" /> Liabilities</span>
+                          </div>
                         </CardContent>
                       </Card>
-                      <Card>
-                        <CardContent className="p-4 text-center">
-                          <p className="text-xs text-muted-foreground">Total Liabilities</p>
-                          <p className="text-lg font-bold font-mono text-expense">-{formatCurrency(totalLiabilities)}</p>
-                        </CardContent>
-                      </Card>
-                      <Card variant="glow">
-                        <CardContent className="p-4 text-center">
-                          <p className="text-xs text-muted-foreground">Net Position</p>
-                          <p className={`text-lg font-bold font-mono ${netPosition >= 0 ? 'text-income' : 'text-expense'}`}>
-                            {formatCurrency(netPosition)}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </div>
+                    </motion.div>
                   );
                 })()}
 
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold flex items-center gap-2">
-                    <CreditCard className="w-5 h-5" /> Your Accounts
-                  </h2>
+                {/* Action bar */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 12 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  transition={{ delay: 0.15 }}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <CreditCard className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold">Your Accounts</h2>
+                      <p className="text-[10px] text-muted-foreground">{accounts.filter(a => a.is_active).length} active · {accounts.length} total</p>
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <TransferForm accounts={accounts} onSuccess={fetchData} />
                     <AccountForm onSuccess={fetchData} />
                   </div>
-                </div>
+                </motion.div>
 
                 {accounts.length > 0 ? (() => {
                   const active = accounts.filter(a => a.is_active && !(a as any).is_archived);
@@ -813,76 +864,93 @@ export default function Dashboard() {
                     <div className="space-y-6">
                       {/* Assets */}
                       {assets.length > 0 && (
-                        <div className="space-y-3">
-                          <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                            📈 Assets ({assets.length})
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {assets.map(account => (
+                        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">📈</span>
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assets ({assets.length})</h3>
+                            <div className="flex-1 h-px bg-border/30" />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {assets.map((account, i) => (
                               <AccountCard
                                 key={account.id}
                                 account={account}
                                 transactions={transactions}
                                 onRefresh={fetchData}
                                 onSelect={setSelectedAccount}
+                                index={i}
                               />
                             ))}
                           </div>
-                        </div>
+                        </motion.div>
                       )}
 
                       {/* Liabilities */}
                       {liabilities.length > 0 && (
-                        <div className="space-y-3">
-                          <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                            📉 Liabilities ({liabilities.length})
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {liabilities.map(account => (
+                        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">📉</span>
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Liabilities ({liabilities.length})</h3>
+                            <div className="flex-1 h-px bg-border/30" />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {liabilities.map((account, i) => (
                               <AccountCard
                                 key={account.id}
                                 account={account}
                                 transactions={transactions}
                                 onRefresh={fetchData}
                                 onSelect={setSelectedAccount}
+                                index={i}
                               />
                             ))}
                           </div>
-                        </div>
+                        </motion.div>
                       )}
 
                       {/* Archived */}
                       {archived.length > 0 && (
-                        <div className="space-y-3">
-                          <h3 className="text-sm font-semibold text-muted-foreground">
-                            📦 Archived ({archived.length})
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {archived.map(account => (
+                        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">📦</span>
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Archived ({archived.length})</h3>
+                            <div className="flex-1 h-px bg-border/30" />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {archived.map((account, i) => (
                               <AccountCard
                                 key={account.id}
                                 account={account}
                                 transactions={transactions}
                                 onRefresh={fetchData}
                                 onSelect={setSelectedAccount}
+                                index={i}
                               />
                             ))}
                           </div>
-                        </div>
+                        </motion.div>
                       )}
                     </div>
                   );
                 })() : (
-                  <Card>
-                    <CardContent className="py-12 text-center text-muted-foreground">
-                      <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p>No accounts yet</p>
-                      <p className="text-sm">Add your bank accounts, mobile money, and cash</p>
-                    </CardContent>
-                  </Card>
+                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}>
+                    <Card className="border-dashed border-2">
+                      <CardContent className="py-16 text-center">
+                        <motion.div
+                          animate={{ y: [0, -6, 0] }}
+                          transition={{ repeat: Infinity, duration: 2.5 }}
+                        >
+                          <CreditCard className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
+                        </motion.div>
+                        <p className="font-semibold text-foreground">No accounts yet</p>
+                        <p className="text-sm text-muted-foreground mt-1">Add your bank accounts, mobile money, and cash to get started</p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 )}
-              </>
+              </motion.div>
             )}
+            </AnimatePresence>
           </TabsContent>
 
           {/* Transactions Tab */}
