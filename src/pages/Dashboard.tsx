@@ -1170,6 +1170,7 @@ export default function Dashboard() {
 
           {/* ═══ TRANSACTIONS TAB ═══ */}
           <TabsContent value="transactions" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
             <motion.div {...fadeUp()} className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center"><Receipt className="w-4 h-4 text-primary" /></div>
