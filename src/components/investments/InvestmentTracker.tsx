@@ -139,6 +139,7 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
     await supabase.from('investments').delete().eq('id', id);
     setInvestments(prev => prev.filter(i => i.id !== id));
     toast.success('Investment removed');
+    onPortfolioChange?.();
   };
 
   // Portfolio stats
