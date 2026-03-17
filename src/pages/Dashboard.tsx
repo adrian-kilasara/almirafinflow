@@ -1278,7 +1278,7 @@ export default function Dashboard() {
                 <p className="text-[10px] text-muted-foreground">Track stocks, crypto, bonds & more</p>
               </div>
             </motion.div>
-            <InvestmentTracker />
+            <InvestmentTracker accounts={accounts} onPortfolioChange={fetchData} />
           </Suspense>
           </TabsContent>
 
