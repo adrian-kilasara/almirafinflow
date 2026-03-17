@@ -58,7 +58,12 @@ const stagger = {
   },
 };
 
-export default function InvestmentTracker() {
+interface InvestmentTrackerProps {
+  accounts?: import('@/types/finance').Account[];
+  onPortfolioChange?: () => void;
+}
+
+export default function InvestmentTracker({ accounts = [], onPortfolioChange }: InvestmentTrackerProps) {
   const { user } = useAuth();
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(true);
