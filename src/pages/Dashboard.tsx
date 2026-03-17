@@ -1303,24 +1303,69 @@ export default function Dashboard() {
           </Suspense>
           </TabsContent>
 
-          {/* ═══ ACTIVITY TAB — Calendar + Activity Log ═══ */}
+          {/* ═══ ACTIVITY TAB — Luxury side-by-side on desktop ═══ */}
           <TabsContent value="activity" className="space-y-6">
           <Suspense fallback={<TabFallback />}>
-            <motion.div {...fadeUp()} className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <ScrollText className="w-4 h-4 text-primary" />
+            {/* Section Header */}
+            <motion.div {...fadeUp()} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary/15 to-accent/10 border border-primary/20 flex items-center justify-center shadow-[0_4px_20px_hsl(var(--primary)/0.08)]">
+                  <ScrollText className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-extrabold tracking-tight">Activity & Calendar</h2>
+                  <p className="text-[10px] text-muted-foreground">Full timeline, events, and audit trail</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-extrabold">Activity & Calendar</h2>
-                <p className="text-[10px] text-muted-foreground">Full timeline, events, and audit trail</p>
+            </motion.div>
+
+            {/* Quick Stats Row */}
+            <motion.div {...fadeUp(0.05)}>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  { label: 'This Month', value: String(currentMonthTransactions.length), sub: 'transactions', icon: Receipt, gradient: 'from-primary/10 to-primary/5' },
+                  { label: 'Income Events', value: String(currentMonthTransactions.filter(t => t.type === 'income').length), sub: 'this month', icon: TrendingUp, gradient: 'from-income/10 to-income/5' },
+                  { label: 'Expense Events', value: String(currentMonthTransactions.filter(t => t.type === 'expense').length), sub: 'this month', icon: TrendingDown, gradient: 'from-expense/10 to-expense/5' },
+                  { label: 'Active Budgets', value: String(budgets.length), sub: 'tracking', icon: Target, gradient: 'from-accent/10 to-accent/5' },
+                ].map((stat, i) => {
+                  const Icon = stat.icon;
+                  return (
+                    <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 + i * 0.04 }}>
+                      <Card className="border-border/30 bg-card/60 backdrop-blur-sm overflow-hidden relative group hover:border-border/50 transition-all">
+                        <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ backgroundImage: `linear-gradient(135deg, hsl(var(--primary) / 0.03), transparent)` }} />
+                        <CardContent className="p-4 relative">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className={`w-7 h-7 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center`}>
+                              <Icon className="w-3.5 h-3.5 text-foreground/70" />
+                            </div>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{stat.label}</span>
+                          </div>
+                          <p className="text-2xl font-extrabold font-mono">{stat.value}</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">{stat.sub}</p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
               </div>
             </motion.div>
-            <motion.div {...fadeUp(0.08)}>
-              <FinancialCalendar transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
-            </motion.div>
-            <motion.div {...fadeUp(0.16)}>
-              <ActivityLog />
-            </motion.div>
+
+            {/* Main Content: Side-by-side on large screens */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+              {/* Calendar — takes 7 cols on XL */}
+              <motion.div {...fadeUp(0.1)} className="xl:col-span-7 2xl:col-span-7">
+                <div className="h-full">
+                  <FinancialCalendar transactions={transactions} budgets={budgets} savingsGoals={savingsGoals} />
+                </div>
+              </motion.div>
+
+              {/* Activity Log — takes 5 cols on XL */}
+              <motion.div {...fadeUp(0.14)} className="xl:col-span-5 2xl:col-span-5">
+                <div className="h-full xl:sticky xl:top-20">
+                  <ActivityLog />
+                </div>
+              </motion.div>
+            </div>
           </Suspense>
           </TabsContent>
         </Tabs>
