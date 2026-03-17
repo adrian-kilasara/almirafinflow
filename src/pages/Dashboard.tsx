@@ -122,6 +122,17 @@ export default function Dashboard() {
   const [aiTip, setAiTip] = useState<string>('');
   const [loadingTip, setLoadingTip] = useState(false);
   const [activeTab, setActiveTab] = useState(settings.default_landing_tab || 'overview');
+  const initialLandingApplied = useRef(false);
+
+  // Sync activeTab when settings.default_landing_tab changes (e.g. from Settings page)
+  useEffect(() => {
+    if (!initialLandingApplied.current) {
+      initialLandingApplied.current = true;
+      if (settings.default_landing_tab) {
+        setActiveTab(settings.default_landing_tab);
+      }
+    }
+  }, [settings.default_landing_tab]);
   const [currentStreak, setCurrentStreak] = useState<UserStreak | null>(null);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [transactionFormType, setTransactionFormType] = useState<'income' | 'expense' | 'transfer'>('expense');
