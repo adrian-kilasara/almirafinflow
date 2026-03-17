@@ -1264,7 +1264,7 @@ export default function Dashboard() {
                 <p className="text-[10px] text-muted-foreground">Track recurring payments and due dates</p>
               </div>
             </motion.div>
-            <BillsSubscriptions />
+            <BillsSubscriptions accounts={accounts} onTransactionCreated={fetchData} />
           </Suspense>
           </TabsContent>
 
