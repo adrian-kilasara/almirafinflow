@@ -130,6 +130,7 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
         toast.success('Investment added');
       }
       resetForm(); setFormOpen(false); fetchInvestments();
+      onPortfolioChange?.();
     } catch { toast.error('Failed to save'); }
     finally { setSaving(false); }
   };
