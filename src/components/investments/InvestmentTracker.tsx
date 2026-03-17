@@ -225,7 +225,22 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
                   </div>
                 ))}
               </div>
-            </CardContent>
+
+              {/* Linked Investment Accounts */}
+              {accounts.filter(a => a.type === 'investment' && a.is_active).length > 0 && (
+                <div className="mt-4 pt-3 border-t border-border/30">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-2">Linked Investment Accounts</p>
+                  <div className="flex flex-wrap gap-2">
+                    {accounts.filter(a => a.type === 'investment' && a.is_active).map(a => (
+                      <div key={a.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary/5 border border-primary/10 text-[10px]">
+                        <Briefcase className="w-3 h-3 text-primary" />
+                        <span className="font-medium">{a.name}</span>
+                        <span className="font-mono text-muted-foreground">{formatCurrency(Number(a.balance), a.currency)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
           </Card>
         </motion.div>
       )}
