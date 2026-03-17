@@ -73,7 +73,12 @@ const stagger = {
   },
 };
 
-export default function BillsSubscriptions() {
+interface BillsProps {
+  accounts?: Account[];
+  onTransactionCreated?: () => void;
+}
+
+export default function BillsSubscriptions({ accounts = [], onTransactionCreated }: BillsProps) {
   const { user } = useAuth();
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
