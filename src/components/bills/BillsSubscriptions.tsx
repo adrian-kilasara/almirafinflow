@@ -96,6 +96,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
   const [autoPay, setAutoPay] = useState(false);
   const [provider, setProvider] = useState('');
   const [notes, setNotes] = useState('');
+  const [payFromAccount, setPayFromAccount] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (user) fetchBills(); }, [user]);
