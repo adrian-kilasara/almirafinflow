@@ -21,6 +21,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { Account } from '@/types/finance';
 
 interface Bill {
   id: string;
@@ -72,7 +73,12 @@ const stagger = {
   },
 };
 
-export default function BillsSubscriptions() {
+interface BillsProps {
+  accounts?: Account[];
+  onTransactionCreated?: () => void;
+}
+
+export default function BillsSubscriptions({ accounts = [], onTransactionCreated }: BillsProps) {
   const { user } = useAuth();
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +96,7 @@ export default function BillsSubscriptions() {
   const [autoPay, setAutoPay] = useState(false);
   const [provider, setProvider] = useState('');
   const [notes, setNotes] = useState('');
+  const [payFromAccount, setPayFromAccount] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (user) fetchBills(); }, [user]);
@@ -164,13 +171,42 @@ export default function BillsSubscriptions() {
   };
 
   const markPaid = async (bill: Bill) => {
+    if (!user) return;
     const today = new Date().toISOString().split('T')[0];
     const nextDate = calculateNextDate(today, bill.frequency);
+    
+    // If there are accounts, create an expense transaction linked to the first active account (or selected)
+    const targetAccount = accounts.find(a => a.is_active && !a.is_archived);
+    if (targetAccount) {
+      // Create expense transaction
+      const { error: txError } = await supabase.from('transactions').insert({
+        user_id: user.id,
+        account_id: targetAccount.id,
+        type: 'expense' as const,
+        amount: Number(bill.amount),
+        currency: targetAccount.currency,
+        date: today,
+        description: `${bill.name} - ${bill.frequency} payment`,
+        merchant: bill.provider || bill.name,
+        payment_method: bill.auto_pay ? 'auto_debit' : 'cash',
+        status: 'completed',
+      });
+      
+      if (!txError) {
+        // Update account balance
+        await supabase.from('accounts').update({
+          balance: Number(targetAccount.balance) - Number(bill.amount),
+        }).eq('id', targetAccount.id);
+        
+        onTransactionCreated?.();
+      }
+    }
+    
     await supabase.from('bills_subscriptions').update({
       last_paid_date: today,
       next_due_date: nextDate,
     }).eq('id', bill.id);
-    toast.success(`${bill.name} marked as paid`);
+    toast.success(`${bill.name} marked as paid${targetAccount ? ` — deducted from ${targetAccount.name}` : ''}`);
     fetchBills();
   };
 

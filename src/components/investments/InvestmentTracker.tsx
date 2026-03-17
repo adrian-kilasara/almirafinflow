@@ -58,7 +58,12 @@ const stagger = {
   },
 };
 
-export default function InvestmentTracker() {
+interface InvestmentTrackerProps {
+  accounts?: import('@/types/finance').Account[];
+  onPortfolioChange?: () => void;
+}
+
+export default function InvestmentTracker({ accounts = [], onPortfolioChange }: InvestmentTrackerProps) {
   const { user } = useAuth();
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +130,7 @@ export default function InvestmentTracker() {
         toast.success('Investment added');
       }
       resetForm(); setFormOpen(false); fetchInvestments();
+      onPortfolioChange?.();
     } catch { toast.error('Failed to save'); }
     finally { setSaving(false); }
   };
@@ -133,6 +139,7 @@ export default function InvestmentTracker() {
     await supabase.from('investments').delete().eq('id', id);
     setInvestments(prev => prev.filter(i => i.id !== id));
     toast.success('Investment removed');
+    onPortfolioChange?.();
   };
 
   // Portfolio stats
@@ -218,6 +225,22 @@ export default function InvestmentTracker() {
                   </div>
                 ))}
               </div>
+
+              {/* Linked Investment Accounts */}
+              {accounts.filter(a => a.type === 'investment' && a.is_active).length > 0 && (
+                <div className="mt-4 pt-3 border-t border-border/30">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-2">Linked Investment Accounts</p>
+                  <div className="flex flex-wrap gap-2">
+                    {accounts.filter(a => a.type === 'investment' && a.is_active).map(a => (
+                      <div key={a.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary/5 border border-primary/10 text-[10px]">
+                        <Briefcase className="w-3 h-3 text-primary" />
+                        <span className="font-medium">{a.name}</span>
+                        <span className="font-mono text-muted-foreground">{formatCurrency(Number(a.balance), a.currency)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>

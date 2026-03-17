@@ -63,8 +63,27 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
 const TabFallback = () => (
-  <div className="flex items-center justify-center py-20">
-    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  <div className="space-y-4 py-4">
+    <div className="flex items-center gap-3">
+      <div className="w-9 h-9 rounded-xl bg-muted animate-pulse" />
+      <div className="space-y-2 flex-1">
+        <div className="h-4 w-40 rounded-lg bg-muted animate-pulse" />
+        <div className="h-2.5 w-24 rounded-lg bg-muted animate-pulse" />
+      </div>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="rounded-2xl border border-border/30 bg-card/50 p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-muted animate-pulse" />
+            <div className="h-3 w-20 rounded bg-muted animate-pulse" />
+          </div>
+          <div className="h-8 w-32 rounded-lg bg-muted animate-pulse" />
+          <div className="h-2 w-full rounded-full bg-muted animate-pulse" />
+          <div className="h-2 w-3/4 rounded-full bg-muted animate-pulse" />
+        </div>
+      ))}
+    </div>
   </div>
 );
 
@@ -103,6 +122,17 @@ export default function Dashboard() {
   const [aiTip, setAiTip] = useState<string>('');
   const [loadingTip, setLoadingTip] = useState(false);
   const [activeTab, setActiveTab] = useState(settings.default_landing_tab || 'overview');
+  const initialLandingApplied = useRef(false);
+
+  // Sync activeTab when settings.default_landing_tab changes (e.g. from Settings page)
+  useEffect(() => {
+    if (!initialLandingApplied.current) {
+      initialLandingApplied.current = true;
+      if (settings.default_landing_tab) {
+        setActiveTab(settings.default_landing_tab);
+      }
+    }
+  }, [settings.default_landing_tab]);
   const [currentStreak, setCurrentStreak] = useState<UserStreak | null>(null);
   const [showTransactionForm, setShowTransactionForm] = useState(false);
   const [transactionFormType, setTransactionFormType] = useState<'income' | 'expense' | 'transfer'>('expense');
@@ -1234,7 +1264,7 @@ export default function Dashboard() {
                 <p className="text-[10px] text-muted-foreground">Track recurring payments and due dates</p>
               </div>
             </motion.div>
-            <BillsSubscriptions />
+            <BillsSubscriptions accounts={accounts} onTransactionCreated={fetchData} />
           </Suspense>
           </TabsContent>
 
@@ -1248,7 +1278,7 @@ export default function Dashboard() {
                 <p className="text-[10px] text-muted-foreground">Track stocks, crypto, bonds & more</p>
               </div>
             </motion.div>
-            <InvestmentTracker />
+            <InvestmentTracker accounts={accounts} onPortfolioChange={fetchData} />
           </Suspense>
           </TabsContent>
 
