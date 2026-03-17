@@ -241,6 +241,7 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
                   </div>
                 </div>
               )}
+            </CardContent>
           </Card>
         </motion.div>
       )}
