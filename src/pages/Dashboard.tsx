@@ -482,38 +482,71 @@ export default function Dashboard() {
           {/* Desktop / Tablet Tab Bar — always shows icons + labels, adapts spacing */}
           <div className="hidden md:block relative -mb-px">
             <nav className="flex items-center relative" role="tablist">
-              {navItems.map((item) => {
+              {navItems.map((item, index) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
                 return (
-                  <button
+                  <motion.button
                     key={item.id}
                     ref={(el) => { tabRefs.current[item.id] = el; }}
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => setActiveTab(item.id)}
-                    className={`group relative flex items-center gap-1.5 px-2 lg:px-3.5 xl:px-4 py-2.5 text-[12px] lg:text-[13px] font-medium transition-all duration-200 whitespace-nowrap ${
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04, duration: 0.3 }}
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`group relative flex items-center gap-1.5 px-2 lg:px-3.5 xl:px-4 py-2.5 text-[12px] lg:text-[13px] font-medium transition-colors duration-200 whitespace-nowrap ${
                       isActive
                         ? 'text-primary'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    <Icon className="w-4 h-4 shrink-0" />
+                    <motion.div
+                      animate={isActive ? { scale: [1, 1.2, 1], rotate: [0, -8, 8, 0] } : { scale: 1, rotate: 0 }}
+                      transition={{ duration: 0.4, ease: 'easeOut' }}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                    </motion.div>
                     <span className="hidden md:inline">{item.label}</span>
                     {item.badge === '!' && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                      <motion.span
+                        className="w-1.5 h-1.5 rounded-full bg-destructive"
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
                     )}
                     {item.badge && item.badge !== '!' && (
-                      <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-px rounded-full font-semibold">{item.badge}</span>
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="text-[9px] bg-primary/10 text-primary px-1.5 py-px rounded-full font-semibold"
+                      >
+                        {item.badge}
+                      </motion.span>
                     )}
-                  </button>
+                    {/* Hover glow */}
+                    <AnimatePresence>
+                      {isActive && (
+                        <motion.div
+                          layoutId="navGlow"
+                          className="absolute inset-0 bg-primary/[0.06] rounded-lg -z-10"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                        />
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
                 );
               })}
               {/* Animated underline indicator */}
               <motion.div
-                className="absolute bottom-0 h-[2px] rounded-full bg-primary"
+                className="absolute bottom-0 h-[2.5px] rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.4)]"
                 animate={{ left: indicatorStyle.left, width: indicatorStyle.width }}
-                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             </nav>
           </div>

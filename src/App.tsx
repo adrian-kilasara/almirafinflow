@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 
 // Lazy load secondary pages
 const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Install = lazy(() => import("./pages/Install"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -43,6 +44,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/install" element={<Install />} />
                   <Route path="*" element={<NotFound />} />
