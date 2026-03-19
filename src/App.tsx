@@ -44,6 +44,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/install" element={<Install />} />
                   <Route path="*" element={<NotFound />} />
