@@ -268,6 +268,31 @@ export default function Auth() {
                   </Button>
                 </motion.div>
 
+                {/* Biometric Quick Access */}
+                {biometricSupported && mode === 'signin' && (
+                  <motion.div variants={childFade}>
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 gap-3 text-sm font-medium border-primary/30 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 group"
+                      onClick={async () => {
+                        const success = await authenticateWithBiometric();
+                        if (success) {
+                          toast.success('Welcome back!');
+                          navigate('/');
+                        }
+                      }}
+                      disabled={loading || bioLoading}
+                    >
+                      {bioLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <ScanFace className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                      )}
+                      Quick Access with Biometrics
+                    </Button>
+                  </motion.div>
+                )}
+
                 {/* Divider */}
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
@@ -277,6 +302,7 @@ export default function Auth() {
                     <span className="px-4 text-xs uppercase tracking-widest text-muted-foreground bg-card/60">or</span>
                   </div>
                 </div>
+
 
                 {/* Method toggle */}
                 <motion.div variants={childFade} className="flex rounded-xl bg-muted/50 p-1 gap-1">
