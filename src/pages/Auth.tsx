@@ -41,7 +41,16 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signUp } = useAuth();
+  const { isSupported: biometricSupported, authenticateWithBiometric, loading: bioLoading } = useBiometricAuth();
+  const [hasBiometricCredentials, setHasBiometricCredentials] = useState(false);
   const navigate = useNavigate();
+
+  // Check if any biometric credentials exist (without auth)
+  useEffect(() => {
+    if (biometricSupported) {
+      setHasBiometricCredentials(true); // Show button if device supports it
+    }
+  }, [biometricSupported]);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
