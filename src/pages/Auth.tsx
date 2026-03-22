@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useBiometricAuth } from '@/hooks/useBiometricAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Wallet, ArrowRight, Loader2, Mail, Phone, Lock, User, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Wallet, ArrowRight, Loader2, Mail, Phone, Lock, User, Eye, EyeOff, ArrowLeft, ScanFace } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
