@@ -156,6 +156,9 @@ export default function FinancialLessons({ transactions = [], categories = [], b
       case 'investing': return '📈';
       case 'business': return '💼';
       case 'tracking': return '📝';
+      case 'debt': return '⚖️';
+      case 'tax': return '🏛️';
+      case 'wealth': return '👑';
       default: return '💡';
     }
   };
