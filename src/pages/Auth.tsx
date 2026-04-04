@@ -1,17 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useBiometricAuth } from '@/hooks/useBiometricAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { lovable } from '@/integrations/lovable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Wallet, ArrowRight, Loader2, Mail, Phone, Lock, User, Eye, EyeOff, ArrowLeft, ScanFace } from 'lucide-react';
+import { Wallet, ArrowRight, Loader2, Mail, Lock, User, Eye, EyeOff, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type AuthMode = 'signin' | 'signup' | 'forgot';
-type AuthMethod = 'email' | 'phone';
+type AuthMode = 'signin' | 'signup' | 'forgot' | 'verify';
 
 const fadeSlide = {
   initial: { opacity: 0, y: 18 },
@@ -20,37 +17,54 @@ const fadeSlide = {
   transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const },
 };
 
-const stagger = {
-  animate: { transition: { staggerChildren: 0.07 } },
-};
-
-const childFade = {
-  initial: { opacity: 0, y: 14 },
-  animate: { opacity: 1, y: 0 },
-};
-
 export default function Auth() {
   const [mode, setMode] = useState<AuthMode>('signin');
-  const [method, setMethod] = useState<AuthMethod>('email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [countdown, setCountdown] = useState(120);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { signIn, signUp } = useAuth();
-  const { isSupported: biometricSupported, authenticateWithBiometric, loading: bioLoading } = useBiometricAuth();
-  const [hasBiometricCredentials, setHasBiometricCredentials] = useState(false);
   const navigate = useNavigate();
 
-  // Check if any biometric credentials exist (without auth)
+  // Countdown timer for verification
   useEffect(() => {
-    if (biometricSupported) {
-      setHasBiometricCredentials(true); // Show button if device supports it
+    if (mode === 'verify' && countdown > 0) {
+      timerRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current!);
+            // Delete unverified account
+            handleExpiredVerification();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
     }
-  }, [biometricSupported]);
+  }, [mode]);
+
+  const handleExpiredVerification = async () => {
+    if (pendingUserId) {
+      try {
+        await supabase.functions.invoke('cleanup-unverified', {
+          body: { userId: pendingUserId },
+        });
+      } catch (e) {
+        // silent
+      }
+    }
+    toast.error('Verification timed out. Please sign up again.');
+    setPendingUserId(null);
+    setMode('signup');
+    setCountdown(120);
+  };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +73,9 @@ export default function Auth() {
       if (mode === 'signup') {
         const { error } = await signUp(email, password, fullName);
         if (error) throw error;
-        toast.success('Account created! Please check your email to verify.');
+        toast.success('Verification email sent! Check your inbox.');
+        setMode('verify');
+        setCountdown(120);
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;
@@ -93,50 +109,35 @@ export default function Auth() {
     }
   };
 
-  const handleSendOtp = async () => {
-    if (!phone || phone.length < 10) {
-      toast.error('Please enter a valid phone number');
-      return;
-    }
+  const handleResendVerification = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({ phone });
-      if (error) throw error;
-      setOtpSent(true);
-      toast.success('OTP sent to your phone');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to send OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.verifyOtp({ phone, token: otp, type: 'sms' });
-      if (error) throw error;
-      toast.success('Phone verified!');
-      navigate('/');
-    } catch (error: any) {
-      toast.error(error.message || 'Invalid OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth('google', {
-        redirect_uri: window.location.origin,
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
       });
-      if (result.error) throw result.error;
+      if (error) throw error;
+      toast.success('Verification email resent!');
+      setCountdown(120);
+      if (timerRef.current) clearInterval(timerRef.current);
     } catch (error: any) {
-      toast.error(error.message || 'Google sign-in failed');
+      toast.error(error.message || 'Failed to resend');
+    } finally {
       setLoading(false);
     }
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const modeLabel = {
+    signin: 'Welcome back. Sign in to continue.',
+    signup: 'Create your premium account.',
+    forgot: 'Reset your password via email.',
+    verify: 'Verify your email to activate your account.',
   };
 
   return (
@@ -195,9 +196,7 @@ export default function Auth() {
               transition={{ duration: 0.25 }}
               className="text-muted-foreground text-sm mt-2"
             >
-              {mode === 'signin' && 'Welcome back. Sign in to continue.'}
-              {mode === 'signup' && 'Create your premium account.'}
-              {mode === 'forgot' && 'Reset your password via email.'}
+              {modeLabel[mode]}
             </motion.p>
           </AnimatePresence>
         </motion.div>
@@ -210,7 +209,8 @@ export default function Auth() {
           className="rounded-2xl border border-border/50 bg-card/60 backdrop-blur-xl shadow-[0_8px_60px_-12px_hsl(var(--primary)/0.12)] p-6 sm:p-8 space-y-6"
         >
           <AnimatePresence mode="wait">
-            {mode === 'forgot' ? (
+            {/* Forgot Password */}
+            {mode === 'forgot' && (
               <motion.div key="forgot" {...fadeSlide}>
                 <form onSubmit={handleForgotPassword} className="space-y-4">
                   <button
@@ -248,277 +248,176 @@ export default function Auth() {
                   </Button>
                 </form>
               </motion.div>
-            ) : (
-              <motion.div key="main" {...fadeSlide} className="space-y-6">
-                {/* Google Sign-in */}
-                <motion.div variants={childFade}>
-                  <Button
-                    variant="outline"
-                    className="w-full h-12 gap-3 text-sm font-medium border-border/60 hover:border-primary/40 hover:bg-primary/5 transition-all duration-300"
-                    onClick={handleGoogleSignIn}
-                    disabled={loading}
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                    </svg>
-                    Continue with Google
-                  </Button>
+            )}
+
+            {/* Verification Screen */}
+            {mode === 'verify' && (
+              <motion.div key="verify" {...fadeSlide} className="space-y-6 text-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                  className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 border border-primary/20 mx-auto"
+                >
+                  <ShieldCheck className="w-8 h-8 text-primary" />
                 </motion.div>
 
-                {/* Biometric Quick Access */}
-                {biometricSupported && mode === 'signin' && (
-                  <motion.div variants={childFade}>
-                    <Button
-                      variant="outline"
-                      className="w-full h-12 gap-3 text-sm font-medium border-primary/30 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 group"
-                      onClick={async () => {
-                        const success = await authenticateWithBiometric();
-                        if (success) {
-                          toast.success('Welcome back!');
-                          navigate('/');
-                        }
-                      }}
-                      disabled={loading || bioLoading}
-                    >
-                      {bioLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <ScanFace className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                      )}
-                      Quick Access with Biometrics
-                    </Button>
-                  </motion.div>
-                )}
+                <div className="space-y-2">
+                  <h2 className="text-lg font-semibold text-foreground">Check Your Email</h2>
+                  <p className="text-sm text-muted-foreground">
+                    We sent a verification link to{' '}
+                    <span className="text-foreground font-medium">{email}</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Click the link in your email to activate your account.
+                  </p>
+                </div>
 
-                {/* Divider */}
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-border/40" />
+                {/* Countdown */}
+                <div className="space-y-2">
+                  <div className={`text-3xl font-mono font-bold tracking-wider ${
+                    countdown <= 30 ? 'text-destructive' : 'text-primary'
+                  }`}>
+                    {formatTime(countdown)}
                   </div>
-                  <div className="relative flex justify-center">
-                    <span className="px-4 text-xs uppercase tracking-widest text-muted-foreground bg-card/60">or</span>
+                  <p className="text-xs text-muted-foreground">
+                    {countdown > 0
+                      ? 'Time remaining to verify your email'
+                      : 'Verification expired. Please sign up again.'}
+                  </p>
+                  {/* Progress bar */}
+                  <div className="w-full h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                    <motion.div
+                      className={`h-full rounded-full ${countdown <= 30 ? 'bg-destructive' : 'bg-primary'}`}
+                      initial={{ width: '100%' }}
+                      animate={{ width: `${(countdown / 120) * 100}%` }}
+                      transition={{ duration: 1, ease: 'linear' }}
+                    />
                   </div>
                 </div>
 
-
-                {/* Method toggle */}
-                <motion.div variants={childFade} className="flex rounded-xl bg-muted/50 p-1 gap-1">
+                <div className="space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full h-11 text-sm"
+                    onClick={handleResendVerification}
+                    disabled={loading || countdown <= 0}
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Resend Verification Email'}
+                  </Button>
                   <button
                     type="button"
-                    onClick={() => setMethod('email')}
-                    className={`flex-1 relative flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-                      method === 'email'
-                        ? 'text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    onClick={() => {
+                      if (timerRef.current) clearInterval(timerRef.current);
+                      setMode('signup');
+                      setCountdown(120);
+                    }}
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
                   >
-                    {method === 'email' && (
-                      <motion.div
-                        layoutId="methodBg"
-                        className="absolute inset-0 bg-primary/15 border border-primary/20 rounded-lg shadow-sm"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Email
-                    </span>
+                    Back to sign up
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setMethod('phone')}
-                    className={`flex-1 relative flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-                      method === 'phone'
-                        ? 'text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {method === 'phone' && (
+                </div>
+              </motion.div>
+            )}
+
+            {/* Sign In / Sign Up */}
+            {(mode === 'signin' || mode === 'signup') && (
+              <motion.div key="main" {...fadeSlide} className="space-y-6">
+                <motion.form
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  onSubmit={handleEmailSubmit}
+                  className="space-y-4"
+                >
+                  <AnimatePresence>
+                    {mode === 'signup' && (
                       <motion.div
-                        layoutId="methodBg"
-                        className="absolute inset-0 bg-primary/15 border border-primary/20 rounded-lg shadow-sm"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <span className="relative z-10 flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      Phone
-                    </span>
-                  </button>
-                </motion.div>
-
-                {/* Email Form */}
-                <AnimatePresence mode="wait">
-                  {method === 'email' && (
-                    <motion.form
-                      key="email-form"
-                      initial={{ opacity: 0, x: -16 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 16 }}
-                      transition={{ duration: 0.25 }}
-                      onSubmit={handleEmailSubmit}
-                      className="space-y-4"
-                    >
-                      <AnimatePresence>
-                        {mode === 'signup' && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.25 }}
-                            className="relative overflow-hidden"
-                          >
-                            <div className="relative">
-                              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                              <Input
-                                type="text"
-                                placeholder="Full name"
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
-                                required
-                                className="pl-10 h-12 bg-muted/30 border-border/40 focus:border-primary/50 focus:bg-muted/50 transition-all duration-300"
-                              />
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                      <div className="relative">
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          type="email"
-                          placeholder="Email address"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                          className="pl-10 h-12 bg-muted/30 border-border/40 focus:border-primary/50 focus:bg-muted/50 transition-all duration-300"
-                        />
-                      </div>
-                      <div className="relative">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="Password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          minLength={6}
-                          className="pl-10 pr-11 h-12 bg-muted/30 border-border/40 focus:border-primary/50 focus:bg-muted/50 transition-all duration-300"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-
-                      {mode === 'signin' && (
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => setMode('forgot')}
-                            className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                          >
-                            Forgot password?
-                          </button>
-                        </div>
-                      )}
-
-                      <Button
-                        type="submit"
-                        className="w-full h-12 text-sm font-semibold shadow-[0_4px_20px_hsl(var(--primary)/0.25)] hover:shadow-[0_4px_30px_hsl(var(--primary)/0.35)] transition-all duration-300"
-                        disabled={loading}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="relative overflow-hidden"
                       >
-                        {loading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            {mode === 'signin' ? 'Sign In' : 'Create Account'}
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </>
-                        )}
-                      </Button>
-                    </motion.form>
+                        <div className="relative">
+                          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            type="text"
+                            placeholder="Full name"
+                            value={fullName}
+                            onChange={(e) => setFullName(e.target.value)}
+                            required
+                            className="pl-10 h-12 bg-muted/30 border-border/40 focus:border-primary/50 focus:bg-muted/50 transition-all duration-300"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="Email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="pl-10 h-12 bg-muted/30 border-border/40 focus:border-primary/50 focus:bg-muted/50 transition-all duration-300"
+                    />
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      className="pl-10 pr-11 h-12 bg-muted/30 border-border/40 focus:border-primary/50 focus:bg-muted/50 transition-all duration-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+
+                  {mode === 'signin' && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setMode('forgot')}
+                        className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                   )}
 
-                  {/* Phone OTP */}
-                  {method === 'phone' && (
-                    <motion.div
-                      key="phone-form"
-                      initial={{ opacity: 0, x: 16 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -16 }}
-                      transition={{ duration: 0.25 }}
-                    >
-                      {!otpSent ? (
-                        <div className="space-y-4">
-                          <div className="relative">
-                            <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              type="tel"
-                              placeholder="+254 7XXXXXXXX"
-                              value={phone}
-                              onChange={(e) => setPhone(e.target.value)}
-                              required
-                              className="pl-10 h-12 bg-muted/30 border-border/40 focus:border-primary/50 focus:bg-muted/50 transition-all duration-300"
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            className="w-full h-12 text-sm font-semibold shadow-[0_4px_20px_hsl(var(--primary)/0.25)] hover:shadow-[0_4px_30px_hsl(var(--primary)/0.35)] transition-all duration-300"
-                            disabled={loading}
-                            onClick={handleSendOtp}
-                          >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Send OTP <ArrowRight className="w-4 h-4 ml-2" /></>}
-                          </Button>
-                        </div>
-                      ) : (
-                        <form onSubmit={handleVerifyOtp} className="space-y-4">
-                          <p className="text-sm text-muted-foreground text-center">
-                            Enter the code sent to <span className="text-foreground font-medium">{phone}</span>
-                          </p>
-                          <div className="relative">
-                            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              type="text"
-                              placeholder="6-digit code"
-                              value={otp}
-                              onChange={(e) => setOtp(e.target.value)}
-                              maxLength={6}
-                              required
-                              className="pl-10 h-12 bg-muted/30 border-border/40 text-center text-lg tracking-[0.5em] font-mono focus:border-primary/50 focus:bg-muted/50 transition-all duration-300"
-                            />
-                          </div>
-                          <Button
-                            type="submit"
-                            className="w-full h-12 text-sm font-semibold shadow-[0_4px_20px_hsl(var(--primary)/0.25)] hover:shadow-[0_4px_30px_hsl(var(--primary)/0.35)] transition-all duration-300"
-                            disabled={loading}
-                          >
-                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Verify OTP <Lock className="w-4 h-4 ml-2" /></>}
-                          </Button>
-                          <button
-                            type="button"
-                            onClick={() => setOtpSent(false)}
-                            className="w-full text-sm text-muted-foreground hover:text-primary transition-colors py-2"
-                          >
-                            Change phone number
-                          </button>
-                        </form>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  <Button
+                    type="submit"
+                    className="w-full h-12 text-sm font-semibold shadow-[0_4px_20px_hsl(var(--primary)/0.25)] hover:shadow-[0_4px_30px_hsl(var(--primary)/0.35)] transition-all duration-300"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </>
+                    )}
+                  </Button>
+                </motion.form>
               </motion.div>
             )}
           </AnimatePresence>
         </motion.div>
 
         {/* Toggle mode */}
-        {mode !== 'forgot' && (
+        {(mode === 'signin' || mode === 'signup') && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
