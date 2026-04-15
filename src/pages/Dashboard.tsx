@@ -11,7 +11,7 @@ import {
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
   LogOut, Sparkles, Target, CreditCard, BarChart3,
   Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle,
-  User, ChevronDown, X, Archive, CalendarClock, Briefcase, ScrollText,
+  User, ChevronDown, X, Archive, CalendarClock, Briefcase, ScrollText, Landmark,
   ArrowUpRight, ArrowDownRight, Activity, Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
