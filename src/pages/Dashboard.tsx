@@ -53,6 +53,7 @@ const TransactionRulesManager = lazy(() => import('@/components/rules/Transactio
 const AISmartInsights = lazy(() => import('@/components/dashboard/AISmartInsights'));
 const BillsSubscriptions = lazy(() => import('@/components/bills/BillsSubscriptions'));
 const InvestmentTracker = lazy(() => import('@/components/investments/InvestmentTracker'));
+const LoansDashboard = lazy(() => import('@/components/loans/LoansDashboard'));
 const FinancialCalendar = lazy(() => import('@/components/calendar/FinancialCalendar'));
 const SpendingHeatmap = lazy(() => import('@/components/dashboard/SpendingHeatmap'));
 const PredictiveCashFlow = lazy(() => import('@/components/dashboard/PredictiveCashFlow'));
