@@ -11,7 +11,7 @@ import {
   Wallet, TrendingUp, TrendingDown, PiggyBank, 
   LogOut, Sparkles, Target, CreditCard, BarChart3,
   Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle,
-  User, ChevronDown, X, Archive, CalendarClock, Briefcase, ScrollText,
+  User, ChevronDown, X, Archive, CalendarClock, Briefcase, ScrollText, Landmark,
   ArrowUpRight, ArrowDownRight, Activity, Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -53,6 +53,7 @@ const TransactionRulesManager = lazy(() => import('@/components/rules/Transactio
 const AISmartInsights = lazy(() => import('@/components/dashboard/AISmartInsights'));
 const BillsSubscriptions = lazy(() => import('@/components/bills/BillsSubscriptions'));
 const InvestmentTracker = lazy(() => import('@/components/investments/InvestmentTracker'));
+const LoansDashboard = lazy(() => import('@/components/loans/LoansDashboard'));
 const FinancialCalendar = lazy(() => import('@/components/calendar/FinancialCalendar'));
 const SpendingHeatmap = lazy(() => import('@/components/dashboard/SpendingHeatmap'));
 const PredictiveCashFlow = lazy(() => import('@/components/dashboard/PredictiveCashFlow'));
@@ -333,6 +334,7 @@ export default function Dashboard() {
     { id: 'transactions', label: 'Transactions', shortLabel: 'Txns', icon: Receipt, badge: '' },
     { id: 'budgets', label: 'Budgets', shortLabel: 'Budget', icon: Folder, badge: overBudgetAlerts.length > 0 ? '!' : '' },
     { id: 'bills', label: 'Bills', shortLabel: 'Bills', icon: CalendarClock, badge: '' },
+    { id: 'loans', label: 'Loans', shortLabel: 'Loans', icon: Landmark, badge: '' },
     { id: 'investments', label: 'Investments', shortLabel: 'Invest', icon: Briefcase, badge: '' },
     { id: 'savings', label: 'Savings', shortLabel: 'Save', icon: PiggyBank, badge: '' },
     { id: 'reports', label: 'Reports', shortLabel: 'Reports', icon: BarChart3, badge: '' },
@@ -1298,6 +1300,13 @@ export default function Dashboard() {
               </div>
             </motion.div>
             <BillsSubscriptions accounts={accounts} onTransactionCreated={fetchData} />
+          </Suspense>
+          </TabsContent>
+
+          {/* ═══ LOANS TAB ═══ */}
+          <TabsContent value="loans" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
+            <LoansDashboard accounts={accounts} onRefresh={fetchData} />
           </Suspense>
           </TabsContent>
 

@@ -78,9 +78,15 @@ export type Database = {
           icon: string | null
           id: string
           institution_name: string | null
+          interest_rate: number | null
           is_active: boolean | null
           is_archived: boolean
+          linked_account_id: string | null
+          loan_start_date: string | null
+          loan_term_months: number | null
+          loan_type: string | null
           min_balance_alert: number | null
+          monthly_payment: number | null
           name: string
           notes: string | null
           opening_balance: number
@@ -98,9 +104,15 @@ export type Database = {
           icon?: string | null
           id?: string
           institution_name?: string | null
+          interest_rate?: number | null
           is_active?: boolean | null
           is_archived?: boolean
+          linked_account_id?: string | null
+          loan_start_date?: string | null
+          loan_term_months?: number | null
+          loan_type?: string | null
           min_balance_alert?: number | null
+          monthly_payment?: number | null
           name: string
           notes?: string | null
           opening_balance?: number
@@ -118,9 +130,15 @@ export type Database = {
           icon?: string | null
           id?: string
           institution_name?: string | null
+          interest_rate?: number | null
           is_active?: boolean | null
           is_archived?: boolean
+          linked_account_id?: string | null
+          loan_start_date?: string | null
+          loan_term_months?: number | null
+          loan_type?: string | null
           min_balance_alert?: number | null
+          monthly_payment?: number | null
           name?: string
           notes?: string | null
           opening_balance?: number
@@ -128,7 +146,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "accounts_linked_account_id_fkey"
+            columns: ["linked_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       activity_logs: {
         Row: {
@@ -482,6 +508,66 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      loan_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          interest_portion: number
+          is_scheduled: boolean
+          loan_account_id: string
+          notes: string | null
+          payment_date: string
+          principal_portion: number
+          status: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          interest_portion?: number
+          is_scheduled?: boolean
+          loan_account_id: string
+          notes?: string | null
+          payment_date?: string
+          principal_portion?: number
+          status?: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          interest_portion?: number
+          is_scheduled?: boolean
+          loan_account_id?: string
+          notes?: string | null
+          payment_date?: string
+          principal_portion?: number
+          status?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_payments_loan_account_id_fkey"
+            columns: ["loan_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_payments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
