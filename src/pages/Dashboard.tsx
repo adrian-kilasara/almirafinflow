@@ -334,6 +334,7 @@ export default function Dashboard() {
     { id: 'transactions', label: 'Transactions', shortLabel: 'Txns', icon: Receipt, badge: '' },
     { id: 'budgets', label: 'Budgets', shortLabel: 'Budget', icon: Folder, badge: overBudgetAlerts.length > 0 ? '!' : '' },
     { id: 'bills', label: 'Bills', shortLabel: 'Bills', icon: CalendarClock, badge: '' },
+    { id: 'loans', label: 'Loans', shortLabel: 'Loans', icon: Landmark, badge: '' },
     { id: 'investments', label: 'Investments', shortLabel: 'Invest', icon: Briefcase, badge: '' },
     { id: 'savings', label: 'Savings', shortLabel: 'Save', icon: PiggyBank, badge: '' },
     { id: 'reports', label: 'Reports', shortLabel: 'Reports', icon: BarChart3, badge: '' },
