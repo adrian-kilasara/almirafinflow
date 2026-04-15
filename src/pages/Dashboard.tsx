@@ -1303,6 +1303,13 @@ export default function Dashboard() {
           </Suspense>
           </TabsContent>
 
+          {/* ═══ LOANS TAB ═══ */}
+          <TabsContent value="loans" className="space-y-6">
+          <Suspense fallback={<TabFallback />}>
+            <LoansDashboard accounts={accounts} onRefresh={fetchData} />
+          </Suspense>
+          </TabsContent>
+
           {/* ═══ INVESTMENTS TAB ═══ */}
           <TabsContent value="investments" className="space-y-6">
           <Suspense fallback={<TabFallback />}>
