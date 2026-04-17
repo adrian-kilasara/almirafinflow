@@ -54,7 +54,7 @@ const FloatingTransactionForm = forwardRef<HTMLDivElement, FloatingTransactionFo
 
     const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<TransactionFormData>({
       resolver: zodResolver(transactionSchema),
-      defaultValues: { type: 'expense', date: new Date().toISOString().split('T')[0], payment_method: 'cash' },
+      defaultValues: { type: 'expense', date: todayInTz(), payment_method: 'cash' },
     });
 
     const selectedAccountId = watch('account_id');

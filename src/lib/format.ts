@@ -75,27 +75,12 @@ export function getMonthName(monthIndex: number): string {
   return months[monthIndex];
 }
 
+import { monthRangeInTz, weekRangeInTz } from '@/lib/datetime';
+
 export function getCurrentMonthRange(): { start: string; end: string } {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
+  return monthRangeInTz();
 }
 
 export function getCurrentWeekRange(): { start: string; end: string } {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const start = new Date(now);
-  start.setDate(now.getDate() - dayOfWeek);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
+  return weekRangeInTz();
 }

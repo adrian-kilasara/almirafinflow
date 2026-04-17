@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logActivity } from '@/lib/activityLogger';
+import { todayInTz, yesterdayInTz, monthRangeInTz, addDaysToKey, startOfDayUtcForTzKey } from '@/lib/datetime';
 
 /**
  * Cross-module event system. Call these after mutations to propagate
@@ -31,9 +32,7 @@ export async function emitTransactionEvent(
 
   // 2. Check budget alerts
   if (type === 'expense' && categoryId) {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const { start: monthStart, end: monthEnd } = monthRangeInTz();
 
     const { data: budgets } = await supabase
       .from('budgets')
@@ -125,9 +124,7 @@ export async function emitTransactionEditEvent(
 
   // Re-check budgets after edit
   if (type === 'expense' && categoryId) {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    const { start: monthStart, end: monthEnd } = monthRangeInTz();
 
     const { data: budgets } = await supabase.from('budgets').select('*').eq('category_id', categoryId);
     if (budgets && budgets.length > 0) {
@@ -323,7 +320,7 @@ export async function emitTransferEvent(
  */
 async function updateStreak(userId: string) {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayInTz();
     const { data: streak } = await supabase
       .from('user_streaks')
       .select('*')
@@ -331,7 +328,6 @@ async function updateStreak(userId: string) {
       .single();
 
     if (!streak) {
-      // Create initial streak
       await supabase.from('user_streaks').insert({
         user_id: userId,
         current_streak: 1,
@@ -344,16 +340,13 @@ async function updateStreak(userId: string) {
 
     const lastDate = streak.last_activity_date;
     if (lastDate === today) {
-      // Already tracked today, just increment total
       await supabase.from('user_streaks').update({
         total_transactions: (streak.total_transactions || 0) + 1,
       }).eq('id', streak.id);
       return;
     }
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    const yesterdayStr = yesterdayInTz();
 
     let newStreak = 1;
     if (lastDate === yesterdayStr) {
@@ -369,7 +362,6 @@ async function updateStreak(userId: string) {
       total_transactions: (streak.total_transactions || 0) + 1,
     }).eq('id', streak.id);
 
-    // Check streak milestones
     await emitStreakEvent(userId, newStreak);
   } catch (e) {
     console.warn('Streak update failed:', e);
@@ -400,9 +392,9 @@ export async function getExchangeRate(from: string, to: string): Promise<number>
  */
 async function checkSpendingVelocity(userId: string) {
   try {
-    const now = new Date();
-    const thisWeekStart = new Date(now.getTime() - 7 * 86400000).toISOString().split('T')[0];
-    const lastWeekStart = new Date(now.getTime() - 14 * 86400000).toISOString().split('T')[0];
+    const today = todayInTz();
+    const thisWeekStart = addDaysToKey(today, -7);
+    const lastWeekStart = addDaysToKey(today, -14);
 
     const { data: thisWeekTxns } = await supabase
       .from('transactions').select('amount')
@@ -419,11 +411,11 @@ async function checkSpendingVelocity(userId: string) {
 
     if (lastWeekTotal > 0 && thisWeekTotal > lastWeekTotal * 1.5) {
       const pct = Math.round(((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100);
-      // Only notify once per day to avoid spam
-      const today = now.toISOString().split('T')[0];
+      // Only notify once per tz-day to avoid spam
+      const startOfTodayUtc = startOfDayUtcForTzKey(today);
       const { data: existing } = await supabase.from('notifications')
         .select('id').eq('user_id', userId).eq('module', 'ai_insights')
-        .gte('created_at', today + 'T00:00:00').limit(1);
+        .gte('created_at', startOfTodayUtc).limit(1);
 
       if (!existing || existing.length === 0) {
         await supabase.from('notifications').insert({
@@ -436,11 +428,12 @@ async function checkSpendingVelocity(userId: string) {
       }
     }
 
-    // Also check if an expense just pushed a category to anomalous levels
+    // Anomalous category check
+    const last30Start = addDaysToKey(today, -30);
     const { data: recentTxns } = await supabase
       .from('transactions').select('amount, category_id')
       .eq('user_id', userId).eq('type', 'expense')
-      .gte('date', new Date(now.getTime() - 30 * 86400000).toISOString().split('T')[0]);
+      .gte('date', last30Start);
 
     if (recentTxns && recentTxns.length >= 5) {
       const catTotals: Record<string, number[]> = {};
