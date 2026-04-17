@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSettings } from '@/hooks/useSettings';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { Globe, Coins, Calendar, Clock } from 'lucide-react';
+import { nowDisplayInTz } from '@/lib/datetime';
 import type { CurrencyCode } from '@/types/finance';
 
 const stagger = {
@@ -49,6 +50,13 @@ const months = ['january','february','march','april','may','june','july','august
 
 export default function LocalizationSettings() {
   const { settings, updateSettings } = useSettings();
+  const [tzClock, setTzClock] = useState(() => nowDisplayInTz(settings.timezone));
+
+  useEffect(() => {
+    setTzClock(nowDisplayInTz(settings.timezone));
+    const id = setInterval(() => setTzClock(nowDisplayInTz(settings.timezone)), 30_000);
+    return () => clearInterval(id);
+  }, [settings.timezone]);
 
   const handleChange = async (key: string, value: string) => {
     try {
@@ -61,6 +69,22 @@ export default function LocalizationSettings() {
 
   return (
     <motion.div variants={stagger.container} initial="hidden" animate="show" className="space-y-5">
+      {/* TZ Status Banner */}
+      <motion.div variants={stagger.item}>
+        <Card className="overflow-hidden border-primary/30 bg-primary/5">
+          <CardContent className="pt-4 pb-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Effective Timezone</p>
+              <p className="text-sm font-bold">{settings.timezone}</p>
+              <p className="text-[10px] text-muted-foreground">It is currently <span className="font-mono text-primary">{tzClock}</span> for your account. Streaks, audit logs, and daily reports use this clock.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Currency */}
       <motion.div variants={stagger.item}>
         <Card className="overflow-hidden relative group/card">

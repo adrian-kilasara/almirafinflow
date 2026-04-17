@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Flame, Target, Zap, Calendar } from 'lucide-react';
+import { todayInTz, dateKeyInTz, addDaysToKey } from '@/lib/datetime';
 import type { UserStreak } from '@/types/finance';
 
 interface StreakTrackerProps {
@@ -29,46 +30,33 @@ export default function StreakTracker({ transactions, onStreakUpdate }: StreakTr
         .eq('user_id', userData.user.id)
         .maybeSingle();
 
-      // Calculate streak based on transactions
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const sortedDates = [...new Set(
+      // Build set of activity day-keys in the user's timezone
+      const activityKeys = new Set<string>(
         transactions.map(t => {
-          const d = new Date(t.date);
-          d.setHours(0, 0, 0, 0);
-          return d.getTime();
+          // t.date is already 'YYYY-MM-DD' — treat as a calendar day directly
+          if (/^\d{4}-\d{2}-\d{2}$/.test(t.date)) return t.date;
+          return dateKeyInTz(new Date(t.date));
         })
-      )].sort((a, b) => b - a);
+      );
+
+      const todayKey = todayInTz();
+      const yesterdayKey = addDaysToKey(todayKey, -1);
 
       let currentStreak = 0;
-      let checkDate = today.getTime();
+      let cursor: string | null = null;
+      if (activityKeys.has(todayKey)) cursor = todayKey;
+      else if (activityKeys.has(yesterdayKey)) cursor = yesterdayKey;
 
-      // Check if there's activity today or yesterday to start counting
-      const hasActivityToday = sortedDates.includes(checkDate);
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const hasActivityYesterday = sortedDates.includes(yesterday.getTime());
-
-      if (hasActivityToday || hasActivityYesterday) {
-        if (!hasActivityToday) {
-          checkDate = yesterday.getTime();
-        }
-
-        // Count consecutive days
-        for (let i = 0; i < sortedDates.length; i++) {
-          if (sortedDates.includes(checkDate)) {
-            currentStreak++;
-            checkDate -= 24 * 60 * 60 * 1000; // Go back one day
-          } else {
-            break;
-          }
-        }
+      while (cursor && activityKeys.has(cursor)) {
+        currentStreak++;
+        cursor = addDaysToKey(cursor, -1);
       }
 
-      const lastActivityDate = sortedDates.length > 0 
-        ? new Date(sortedDates[0]).toISOString().split('T')[0]
-        : null;
+      // Determine the most recent activity day-key
+      let lastActivityDate: string | null = null;
+      for (const k of activityKeys) {
+        if (!lastActivityDate || k > lastActivityDate) lastActivityDate = k;
+      }
 
       const streakData = {
         current_streak: currentStreak,

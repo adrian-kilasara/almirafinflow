@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { todayInTz } from '@/lib/datetime';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -72,7 +73,7 @@ export default function TransactionForm({ accounts, categories, onSuccess }: Tra
     resolver: zodResolver(transactionSchema),
     defaultValues: {
       type: 'expense',
-      date: new Date().toISOString().split('T')[0],
+      date: todayInTz(),
       payment_method: 'cash',
     },
   });

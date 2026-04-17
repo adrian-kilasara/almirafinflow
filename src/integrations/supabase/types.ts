@@ -944,6 +944,7 @@ export type Database = {
           is_deleted: boolean
           is_reconciled: boolean
           is_recurring: boolean | null
+          loan_account_id: string | null
           merchant: string | null
           notes: string | null
           payment_method: string | null
@@ -969,6 +970,7 @@ export type Database = {
           is_deleted?: boolean
           is_reconciled?: boolean
           is_recurring?: boolean | null
+          loan_account_id?: string | null
           merchant?: string | null
           notes?: string | null
           payment_method?: string | null
@@ -994,6 +996,7 @@ export type Database = {
           is_deleted?: boolean
           is_reconciled?: boolean
           is_recurring?: boolean | null
+          loan_account_id?: string | null
           merchant?: string | null
           notes?: string | null
           payment_method?: string | null
