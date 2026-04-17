@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSettings } from '@/hooks/useSettings';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { Globe, Coins, Calendar, Clock } from 'lucide-react';
+import { nowDisplayInTz } from '@/lib/datetime';
 import type { CurrencyCode } from '@/types/finance';
 
 const stagger = {
@@ -49,6 +50,13 @@ const months = ['january','february','march','april','may','june','july','august
 
 export default function LocalizationSettings() {
   const { settings, updateSettings } = useSettings();
+  const [tzClock, setTzClock] = useState(() => nowDisplayInTz(settings.timezone));
+
+  useEffect(() => {
+    setTzClock(nowDisplayInTz(settings.timezone));
+    const id = setInterval(() => setTzClock(nowDisplayInTz(settings.timezone)), 30_000);
+    return () => clearInterval(id);
+  }, [settings.timezone]);
 
   const handleChange = async (key: string, value: string) => {
     try {

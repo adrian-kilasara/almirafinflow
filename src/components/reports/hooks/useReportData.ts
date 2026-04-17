@@ -338,6 +338,7 @@ export function useReportData(
     budgetPerformance, accountBreakdown, netWorth, savingsProgress,
     multiTrends, healthScore, forecast, spendingSpike, actionItems,
     trajectory, topExpenses, fixedVsVariable, currentTxns, previousTxns,
+    debtActivity: debtCurrent,
   };
 }
 
