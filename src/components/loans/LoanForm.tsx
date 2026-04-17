@@ -122,7 +122,7 @@ export default function LoanForm({ accounts, onSuccess }: LoanFormProps) {
           .update({
             balance: newBalance,
             // refresh metadata if user provided it
-            interest_rate: data.interest_rate ? Number(data.interest_rate) : existingMatch.interest_rate,
+            interest_rate: data.interest_rate ? Number(data.interest_rate) : (existingMatch as any).interest_rate,
             monthly_payment: data.monthly_payment ? Number(data.monthly_payment) : (existingMatch as any).monthly_payment,
             loan_term_months: data.loan_term_months ? Number(data.loan_term_months) : (existingMatch as any).loan_term_months,
             linked_account_id: data.linked_account_id,
