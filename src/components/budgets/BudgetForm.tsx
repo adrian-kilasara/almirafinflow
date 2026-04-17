@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { todayInTz } from '@/lib/datetime';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -83,7 +84,7 @@ export default function BudgetForm({ categories, transactions = [], savingsGoals
     defaultValues: {
       period: 'monthly',
       currency: 'TZS',
-      start_date: new Date().toISOString().split('T')[0],
+      start_date: todayInTz(),
     },
   });
 
@@ -151,7 +152,7 @@ export default function BudgetForm({ categories, transactions = [], savingsGoals
         amount: item.amount,
         period: 'monthly' as BudgetPeriod,
         currency: 'TZS' as CurrencyCode,
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: todayInTz(),
       }));
 
       const { error } = await supabase.from('budgets').insert(budgets);
