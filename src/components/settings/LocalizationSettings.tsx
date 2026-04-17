@@ -69,6 +69,22 @@ export default function LocalizationSettings() {
 
   return (
     <motion.div variants={stagger.container} initial="hidden" animate="show" className="space-y-5">
+      {/* TZ Status Banner */}
+      <motion.div variants={stagger.item}>
+        <Card className="overflow-hidden border-primary/30 bg-primary/5">
+          <CardContent className="pt-4 pb-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Effective Timezone</p>
+              <p className="text-sm font-bold">{settings.timezone}</p>
+              <p className="text-[10px] text-muted-foreground">It is currently <span className="font-mono text-primary">{tzClock}</span> for your account. Streaks, audit logs, and daily reports use this clock.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Currency */}
       <motion.div variants={stagger.item}>
         <Card className="overflow-hidden relative group/card">
