@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/format';
+import { todayInTz } from '@/lib/datetime';
 import type { Account } from '@/types/finance';
 
 const paymentSchema = z.object({
@@ -35,15 +36,13 @@ export default function LoanPaymentForm({ loan, open, onOpenChange, onSuccess }:
   const [loading, setLoading] = useState(false);
   const linkedAccountId = (loan as any).linked_account_id;
 
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<PaymentFormData>({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
       amount: (loan as any).monthly_payment ? String((loan as any).monthly_payment) : '',
-      payment_date: new Date().toISOString().split('T')[0],
+      payment_date: todayInTz(),
     },
   });
-
-  const watchAmount = watch('amount');
 
   const onSubmit = async (data: PaymentFormData) => {
     setLoading(true);
@@ -55,23 +54,31 @@ export default function LoanPaymentForm({ loan, open, onOpenChange, onSuccess }:
       const principal = data.principal_portion ? Number(data.principal_portion) : amount;
       const interest = data.interest_portion ? Number(data.interest_portion) : 0;
 
-      // 1. Create expense transaction on linked account (or loan account if no linked)
-      const targetAccountId = linkedAccountId || loan.id;
+      if (!linkedAccountId) {
+        throw new Error('This loan has no linked payment account. Edit the loan to set one first.');
+      }
+
+      // 1. Get the source account
+      const { data: sourceAcct, error: srcErr } = await supabase
+        .from('accounts').select('balance, name, currency').eq('id', linkedAccountId).single();
+      if (srcErr || !sourceAcct) throw new Error('Source account not found');
+
+      // 2. Create repayment transaction (tagged so reports exclude from regular expenses)
       const { data: txn, error: txnError } = await supabase.from('transactions').insert({
         user_id: userData.user.id,
-        account_id: targetAccountId,
+        account_id: linkedAccountId,
         type: 'expense' as const,
         amount: amount,
         currency: loan.currency,
-        description: `Loan payment: ${loan.name}`,
+        description: `Loan repayment: ${loan.name}`,
         date: data.payment_date,
         notes: data.notes || null,
-        tags: ['loan-payment'],
-      }).select('id').single();
-
+        tags: ['loan-repayment'],
+        loan_account_id: loan.id,
+      } as any).select('id').single();
       if (txnError) throw txnError;
 
-      // 2. Record loan payment
+      // 3. Record the loan_payment row
       const { error: payError } = await supabase.from('loan_payments').insert({
         user_id: userData.user.id,
         loan_account_id: loan.id,
@@ -83,42 +90,41 @@ export default function LoanPaymentForm({ loan, open, onOpenChange, onSuccess }:
         transaction_id: txn.id,
         notes: data.notes || null,
       } as any);
-
       if (payError) throw payError;
 
-      // 3. Reduce loan balance by principal portion
+      // 4. Reduce loan balance by principal portion
       const newLoanBalance = Math.max(0, Number(loan.balance) - principal);
       const { error: loanError } = await supabase.from('accounts')
-        .update({ balance: newLoanBalance })
-        .eq('id', loan.id);
-
+        .update({ balance: newLoanBalance }).eq('id', loan.id);
       if (loanError) throw loanError;
 
-      // 4. If linked asset account, reduce its balance too
-      if (linkedAccountId && linkedAccountId !== loan.id) {
-        const { data: linkedAcct } = await supabase.from('accounts')
-          .select('balance').eq('id', linkedAccountId).single();
-        
-        if (linkedAcct) {
-          const { error: linkedError } = await supabase.from('accounts')
-            .update({ balance: Number(linkedAcct.balance) - amount })
-            .eq('id', linkedAccountId);
-          if (linkedError) throw linkedError;
-        }
-      }
+      // 5. Reduce source asset balance by full payment
+      const newSourceBalance = Number(sourceAcct.balance) - amount;
+      await supabase.from('accounts').update({ balance: newSourceBalance }).eq('id', linkedAccountId);
 
-      // 5. Audit log
-      await supabase.from('account_audit_log').insert({
-        user_id: userData.user.id,
-        account_id: loan.id,
-        action: 'loan_payment',
-        amount: amount,
-        balance_before: Number(loan.balance),
-        balance_after: newLoanBalance,
-        notes: `Payment of ${formatCurrency(amount, loan.currency)} — Principal: ${formatCurrency(principal, loan.currency)}, Interest: ${formatCurrency(interest, loan.currency)}`,
-      });
+      // 6. Audit logs
+      await supabase.from('account_audit_log').insert([
+        {
+          user_id: userData.user.id,
+          account_id: loan.id,
+          action: 'loan_payment',
+          amount: amount,
+          balance_before: Number(loan.balance),
+          balance_after: newLoanBalance,
+          notes: `Payment ${formatCurrency(amount, loan.currency)} — Principal ${formatCurrency(principal, loan.currency)}, Interest ${formatCurrency(interest, loan.currency)}`,
+        },
+        {
+          user_id: userData.user.id,
+          account_id: linkedAccountId,
+          action: 'loan_payment_sent',
+          amount: amount,
+          balance_before: Number(sourceAcct.balance),
+          balance_after: newSourceBalance,
+          notes: `Loan repayment: ${loan.name}`,
+        },
+      ]);
 
-      toast.success(`Payment of ${formatCurrency(amount, loan.currency)} recorded!`);
+      toast.success(`Payment of ${formatCurrency(amount, loan.currency)} recorded`);
       reset();
       onOpenChange(false);
       onSuccess();
@@ -150,7 +156,7 @@ export default function LoanPaymentForm({ loan, open, onOpenChange, onSuccess }:
             <div className="space-y-2">
               <Label>Principal Portion</Label>
               <Input type="number" step="0.01" placeholder="Auto" {...register('principal_portion')} />
-              <p className="text-[9px] text-muted-foreground">Leave empty = full amount</p>
+              <p className="text-[9px] text-muted-foreground">Empty = full amount</p>
             </div>
             <div className="space-y-2">
               <Label>Interest Portion</Label>
@@ -168,6 +174,10 @@ export default function LoanPaymentForm({ loan, open, onOpenChange, onSuccess }:
             <Label>Notes</Label>
             <Textarea placeholder="Optional..." rows={2} {...register('notes')} />
           </div>
+
+          <p className="text-[10px] text-muted-foreground">
+            Repayments are excluded from your regular spending reports — they appear under Debt Activity instead.
+          </p>
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
