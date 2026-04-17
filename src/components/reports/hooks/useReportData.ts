@@ -68,8 +68,33 @@ export function useReportData(
 ) {
   const ranges = useMemo(() => getPeriodRanges(period), [period]);
 
-  const currentTxns = useMemo(() => filterByRange(transactions, ranges.current), [transactions, ranges]);
-  const previousTxns = useMemo(() => filterByRange(transactions, ranges.previous), [transactions, ranges]);
+  // Exclude loan disbursements/repayments from regular income/expense math
+  const regularTxns = useMemo(
+    () => transactions.filter(t => {
+      const tags = (t as any).tags as string[] | null | undefined;
+      if (!tags || tags.length === 0) return true;
+      return !tags.includes('loan-disbursement') && !tags.includes('loan-repayment');
+    }),
+    [transactions]
+  );
+
+  const debtTxns = useMemo(
+    () => transactions.filter(t => {
+      const tags = (t as any).tags as string[] | null | undefined;
+      return tags && (tags.includes('loan-disbursement') || tags.includes('loan-repayment'));
+    }),
+    [transactions]
+  );
+
+  const currentTxns = useMemo(() => filterByRange(regularTxns, ranges.current), [regularTxns, ranges]);
+  const previousTxns = useMemo(() => filterByRange(regularTxns, ranges.previous), [regularTxns, ranges]);
+
+  const debtCurrent = useMemo(() => {
+    const inRange = filterByRange(debtTxns, ranges.current);
+    const disbursed = inRange.filter(t => ((t as any).tags || []).includes('loan-disbursement')).reduce((s, t) => s + Number(t.amount), 0);
+    const repaid = inRange.filter(t => ((t as any).tags || []).includes('loan-repayment')).reduce((s, t) => s + Number(t.amount), 0);
+    return { disbursed, repaid, net: disbursed - repaid };
+  }, [debtTxns, ranges]);
 
   const current = useMemo(() => calcMetrics(currentTxns), [currentTxns]);
   const previous = useMemo(() => calcMetrics(previousTxns), [previousTxns]);
