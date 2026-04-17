@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { setGlobalCurrency, setGlobalDateFormat } from '@/lib/format';
+import { setGlobalTimezone } from '@/lib/datetime';
 import type { CurrencyCode } from '@/types/finance';
 
 export interface UserSettings {
@@ -132,7 +133,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setGlobalCurrency(settings.default_currency);
     setGlobalDateFormat(settings.date_format);
-  }, [settings.default_currency, settings.date_format]);
+    setGlobalTimezone(settings.timezone);
+  }, [settings.default_currency, settings.date_format, settings.timezone]);
 
   const loadSettings = useCallback(async () => {
     if (!user) {
@@ -170,6 +172,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
       setSettings(merged);
       setGlobalCurrency(merged.default_currency);
+      setGlobalTimezone(merged.timezone);
     } catch (error) {
       console.error('Failed to load settings:', error);
     } finally {
