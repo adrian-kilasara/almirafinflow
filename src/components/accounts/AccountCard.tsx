@@ -350,14 +350,20 @@ export default function AccountCard({ account, transactions = [], onRefresh, onS
                 className="grid grid-cols-3 gap-1"
               >
                 {[
-                  { label: 'In', value: flow30.inflow, color: 'text-income' },
-                  { label: 'Out', value: flow30.outflow, color: 'text-expense' },
-                  { label: 'Net', value: flow30.net, color: flow30.net >= 0 ? 'text-income' : 'text-expense' },
+                  { label: 'Money In', value: flow30.inflow, color: 'text-income' },
+                  { label: 'Money Out', value: flow30.outflow, color: 'text-expense' },
+                  { label: 'Net Result', value: flow30.net, color: flow30.net >= 0 ? 'text-income' : 'text-expense' },
                 ].map((stat) => (
-                  <div key={stat.label} className="text-center px-2 py-1.5 rounded-xl bg-muted/30">
-                    <p className="text-[8px] text-muted-foreground uppercase tracking-widest font-medium">{stat.label}</p>
-                    <p className={`text-[11px] font-mono font-bold ${stat.color}`}>
-                      {stat.label === 'Net' && stat.value >= 0 ? '+' : ''}{formatCurrency(Math.abs(stat.value), account.currency)}
+                  <div
+                    key={stat.label}
+                    className="text-center px-1.5 py-1.5 rounded-xl bg-muted/30 min-w-0"
+                    title={stat.label === 'Net Result'
+                      ? (stat.value >= 0 ? 'Gain — earned more than spent (last 30d)' : 'Loss — spent more than earned (last 30d)')
+                      : `${stat.label} this month`}
+                  >
+                    <p className="text-[8px] text-muted-foreground uppercase tracking-wider font-medium truncate">{stat.label}</p>
+                    <p className={`text-[11px] font-mono font-bold truncate ${stat.color}`}>
+                      {stat.label === 'Net Result' && stat.value >= 0 ? '+' : ''}{formatCurrency(Math.abs(stat.value), account.currency)}
                     </p>
                   </div>
                 ))}
