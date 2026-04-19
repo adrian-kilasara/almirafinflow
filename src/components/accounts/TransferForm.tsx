@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { ArrowLeftRight, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
 import { emitTransferEvent } from '@/lib/events';
+import { todayInTz } from '@/lib/datetime';
 import type { Account, CurrencyCode } from '@/types/finance';
 
 const transferSchema = z.object({
@@ -69,6 +70,7 @@ export default function TransferForm({ accounts, onSuccess }: TransferFormProps)
       const exRate = Number(data.exchange_rate || 1);
       const converted = from.currency !== to.currency ? amt * exRate : amt;
 
+      const txDate = todayInTz();
       // Create outflow transaction
       const { data: outTxn, error: e1 } = await supabase.from('transactions').insert({
         user_id: userData.user.id,
@@ -77,7 +79,7 @@ export default function TransferForm({ accounts, onSuccess }: TransferFormProps)
         amount: amt,
         currency: from.currency,
         description: `Transfer to ${to.name}${data.description ? ` — ${data.description}` : ''}`,
-        date: new Date().toISOString().split('T')[0],
+        date: txDate,
       }).select('id').single();
       if (e1) throw e1;
 
@@ -89,7 +91,7 @@ export default function TransferForm({ accounts, onSuccess }: TransferFormProps)
         amount: converted,
         currency: to.currency,
         description: `Transfer from ${from.name}${data.description ? ` — ${data.description}` : ''}`,
-        date: new Date().toISOString().split('T')[0],
+        date: txDate,
       }).select('id').single();
       if (e2) throw e2;
 

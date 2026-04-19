@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScrollText, Shield, CreditCard, Receipt, Folder, PiggyBank, User, Settings, Sparkles, ChevronDown } from 'lucide-react';
 import { formatRelativeDate } from '@/lib/format';
+import { dateKeyInTz } from '@/lib/datetime';
 
 interface ActivityEntry {
   id: string;
@@ -73,9 +74,9 @@ export default function ActivityLog() {
   const modules = ['all', ...new Set(logs.map(l => l.module))];
   const filtered = filter === 'all' ? logs : logs.filter(l => l.module === filter);
 
-  // Group by date
+  // Group by tz-aware date key (so "today" matches the user's calendar day)
   const grouped = filtered.reduce<Record<string, ActivityEntry[]>>((acc, log) => {
-    const day = new Date(log.created_at).toLocaleDateString();
+    const day = dateKeyInTz(new Date(log.created_at));
     (acc[day] ||= []).push(log);
     return acc;
   }, {});

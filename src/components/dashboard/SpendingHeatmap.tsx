@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Flame, Clock, ShoppingBag, Zap } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
 import type { Transaction, Category } from '@/types/finance';
+import { todayInTz, addDaysToKey } from '@/lib/datetime';
 
 interface SpendingHeatmapProps {
   transactions: Transaction[];
@@ -12,38 +13,40 @@ interface SpendingHeatmapProps {
 
 export default function SpendingHeatmap({ transactions, categories = [] }: SpendingHeatmapProps) {
   const heatmapData = useMemo(() => {
-    const now = new Date();
+    const today = todayInTz();
     const weeks = 12;
     const days: { date: string; amount: number; day: number; week: number }[] = [];
 
     for (let i = weeks * 7 - 1; i >= 0; i--) {
-      const d = new Date(now); d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = addDaysToKey(today, -i);
       const amount = transactions.filter(t => t.type === 'expense' && t.date === dateStr).reduce((s, t) => s + Number(t.amount), 0);
-      days.push({ date: dateStr, amount, day: d.getDay(), week: Math.floor((weeks * 7 - 1 - i) / 7) });
+      // Day-of-week from the date key (use noon UTC anchor to avoid drift)
+      const dow = new Date(`${dateStr}T12:00:00Z`).getUTCDay();
+      days.push({ date: dateStr, amount, day: dow, week: Math.floor((weeks * 7 - 1 - i) / 7) });
     }
     return days;
   }, [transactions]);
 
   // Behavior analysis
   const behaviorInsights = useMemo(() => {
-    const now = new Date();
-    const thirtyAgo = new Date(now.getTime() - 30 * 86400000).toISOString().split('T')[0];
+    const today = todayInTz();
+    const thirtyAgo = addDaysToKey(today, -30);
     const recentExpenses = transactions.filter(t => t.type === 'expense' && t.date >= thirtyAgo);
     const insights: { icon: typeof Clock; label: string; value: string; color: string }[] = [];
 
     if (recentExpenses.length < 3) return insights;
 
-    // Weekend vs Weekday
-    const weekendTxns = recentExpenses.filter(t => { const d = new Date(t.date).getDay(); return d === 0 || d === 6; });
-    const weekdayTxns = recentExpenses.filter(t => { const d = new Date(t.date).getDay(); return d >= 1 && d <= 5; });
+    // Weekend vs Weekday (use noon UTC anchor on date key)
+    const dowOf = (key: string) => new Date(`${key}T12:00:00Z`).getUTCDay();
+    const weekendTxns = recentExpenses.filter(t => { const d = dowOf(t.date); return d === 0 || d === 6; });
+    const weekdayTxns = recentExpenses.filter(t => { const d = dowOf(t.date); return d >= 1 && d <= 5; });
     const weekendAvg = weekendTxns.length > 0 ? weekendTxns.reduce((s, t) => s + Number(t.amount), 0) / weekendTxns.length : 0;
     const weekdayAvg = weekdayTxns.length > 0 ? weekdayTxns.reduce((s, t) => s + Number(t.amount), 0) / weekdayTxns.length : 0;
     const spendType = weekendAvg > weekdayAvg * 1.5 ? 'Weekend Spender' : weekdayAvg > weekendAvg * 1.5 ? 'Weekday Spender' : 'Even Spender';
     insights.push({ icon: Clock, label: 'Pattern', value: spendType, color: 'text-primary' });
 
     // Category velocity: fastest growing category
-    const twoWeeksAgo = new Date(now.getTime() - 14 * 86400000).toISOString().split('T')[0];
+    const twoWeeksAgo = addDaysToKey(today, -14);
     const firstHalf = recentExpenses.filter(t => t.date < twoWeeksAgo);
     const secondHalf = recentExpenses.filter(t => t.date >= twoWeeksAgo);
     if (firstHalf.length > 0 && secondHalf.length > 0) {

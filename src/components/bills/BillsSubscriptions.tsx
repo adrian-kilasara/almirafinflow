@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency } from '@/lib/format';
+import { todayInTz, dateKeyInTz, diffDaysKeys } from '@/lib/datetime';
 import {
   Plus, CreditCard, Wifi, Tv, Music, Zap, Home, Car, Phone,
   MoreHorizontal, Trash2, Edit, CalendarClock, AlertTriangle,
@@ -172,7 +173,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
 
   const markPaid = async (bill: Bill) => {
     if (!user) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayInTz();
     const nextDate = calculateNextDate(today, bill.frequency);
     
     // If there are accounts, create an expense transaction linked to the first active account (or selected)
@@ -211,22 +212,21 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
   };
 
   const calculateNextDate = (from: string, freq: string): string => {
-    const d = new Date(from);
+    // Use noon UTC to avoid TZ drift when adding months/years
+    const d = new Date(`${from}T12:00:00Z`);
     switch (freq) {
-      case 'weekly': d.setDate(d.getDate() + 7); break;
-      case 'biweekly': d.setDate(d.getDate() + 14); break;
-      case 'monthly': d.setMonth(d.getMonth() + 1); break;
-      case 'quarterly': d.setMonth(d.getMonth() + 3); break;
-      case 'yearly': d.setFullYear(d.getFullYear() + 1); break;
+      case 'weekly': d.setUTCDate(d.getUTCDate() + 7); break;
+      case 'biweekly': d.setUTCDate(d.getUTCDate() + 14); break;
+      case 'monthly': d.setUTCMonth(d.getUTCMonth() + 1); break;
+      case 'quarterly': d.setUTCMonth(d.getUTCMonth() + 3); break;
+      case 'yearly': d.setUTCFullYear(d.getUTCFullYear() + 1); break;
     }
-    return d.toISOString().split('T')[0];
+    return d.toISOString().slice(0, 10);
   };
 
   const getDaysUntilDue = (dateStr: string | null): number | null => {
     if (!dateStr) return null;
-    const now = new Date(); now.setHours(0, 0, 0, 0);
-    const due = new Date(dateStr); due.setHours(0, 0, 0, 0);
-    return Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDaysKeys(dateStr, todayInTz());
   };
 
   const getDueStatus = (days: number | null) => {

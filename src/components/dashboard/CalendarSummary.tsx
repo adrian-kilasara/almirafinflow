@@ -7,6 +7,7 @@ import { Calendar, CalendarClock, TrendingUp, TrendingDown, ChevronRight, Repeat
 import { format, isToday, isTomorrow, parseISO, addDays, isSameMonth } from 'date-fns';
 import { motion } from 'framer-motion';
 import type { Transaction, Budget, SavingsGoal } from '@/types/finance';
+import { todayInTz } from '@/lib/datetime';
 
 interface CalendarSummaryProps {
   transactions: Transaction[];
@@ -97,7 +98,7 @@ export default function CalendarSummary({ transactions, budgets, savingsGoals, o
     return events.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
   }, [bills, recurringSchedules, savingsGoals, transactions, today, next7]);
 
-  const todayStr = format(today, 'yyyy-MM-dd');
+  const todayStr = todayInTz();
   const todayTxns = useMemo(() => transactions.filter(t => t.date === todayStr), [transactions, todayStr]);
   const todayIncome = todayTxns.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
   const todayExpense = todayTxns.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);

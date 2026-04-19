@@ -5,6 +5,7 @@ import { TrendingDown, AlertTriangle, Calendar, Activity, CalendarClock, PiggyBa
 import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/integrations/supabase/client';
 import type { Account, Transaction } from '@/types/finance';
+import { todayInTz, addDaysToKey } from '@/lib/datetime';
 
 interface PredictiveCashFlowProps {
   accounts: Account[];
@@ -26,12 +27,11 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
   }, []);
 
   const predictions = useMemo(() => {
-    const now = new Date();
+    const today = todayInTz();
     const totalBalance = accounts.reduce((s, a) => s + Number(a.balance), 0);
 
-    // Average daily spend/income over last 30 days
-    const thirtyDaysAgo = new Date(now); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const thirtyStr = thirtyDaysAgo.toISOString().split('T')[0];
+    // Average daily spend/income over last 30 days (tz-aware)
+    const thirtyStr = addDaysToKey(today, -30);
     const last30Expenses = transactions.filter(t => t.type === 'expense' && t.date >= thirtyStr);
     const last30Income = transactions.filter(t => t.type === 'income' && t.date >= thirtyStr);
     const totalExpenses30 = last30Expenses.reduce((s, t) => s + Number(t.amount), 0);
@@ -46,9 +46,9 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
     let zeroDay: string | null = null;
 
     for (let i = 1; i <= 30; i++) {
-      const d = new Date(now); d.setDate(d.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
-      const displayDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dateStr = addDaysToKey(today, i);
+      const d = new Date(`${dateStr}T12:00:00Z`);
+      const displayDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
       const events: string[] = [];
 
       // Base daily flow
@@ -78,10 +78,13 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
       if (projBalance <= 0 && !zeroDay) zeroDay = displayDate;
     }
 
-    // Day-of-week spending patterns
+    // Day-of-week spending patterns (tz-aware via date key)
     const daySpending = Array(7).fill(0);
     const dayCounts = Array(7).fill(0);
-    last30Expenses.forEach(t => { const dow = new Date(t.date).getDay(); daySpending[dow] += Number(t.amount); dayCounts[dow]++; });
+    last30Expenses.forEach(t => {
+      const dow = new Date(`${t.date}T12:00:00Z`).getUTCDay();
+      daySpending[dow] += Number(t.amount); dayCounts[dow]++;
+    });
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const spendingPattern = dayNames.map((name, i) => ({ day: name, avg: dayCounts[i] > 0 ? daySpending[i] / dayCounts[i] : 0 }));
     const peakSpendDay = spendingPattern.reduce((a, b) => a.avg > b.avg ? a : b);
