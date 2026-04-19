@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, AlertTriangle } from 'lucide-react';
-import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
 import { todayInTz } from '@/lib/datetime';
 import { formatCurrency } from '@/lib/format';
 import type { Account, CurrencyCode } from '@/types/finance';
@@ -29,7 +28,6 @@ const loanSchema = z.object({
   loan_term_months: z.string().optional(),
   monthly_payment: z.string().optional(),
   loan_start_date: z.string().optional(),
-  linked_account_id: z.string().min(1, 'Pick where the loan is disbursed to'),
   institution_name: z.string().max(100).optional(),
   notes: z.string().max(500).optional(),
 });
@@ -71,10 +69,6 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
   const setOpen = (v: boolean) => { onOpenChange ? onOpenChange(v) : setInternalOpen(v); };
   const [loading, setLoading] = useState(false);
 
-  const assetAccounts = useMemo(
-    () => accounts.filter(a => a.classification === 'asset' && a.is_active && !a.is_archived),
-    [accounts]
-  );
   const liabilityAccounts = useMemo(
     () => accounts.filter(a => a.classification === 'liability' && !a.is_archived),
     [accounts]
@@ -104,7 +98,6 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
       if ((topUpFor as any).interest_rate != null) setValue('interest_rate', String((topUpFor as any).interest_rate));
       if ((topUpFor as any).monthly_payment != null) setValue('monthly_payment', String((topUpFor as any).monthly_payment));
       if ((topUpFor as any).loan_term_months != null) setValue('loan_term_months', String((topUpFor as any).loan_term_months));
-      if ((topUpFor as any).linked_account_id) setValue('linked_account_id', (topUpFor as any).linked_account_id);
     }
   }, [open, topUpFor, setValue]);
 
@@ -129,8 +122,6 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
 
       const principal = Number(data.balance);
       const today = todayInTz();
-      const linkedAcct = assetAccounts.find(a => a.id === data.linked_account_id);
-      if (!linkedAcct) throw new Error('Disbursement account not found');
 
       let loanId: string;
       let actionLabel: string;
@@ -146,7 +137,6 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
             interest_rate: data.interest_rate ? Number(data.interest_rate) : (existingMatch as any).interest_rate,
             monthly_payment: data.monthly_payment ? Number(data.monthly_payment) : (existingMatch as any).monthly_payment,
             loan_term_months: data.loan_term_months ? Number(data.loan_term_months) : (existingMatch as any).loan_term_months,
-            linked_account_id: data.linked_account_id,
           })
           .eq('id', existingMatch.id);
         if (upErr) throw upErr;
@@ -158,13 +148,13 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
           amount: principal,
           balance_before: Number(existingMatch.balance),
           balance_after: newBalance,
-          notes: `Top-up of ${formatCurrency(principal, existingMatch.currency)} disbursed to ${linkedAcct.name}`,
+          notes: `Top-up of ${formatCurrency(principal, existingMatch.currency)}`,
         });
 
         loanId = existingMatch.id;
         actionLabel = 'topped up';
       } else {
-        // CREATE new liability account
+        // CREATE new liability account — pure debt record, no cash transaction
         const accountType = data.loan_type === 'mobile' ? 'mobile_money' : data.loan_type === 'mortgage' ? 'bank' : 'other';
         const { data: newAcct, error: insErr } = await supabase.from('accounts').insert({
           user_id: userData.user.id,
@@ -183,7 +173,6 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
           monthly_payment: data.monthly_payment ? Number(data.monthly_payment) : null,
           loan_start_date: data.loan_start_date || today,
           loan_type: data.loan_type,
-          linked_account_id: data.linked_account_id,
         } as any).select('id').single();
         if (insErr) throw insErr;
 
@@ -197,39 +186,11 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
           amount: principal,
           balance_before: 0,
           balance_after: principal,
-          notes: `Loan created. Disbursed ${formatCurrency(principal, data.currency as CurrencyCode)} to ${linkedAcct.name}`,
+          notes: `Loan created — principal ${formatCurrency(principal, data.currency as CurrencyCode)}`,
         });
       }
 
-      // Disbursement transaction on the linked asset account (income-style, but tagged & excluded from reports)
-      const { error: txErr } = await supabase.from('transactions').insert({
-        user_id: userData.user.id,
-        account_id: data.linked_account_id,
-        type: 'income' as const,
-        amount: principal,
-        currency: data.currency as CurrencyCode,
-        description: `Loan disbursement: ${data.name}`,
-        date: data.loan_start_date || today,
-        notes: data.notes || null,
-        tags: ['loan-disbursement'],
-        loan_account_id: loanId,
-      } as any);
-      if (txErr) throw txErr;
-
-      // Reflect cash arrival in the linked asset account balance
-      const newAssetBalance = Number(linkedAcct.balance) + principal;
-      await supabase.from('accounts').update({ balance: newAssetBalance }).eq('id', data.linked_account_id);
-      await supabase.from('account_audit_log').insert({
-        user_id: userData.user.id,
-        account_id: data.linked_account_id,
-        action: 'loan_disbursement_received',
-        amount: principal,
-        balance_before: Number(linkedAcct.balance),
-        balance_after: newAssetBalance,
-        notes: `Received from loan: ${data.name}`,
-      });
-
-      toast.success(`Loan ${actionLabel} — ${formatCurrency(principal, data.currency as CurrencyCode)} now in ${linkedAcct.name}`);
+      toast.success(`Loan ${actionLabel} — ${formatCurrency(principal, data.currency as CurrencyCode)} owed`);
       reset();
       setOpen(false);
       onSuccess();
@@ -275,7 +236,7 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
             {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Loan Type</Label>
               <Select defaultValue="personal" onValueChange={(v) => setValue('loan_type', v)}>
@@ -300,7 +261,7 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>{existingMatch ? 'Top-up Amount' : 'Principal Borrowed'}</Label>
               <Input type="number" step="0.01" placeholder="0.00" {...register('balance')} />
@@ -312,7 +273,7 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Loan Term (months)</Label>
               <Input type="number" placeholder="e.g., 24" {...register('loan_term_months')} />
@@ -323,30 +284,15 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Disbursement Date</Label>
               <Input type="date" {...register('loan_start_date')} />
             </div>
             <div className="space-y-2">
-              <Label>Disbursed To Account</Label>
-              <Select onValueChange={(v) => setValue('linked_account_id', v)}>
-                <SelectTrigger><SelectValue placeholder="Where the cash lands" /></SelectTrigger>
-                <SelectContent>
-                  {assetAccounts.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.icon || ACCOUNT_TYPE_ICONS[a.type]} {a.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.linked_account_id && <p className="text-xs text-destructive">{errors.linked_account_id.message}</p>}
+              <Label>Institution / Lender</Label>
+              <Input placeholder="e.g., CRDB, NMB, Vodacom" {...register('institution_name')} />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Institution / Lender</Label>
-            <Input placeholder="e.g., CRDB, NMB, Vodacom" {...register('institution_name')} />
           </div>
 
           <div className="space-y-2">
@@ -354,9 +300,18 @@ export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: c
             <Textarea placeholder="Any details about this loan..." rows={2} {...register('notes')} />
           </div>
 
-          <p className="text-[10px] text-muted-foreground">
-            💡 The loan amount will be added to your selected asset account. Spending it later will look like normal expenses — only loan repayments reduce the debt.
-          </p>
+          <div className="rounded-lg bg-muted/30 border border-border/30 p-3 space-y-1">
+            <p className="text-[10px] font-bold text-foreground">How loans work in FinFlow</p>
+            <p className="text-[10px] text-muted-foreground">
+              • This creates a <strong>liability record</strong> showing what you owe — no cash is added to any account.
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              • If you actually received cash, log it as <strong>income</strong> on the receiving account separately.
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              • Use <strong>"Record Payment"</strong> later to log repayments — they reduce this debt and your bank balance together.
+            </p>
+          </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
