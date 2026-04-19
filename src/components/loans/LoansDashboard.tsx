@@ -15,6 +15,7 @@ interface LoansDashboardProps {
 
 export default function LoansDashboard({ accounts, onRefresh }: LoansDashboardProps) {
   const [selectedLoan, setSelectedLoan] = useState<Account | null>(null);
+  const [topUpLoan, setTopUpLoan] = useState<Account | null>(null);
 
   const loans = useMemo(() =>
     accounts.filter(a => a.classification === 'liability' && !a.is_archived),
@@ -117,7 +118,7 @@ export default function LoansDashboard({ accounts, onRefresh }: LoansDashboardPr
       {loans.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {loans.map((loan) => (
-            <LoanCard key={loan.id} loan={loan} onSelect={setSelectedLoan} />
+            <LoanCard key={loan.id} loan={loan} onSelect={setSelectedLoan} onTopUp={setTopUpLoan} />
           ))}
         </div>
       ) : (
@@ -131,6 +132,18 @@ export default function LoansDashboard({ accounts, onRefresh }: LoansDashboardPr
             <LoanForm accounts={accounts} onSuccess={onRefresh} />
           </CardContent>
         </Card>
+      )}
+
+      {/* Hidden controlled top-up dialog */}
+      {topUpLoan && (
+        <LoanForm
+          accounts={accounts}
+          onSuccess={() => { setTopUpLoan(null); onRefresh(); }}
+          topUpFor={topUpLoan}
+          open={!!topUpLoan}
+          onOpenChange={(o) => { if (!o) setTopUpLoan(null); }}
+          hideTrigger
+        />
       )}
     </div>
   );
