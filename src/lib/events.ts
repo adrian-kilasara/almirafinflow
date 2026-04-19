@@ -247,6 +247,73 @@ export async function emitSavingsWithdrawEvent(
   });
 }
 
+/**
+ * Emit event when a savings goal is explicitly marked complete.
+ * Triggers badge unlocks (First Goal, Goal Crusher, Big Saver).
+ */
+export async function emitGoalCompletedEvent(
+  userId: string,
+  goalName: string,
+  goalId: string,
+  finalAmount: number
+) {
+  logActivity(userId, 'goal completed', 'savings', { goalName, goalId, finalAmount });
+  emitDashboardRefresh();
+
+  await supabase.from('notifications').insert({
+    user_id: userId,
+    type: 'success',
+    title: '🎉 Goal Completed!',
+    message: `You finished "${goalName}" — congratulations!`,
+    module: 'savings',
+    related_id: goalId,
+  });
+
+  try {
+    const { count: completedCount } = await supabase
+      .from('savings_goals')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_completed', true);
+
+    const { data: allGoals } = await supabase
+      .from('savings_goals')
+      .select('current_amount')
+      .eq('user_id', userId);
+    const totalSaved = (allGoals || []).reduce((s, g) => s + Number(g.current_amount), 0);
+
+    const { data: existing } = await supabase
+      .from('user_badges')
+      .select('badge_id')
+      .eq('user_id', userId);
+    const earnedIds = new Set((existing || []).map((b) => b.badge_id));
+
+    const { data: badgeRows } = await supabase
+      .from('badges')
+      .select('id, name, requirement_type, requirement_value')
+      .in('name', ['First Goal', 'Goal Crusher', 'Big Saver']);
+
+    for (const badge of badgeRows || []) {
+      if (earnedIds.has(badge.id)) continue;
+      let unlock = false;
+      if (badge.requirement_type === 'goals_completed' && (completedCount || 0) >= Number(badge.requirement_value)) unlock = true;
+      if (badge.requirement_type === 'savings_total' && totalSaved >= Number(badge.requirement_value)) unlock = true;
+      if (unlock) {
+        await supabase.from('user_badges').insert({ user_id: userId, badge_id: badge.id });
+        await supabase.from('notifications').insert({
+          user_id: userId,
+          type: 'success',
+          title: `🏅 Badge Unlocked: ${badge.name}`,
+          message: 'Open the Achievements tab to see all your badges.',
+          module: 'gamification',
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Badge unlock check failed:', e);
+  }
+}
+
 export async function emitStreakEvent(userId: string, streak: number) {
   const milestones = [7, 14, 30, 60, 90, 180, 365];
   if (milestones.includes(streak)) {
