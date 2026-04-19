@@ -1196,6 +1196,7 @@ export type Database = {
           notify_weekly_summary: boolean
           performance_mode: boolean
           realtime_recalculation: boolean
+          report_view_mode: string
           savings_auto_percentage: number | null
           savings_round_up: boolean
           theme: string
@@ -1234,6 +1235,7 @@ export type Database = {
           notify_weekly_summary?: boolean
           performance_mode?: boolean
           realtime_recalculation?: boolean
+          report_view_mode?: string
           savings_auto_percentage?: number | null
           savings_round_up?: boolean
           theme?: string
@@ -1272,6 +1274,7 @@ export type Database = {
           notify_weekly_summary?: boolean
           performance_mode?: boolean
           realtime_recalculation?: boolean
+          report_view_mode?: string
           savings_auto_percentage?: number | null
           savings_round_up?: boolean
           theme?: string

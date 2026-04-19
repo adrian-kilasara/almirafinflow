@@ -257,7 +257,12 @@ export default function LoanDetailPanel({ loan, onBack, onRefresh }: LoanDetailP
         loan={loan}
         open={showPaymentForm}
         onOpenChange={setShowPaymentForm}
-        onSuccess={() => { fetchPayments(); onRefresh(); }}
+        onSuccess={async () => {
+          // Refresh payment history first so totals + progress update immediately
+          await fetchPayments();
+          // Then bubble up to parent so the loan.balance prop also refreshes
+          onRefresh();
+        }}
       />
     </div>
   );
