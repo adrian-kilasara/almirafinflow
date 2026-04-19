@@ -189,6 +189,57 @@ ${data.actionItems.map((a, i) => `${i + 1}. ${a}`).join('\n')}
             />
           </motion.div>
 
+          {/* 1b. Debt Activity (if any loan disbursements/repayments this period) */}
+          {(data.debtActivity.disbursed > 0 || data.debtActivity.repaid > 0) && (
+            <motion.div variants={stagger.item}>
+              <Card className="border-primary/20 bg-gradient-to-br from-primary/[0.04] to-transparent">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <TrendingDown className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold">Debt Activity</p>
+                        <p className="text-[9px] text-muted-foreground">Excluded from income/expense totals</p>
+                      </div>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                      data.debtActivity.net >= 0 ? 'bg-expense/10 text-expense' : 'bg-income/10 text-income'
+                    }`}>
+                      Net {data.debtActivity.net >= 0 ? '+' : ''}{formatCurrency(data.debtActivity.net)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-2.5 rounded-lg bg-expense/5 border border-expense/10">
+                      <div className="flex items-center gap-1 mb-1">
+                        <TrendingDown className="w-3 h-3 text-expense" />
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Borrowed</span>
+                      </div>
+                      <p className="text-sm font-bold font-mono text-expense">{formatCurrency(data.debtActivity.disbursed)}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-income/5 border border-income/10">
+                      <div className="flex items-center gap-1 mb-1">
+                        <TrendingUp className="w-3 h-3 text-income" />
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Repaid</span>
+                      </div>
+                      <p className="text-sm font-bold font-mono text-income">{formatCurrency(data.debtActivity.repaid)}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-muted/30 border border-border/30">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Sparkles className="w-3 h-3 text-primary" />
+                        <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Status</span>
+                      </div>
+                      <p className="text-sm font-bold">
+                        {data.debtActivity.net > 0 ? 'Borrowing' : data.debtActivity.net < 0 ? 'Paying Down' : 'Balanced'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* 2. Trend Charts */}
           <motion.div variants={stagger.item}>
             <TrendChart data={data.trendData} />
