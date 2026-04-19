@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/format';
-import { BarChart3, FileText, Download, Sparkles } from 'lucide-react';
+import { BarChart3, FileText, Download, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import type { Transaction, Account, Category, Budget, SavingsGoal } from '@/types/finance';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useReportData, type ReportPeriod } from './hooks/useReportData';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { todayInTz } from '@/lib/datetime';
 
 import SummaryCards from './sections/SummaryCards';
 import TrendChart from './sections/TrendChart';
@@ -68,7 +69,7 @@ export default function EnhancedReports({
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `finflow-${period}-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.download = `finflow-${period}-${todayInTz()}.csv`;
     link.click();
     toast.success('CSV exported!');
   };
@@ -107,7 +108,7 @@ ${data.actionItems.map((a, i) => `${i + 1}. ${a}`).join('\n')}
     const blob = new Blob([summary], { type: 'text/plain;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `finflow-summary-${format(new Date(), 'yyyy-MM-dd')}.txt`;
+    link.download = `finflow-summary-${todayInTz()}.txt`;
     link.click();
     toast.success('Summary exported!');
   };
