@@ -3,16 +3,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/format';
-import { Calendar, Percent, Clock, ChevronRight } from 'lucide-react';
+import { Calendar, Percent, Clock, ChevronRight, PlusCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Account } from '@/types/finance';
 
 interface LoanCardProps {
   loan: Account;
   onSelect: (loan: Account) => void;
+  onTopUp?: (loan: Account) => void;
 }
 
-export default function LoanCard({ loan, onSelect }: LoanCardProps) {
+export default function LoanCard({ loan, onSelect, onTopUp }: LoanCardProps) {
   const originalAmount = Number(loan.opening_balance);
   const currentBalance = Number(loan.balance);
   const paidAmount = originalAmount - currentBalance;
@@ -131,8 +132,18 @@ export default function LoanCard({ loan, onSelect }: LoanCardProps) {
             )}
           </div>
 
-          <div className="flex items-center justify-end">
-            <Button variant="ghost" size="sm" className="text-[10px] h-6 px-2 gap-1 text-primary hover:bg-primary/10 rounded-full group-hover:translate-x-0.5 transition-transform">
+          <div className="flex items-center justify-between gap-2">
+            {onTopUp && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-[10px] h-6 px-2 gap-1 rounded-full border-primary/30 text-primary hover:bg-primary/10"
+                onClick={(e) => { e.stopPropagation(); onTopUp(loan); }}
+              >
+                <PlusCircle className="w-3 h-3" /> Borrow More
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" className="text-[10px] h-6 px-2 gap-1 text-primary hover:bg-primary/10 rounded-full group-hover:translate-x-0.5 transition-transform ml-auto">
               Details <ChevronRight className="w-3 h-3" />
             </Button>
           </div>

@@ -54,14 +54,15 @@ export function formatDate(dateString: string): string {
 }
 
 export function formatRelativeDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-  
+  // tz-aware: compare against user's calendar day, not browser/UTC.
+  const tzToday = todayInTz();
+  const tzDateKey = dateKeyInTz(new Date(dateString));
+  const diffDays = diffDaysKeys(tzToday, tzDateKey);
+
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays > 0 && diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays > 0 && diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
   return formatDate(dateString);
 }
 
@@ -75,7 +76,7 @@ export function getMonthName(monthIndex: number): string {
   return months[monthIndex];
 }
 
-import { monthRangeInTz, weekRangeInTz } from '@/lib/datetime';
+import { monthRangeInTz, weekRangeInTz, todayInTz, dateKeyInTz, diffDaysKeys } from '@/lib/datetime';
 
 export function getCurrentMonthRange(): { start: string; end: string } {
   return monthRangeInTz();

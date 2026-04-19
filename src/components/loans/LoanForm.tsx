@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,6 +39,10 @@ type LoanFormData = z.infer<typeof loanSchema>;
 interface LoanFormProps {
   accounts: Account[];
   onSuccess: () => void;
+  topUpFor?: Account | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 const loanTypes = [
@@ -61,8 +65,10 @@ const currencies: { value: CurrencyCode; label: string }[] = [
   { value: 'GBP', label: 'GBP - British Pound' },
 ];
 
-export default function LoanForm({ accounts, onSuccess }: LoanFormProps) {
-  const [open, setOpen] = useState(false);
+export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: controlledOpen, onOpenChange, hideTrigger = false }: LoanFormProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (v: boolean) => { onOpenChange ? onOpenChange(v) : setInternalOpen(v); };
   const [loading, setLoading] = useState(false);
 
   const assetAccounts = useMemo(
@@ -88,8 +94,23 @@ export default function LoanForm({ accounts, onSuccess }: LoanFormProps) {
   const watchInstitution = watch('institution_name');
   const watchCurrency = watch('currency');
 
+  // Pre-fill from topUpFor when opened in top-up mode
+  useEffect(() => {
+    if (open && topUpFor) {
+      setValue('name', topUpFor.name);
+      setValue('institution_name', topUpFor.institution_name || '');
+      setValue('currency', topUpFor.currency as CurrencyCode);
+      setValue('loan_type', (topUpFor as any).loan_type || 'personal');
+      if ((topUpFor as any).interest_rate != null) setValue('interest_rate', String((topUpFor as any).interest_rate));
+      if ((topUpFor as any).monthly_payment != null) setValue('monthly_payment', String((topUpFor as any).monthly_payment));
+      if ((topUpFor as any).loan_term_months != null) setValue('loan_term_months', String((topUpFor as any).loan_term_months));
+      if ((topUpFor as any).linked_account_id) setValue('linked_account_id', (topUpFor as any).linked_account_id);
+    }
+  }, [open, topUpFor, setValue]);
+
   // Detect if a matching loan already exists → top-up flow
   const existingMatch = useMemo(() => {
+    if (topUpFor) return topUpFor; // explicit top-up wins
     if (!watchName) return null;
     const nameLower = watchName.trim().toLowerCase();
     const instLower = (watchInstitution || '').trim().toLowerCase();
@@ -98,7 +119,7 @@ export default function LoanForm({ accounts, onSuccess }: LoanFormProps) {
       ((l.institution_name || '').toLowerCase() === instLower) &&
       l.currency === watchCurrency
     ) || null;
-  }, [watchName, watchInstitution, watchCurrency, liabilityAccounts]);
+  }, [topUpFor, watchName, watchInstitution, watchCurrency, liabilityAccounts]);
 
   const onSubmit = async (data: LoanFormData) => {
     setLoading(true);
@@ -222,11 +243,13 @@ export default function LoanForm({ accounts, onSuccess }: LoanFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5">
-          <Plus className="w-4 h-4" /> Add Loan
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button size="sm" className="gap-1.5">
+            <Plus className="w-4 h-4" /> Add Loan
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{existingMatch ? 'Top Up Existing Loan' : 'Add New Loan'}</DialogTitle>
