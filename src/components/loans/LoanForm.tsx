@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -39,6 +39,10 @@ type LoanFormData = z.infer<typeof loanSchema>;
 interface LoanFormProps {
   accounts: Account[];
   onSuccess: () => void;
+  topUpFor?: Account | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 const loanTypes = [
@@ -61,8 +65,10 @@ const currencies: { value: CurrencyCode; label: string }[] = [
   { value: 'GBP', label: 'GBP - British Pound' },
 ];
 
-export default function LoanForm({ accounts, onSuccess }: LoanFormProps) {
-  const [open, setOpen] = useState(false);
+export default function LoanForm({ accounts, onSuccess, topUpFor = null, open: controlledOpen, onOpenChange, hideTrigger = false }: LoanFormProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (v: boolean) => { onOpenChange ? onOpenChange(v) : setInternalOpen(v); };
   const [loading, setLoading] = useState(false);
 
   const assetAccounts = useMemo(
