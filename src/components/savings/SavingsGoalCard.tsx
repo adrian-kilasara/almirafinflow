@@ -294,6 +294,17 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {percentage >= 100 && !goal.is_completed && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-7 px-2 text-[10px] gap-1 bg-income hover:bg-income/90 text-primary-foreground"
+                        onClick={handleMarkComplete}
+                        disabled={loading}
+                      >
+                        <PartyPopper className="w-3 h-3" /> Complete
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => setAddFundsOpen(true)} disabled={!!goal.is_completed}>
                       <Plus className="w-3.5 h-3.5" />
                     </Button>
