@@ -469,16 +469,60 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
                           {status.label}
                         </span>
                       </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-[10px] gap-1 shrink-0"
+                            title="Mark as paid"
+                          >
+                            <CheckCircle className="w-3 h-3 text-income" /> Pay
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-64 p-3 space-y-2">
+                          <p className="text-xs font-semibold">Pay {bill.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {formatCurrency(Number(bill.amount))} will be deducted from the selected account.
+                          </p>
+                          <Select onValueChange={setPayFromAccount} value={payFromAccount}>
+                            <SelectTrigger className="rounded-lg h-8 text-xs">
+                              <SelectValue placeholder="Pay from…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts.filter(a => a.is_active && !a.is_archived).map(a => (
+                                <SelectItem key={a.id} value={a.id}>
+                                  {a.name} ({formatCurrency(Number(a.balance), a.currency)})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            size="sm"
+                            className="w-full h-8 text-xs"
+                            onClick={() => markPaid(bill, payFromAccount)}
+                            disabled={!payFromAccount && accounts.filter(a => a.is_active && !a.is_archived).length === 0}
+                          >
+                            Confirm Payment
+                          </Button>
+                        </PopoverContent>
+                      </Popover>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-7 h-7 shrink-0"
+                        onClick={() => openEdit(bill)}
+                        title="Edit bill"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="w-7 h-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <Button variant="ghost" size="icon" className="w-7 h-7 shrink-0">
                             <MoreHorizontal className="w-3.5 h-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-xl">
-                          <DropdownMenuItem onClick={() => markPaid(bill)} className="gap-2 text-xs cursor-pointer">
-                            <CheckCircle className="w-3.5 h-3.5 text-income" /> Mark as Paid
-                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEdit(bill)} className="gap-2 text-xs cursor-pointer">
                             <Edit className="w-3.5 h-3.5" /> Edit
                           </DropdownMenuItem>
