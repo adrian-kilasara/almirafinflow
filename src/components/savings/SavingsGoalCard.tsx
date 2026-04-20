@@ -249,6 +249,35 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
             style={{ background: isHex ? goalColor + '30' : undefined, backgroundColor: !isHex ? 'hsl(var(--primary) / 0.12)' : undefined }}
           />
 
+          {/* Confetti celebration on Mark Complete */}
+          <AnimatePresence>
+            {confetti && (
+              <motion.div
+                className="absolute inset-0 pointer-events-none z-20 overflow-hidden"
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {Array.from({ length: 22 }).map((_, i) => {
+                  const palette = ['hsl(var(--income))', 'hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--warning))'];
+                  const color = palette[i % palette.length];
+                  const left = Math.random() * 100;
+                  const delay = Math.random() * 0.4;
+                  const dx = (Math.random() - 0.5) * 120;
+                  return (
+                    <motion.span
+                      key={i}
+                      className="absolute top-0 w-1.5 h-3 rounded-sm"
+                      style={{ left: `${left}%`, background: color }}
+                      initial={{ y: -10, x: 0, opacity: 1, rotate: 0 }}
+                      animate={{ y: 240, x: dx, opacity: 0, rotate: 360 }}
+                      transition={{ duration: 1.8, delay, ease: 'easeOut' }}
+                    />
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <CardContent className="p-5 relative z-10">
             <div className="flex gap-4">
               {/* Ring Gauge */}
