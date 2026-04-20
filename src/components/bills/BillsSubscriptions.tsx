@@ -316,7 +316,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
       {/* Summary Cards */}
       <motion.div
         variants={stagger.container} initial="hidden" animate="show"
-        className="grid grid-cols-2 md:grid-cols-4 gap-3"
+        className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3"
       >
         {[
           { label: 'Active Bills', value: String(summary.total), icon: Receipt, color: 'text-primary' },
