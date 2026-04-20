@@ -277,18 +277,22 @@ ${data.actionItems.map((a, i) => `${i + 1}. ${a}`).join('\n')}
             <BudgetAnalysis data={data.budgetPerformance} />
           </motion.div>
 
-          {/* 4. Health + Forecast + Savings */}
-          <motion.div variants={stagger.item} className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <HealthScoreCard score={data.healthScore} trajectory={data.trajectory} multiTrends={data.multiTrends} />
-            <ForecastPanel forecast={data.forecast} netWorth={data.netWorth} />
-            <SavingsAndGoals savingsGoals={savingsGoals} savingsProgress={data.savingsProgress} netWorth={data.netWorth} />
-          </motion.div>
+          {/* 4. Health + Forecast + Savings — DETAILED ONLY */}
+          {viewMode === 'detailed' && (
+            <motion.div variants={stagger.item} className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <HealthScoreCard score={data.healthScore} trajectory={data.trajectory} multiTrends={data.multiTrends} />
+              <ForecastPanel forecast={data.forecast} netWorth={data.netWorth} />
+              <SavingsAndGoals savingsGoals={savingsGoals} savingsProgress={data.savingsProgress} netWorth={data.netWorth} />
+            </motion.div>
+          )}
 
-          {/* 5. Account + Top Expenses */}
-          <motion.div variants={stagger.item} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <AccountBreakdownCard accounts={accounts} breakdown={data.accountBreakdown} fixedVsVariable={data.fixedVsVariable} />
-            <TopExpenses expenses={data.topExpenses} categories={categories} />
-          </motion.div>
+          {/* 5. Account + Top Expenses — DETAILED ONLY */}
+          {viewMode === 'detailed' && (
+            <motion.div variants={stagger.item} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <AccountBreakdownCard accounts={accounts} breakdown={data.accountBreakdown} fixedVsVariable={data.fixedVsVariable} />
+              <TopExpenses expenses={data.topExpenses} categories={categories} />
+            </motion.div>
+          )}
 
           {/* 6. Action Box */}
           <motion.div variants={stagger.item}>
