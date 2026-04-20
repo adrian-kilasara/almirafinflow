@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -171,43 +172,77 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
     toast.success('Bill removed');
   };
 
-  const markPaid = async (bill: Bill) => {
+  const markPaid = async (bill: Bill, sourceAccountId?: string) => {
     if (!user) return;
     const today = todayInTz();
     const nextDate = calculateNextDate(today, bill.frequency);
-    
-    // If there are accounts, create an expense transaction linked to the first active account (or selected)
-    const targetAccount = accounts.find(a => a.is_active && !a.is_archived);
-    if (targetAccount) {
-      // Create expense transaction
-      const { error: txError } = await supabase.from('transactions').insert({
-        user_id: user.id,
-        account_id: targetAccount.id,
-        type: 'expense' as const,
-        amount: Number(bill.amount),
-        currency: targetAccount.currency,
-        date: today,
-        description: `${bill.name} - ${bill.frequency} payment`,
-        merchant: bill.provider || bill.name,
-        payment_method: bill.auto_pay ? 'auto_debit' : 'cash',
-        status: 'completed',
-      });
-      
-      if (!txError) {
-        // Update account balance
-        await supabase.from('accounts').update({
-          balance: Number(targetAccount.balance) - Number(bill.amount),
-        }).eq('id', targetAccount.id);
-        
-        onTransactionCreated?.();
-      }
+
+    // Determine source account: explicit pick > stored payFromAccount > first active
+    const pickedId = sourceAccountId || payFromAccount;
+    const targetAccount = pickedId
+      ? accounts.find(a => a.id === pickedId)
+      : accounts.find(a => a.is_active && !a.is_archived);
+
+    if (!targetAccount) {
+      toast.error('No account available — add an account first');
+      return;
     }
-    
+
+    // Auto-map bill category to a real expense category (create once if missing)
+    let categoryId: string | null = null;
+    try {
+      const { data: existingCats } = await supabase
+        .from('categories')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .eq('type', 'expense');
+      const catLabel = BILL_CATEGORIES.find(c => c.value === bill.category)?.label || 'Bills';
+      const existing = (existingCats || []).find(c => c.name.toLowerCase() === catLabel.toLowerCase());
+      if (existing) {
+        categoryId = existing.id;
+      } else {
+        const { data: created } = await supabase
+          .from('categories')
+          .insert({ user_id: user.id, name: catLabel, type: 'expense', is_default: false, icon: '🧾' })
+          .select('id')
+          .single();
+        categoryId = created?.id || null;
+      }
+    } catch {
+      categoryId = null;
+    }
+
+    const { error: txError } = await supabase.from('transactions').insert({
+      user_id: user.id,
+      account_id: targetAccount.id,
+      type: 'expense' as const,
+      amount: Number(bill.amount),
+      currency: targetAccount.currency,
+      date: today,
+      description: `${bill.name} — ${bill.frequency} payment`,
+      merchant: bill.provider || bill.name,
+      payment_method: bill.auto_pay ? 'auto_debit' : 'cash',
+      status: 'completed',
+      category_id: categoryId,
+      tags: ['bill-payment', bill.category],
+    });
+
+    if (txError) {
+      toast.error('Failed to record payment');
+      return;
+    }
+
+    await supabase.from('accounts').update({
+      balance: Number(targetAccount.balance) - Number(bill.amount),
+    }).eq('id', targetAccount.id);
+
     await supabase.from('bills_subscriptions').update({
       last_paid_date: today,
       next_due_date: nextDate,
     }).eq('id', bill.id);
-    toast.success(`${bill.name} marked as paid${targetAccount ? ` — deducted from ${targetAccount.name}` : ''}`);
+
+    onTransactionCreated?.();
+    toast.success(`${bill.name} paid from ${targetAccount.name}`);
     fetchBills();
   };
 
@@ -281,7 +316,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
       {/* Summary Cards */}
       <motion.div
         variants={stagger.container} initial="hidden" animate="show"
-        className="grid grid-cols-2 md:grid-cols-4 gap-3"
+        className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3"
       >
         {[
           { label: 'Active Bills', value: String(summary.total), icon: Receipt, color: 'text-primary' },
@@ -434,16 +469,60 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
                           {status.label}
                         </span>
                       </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-[10px] gap-1 shrink-0"
+                            title="Mark as paid"
+                          >
+                            <CheckCircle className="w-3 h-3 text-income" /> Pay
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-64 p-3 space-y-2">
+                          <p className="text-xs font-semibold">Pay {bill.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {formatCurrency(Number(bill.amount))} will be deducted from the selected account.
+                          </p>
+                          <Select onValueChange={setPayFromAccount} value={payFromAccount}>
+                            <SelectTrigger className="rounded-lg h-8 text-xs">
+                              <SelectValue placeholder="Pay from…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts.filter(a => a.is_active && !a.is_archived).map(a => (
+                                <SelectItem key={a.id} value={a.id}>
+                                  {a.name} ({formatCurrency(Number(a.balance), a.currency)})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            size="sm"
+                            className="w-full h-8 text-xs"
+                            onClick={() => markPaid(bill, payFromAccount)}
+                            disabled={!payFromAccount && accounts.filter(a => a.is_active && !a.is_archived).length === 0}
+                          >
+                            Confirm Payment
+                          </Button>
+                        </PopoverContent>
+                      </Popover>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-7 h-7 shrink-0"
+                        onClick={() => openEdit(bill)}
+                        title="Edit bill"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="w-7 h-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <Button variant="ghost" size="icon" className="w-7 h-7 shrink-0">
                             <MoreHorizontal className="w-3.5 h-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-xl">
-                          <DropdownMenuItem onClick={() => markPaid(bill)} className="gap-2 text-xs cursor-pointer">
-                            <CheckCircle className="w-3.5 h-3.5 text-income" /> Mark as Paid
-                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEdit(bill)} className="gap-2 text-xs cursor-pointer">
                             <Edit className="w-3.5 h-3.5" /> Edit
                           </DropdownMenuItem>

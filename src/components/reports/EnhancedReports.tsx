@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useReportData, type ReportPeriod } from './hooks/useReportData';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { todayInTz } from '@/lib/datetime';
+import { useSettings } from '@/hooks/useSettings';
 
 import SummaryCards from './sections/SummaryCards';
 import TrendChart from './sections/TrendChart';
@@ -55,6 +56,9 @@ export default function EnhancedReports({
   transactions, accounts, categories, budgets, savingsGoals = []
 }: EnhancedReportsProps) {
   const [period, setPeriod] = useState<ReportPeriod>('monthly');
+  const { settings, updateSettings } = useSettings();
+  const viewMode = settings.report_view_mode || 'simple';
+  const setViewMode = (m: 'simple' | 'detailed') => updateSettings({ report_view_mode: m });
 
   const data = useReportData(transactions, accounts, categories, budgets, savingsGoals, period);
 

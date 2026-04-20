@@ -24,12 +24,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import {
   MoreHorizontal, Pencil, Trash2, Plus, CheckCircle, Loader2,
-  TrendingUp, Calendar, History, ArrowDownLeft, Trophy, Clock,
+  TrendingUp, Calendar, History, ArrowDownLeft, Trophy, Clock, PartyPopper,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/format';
-import { emitSavingsEvent, emitSavingsWithdrawEvent } from '@/lib/events';
+import { emitSavingsEvent, emitSavingsWithdrawEvent, emitGoalCompletedEvent } from '@/lib/events';
 import { differenceInDays } from 'date-fns';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { SavingsGoal, Account } from '@/types/finance';
 
 const editSchema = z.object({
@@ -68,6 +68,7 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [allocations, setAllocations] = useState<any[]>([]);
+  const [confetti, setConfetti] = useState(false);
 
   useEffect(() => { fetchAccounts(); }, []);
 
@@ -193,6 +194,28 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };
 
+  const handleMarkComplete = async () => {
+    setLoading(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('savings_goals')
+        .update({ is_completed: true })
+        .eq('id', goal.id);
+      if (error) throw error;
+      setConfetti(true);
+      setTimeout(() => setConfetti(false), 2400);
+      await emitGoalCompletedEvent(userData.user.id, goal.name, goal.id, Number(goal.current_amount));
+      toast.success(`🎉 "${goal.name}" marked complete!`);
+      onRefresh();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     setLoading(true);
     try {
@@ -225,6 +248,35 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
             className="absolute -top-12 -right-12 w-32 h-32 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
             style={{ background: isHex ? goalColor + '30' : undefined, backgroundColor: !isHex ? 'hsl(var(--primary) / 0.12)' : undefined }}
           />
+
+          {/* Confetti celebration on Mark Complete */}
+          <AnimatePresence>
+            {confetti && (
+              <motion.div
+                className="absolute inset-0 pointer-events-none z-20 overflow-hidden"
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {Array.from({ length: 22 }).map((_, i) => {
+                  const palette = ['hsl(var(--income))', 'hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--warning))'];
+                  const color = palette[i % palette.length];
+                  const left = Math.random() * 100;
+                  const delay = Math.random() * 0.4;
+                  const dx = (Math.random() - 0.5) * 120;
+                  return (
+                    <motion.span
+                      key={i}
+                      className="absolute top-0 w-1.5 h-3 rounded-sm"
+                      style={{ left: `${left}%`, background: color }}
+                      initial={{ y: -10, x: 0, opacity: 1, rotate: 0 }}
+                      animate={{ y: 240, x: dx, opacity: 0, rotate: 360 }}
+                      transition={{ duration: 1.8, delay, ease: 'easeOut' }}
+                    />
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <CardContent className="p-5 relative z-10">
             <div className="flex gap-4">
@@ -271,6 +323,17 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {percentage >= 100 && !goal.is_completed && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-7 px-2 text-[10px] gap-1 bg-income hover:bg-income/90 text-primary-foreground"
+                        onClick={handleMarkComplete}
+                        disabled={loading}
+                      >
+                        <PartyPopper className="w-3 h-3" /> Complete
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => setAddFundsOpen(true)} disabled={!!goal.is_completed}>
                       <Plus className="w-3.5 h-3.5" />
                     </Button>

@@ -7,14 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency } from '@/lib/format';
+import { searchPresets, type InvestmentPreset } from '@/data/investmentPresets';
 import {
   Plus, TrendingUp, TrendingDown, BarChart3, PieChart, Trash2, Edit,
-  MoreHorizontal, Briefcase, Bitcoin, Building2, Landmark, Gem, DollarSign
+  MoreHorizontal, Briefcase, Bitcoin, Building2, Landmark, Gem, DollarSign,
+  Sparkles, Check, ChevronsUpDown,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -79,6 +83,9 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
   const [currentPrice, setCurrentPrice] = useState('');
   const [purchaseDate, setPurchaseDate] = useState('');
   const [platform, setPlatform] = useState('');
+  const [currency, setCurrency] = useState<string>('TZS');
+  const [presetOpen, setPresetOpen] = useState(false);
+  const [presetQuery, setPresetQuery] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (user) fetchInvestments(); }, [user]);
@@ -95,7 +102,19 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
   const resetForm = () => {
     setName(''); setType('stocks'); setSymbol(''); setQuantity('');
     setPurchasePrice(''); setCurrentPrice(''); setPurchaseDate(''); setPlatform('');
+    setCurrency('TZS'); setPresetQuery('');
     setEditingInv(null);
+  };
+
+  const applyPreset = (preset: InvestmentPreset) => {
+    setName(preset.name);
+    setType(preset.type);
+    setSymbol(preset.symbol || '');
+    setPlatform(preset.platform || '');
+    setCurrency(preset.currency);
+    setPresetOpen(false);
+    setPresetQuery('');
+    toast.success(`Loaded ${preset.label}`);
   };
 
   const openEdit = (inv: Investment) => {
@@ -104,6 +123,7 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
     setQuantity(String(inv.quantity)); setPurchasePrice(String(inv.purchase_price));
     setCurrentPrice(String(inv.current_price)); setPurchaseDate(inv.purchase_date || '');
     setPlatform(inv.platform || '');
+    setCurrency(inv.currency || 'TZS');
     setFormOpen(true);
   };
 
@@ -121,6 +141,7 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
         current_price: parseFloat(currentPrice || purchasePrice),
         purchase_date: purchaseDate || null,
         platform: platform.trim() || null,
+        currency: (currency as any) || 'TZS',
       };
       if (editingInv) {
         await supabase.from('investments').update(payload).eq('id', editingInv.id);
@@ -260,6 +281,62 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
               <DialogTitle>{editingInv ? 'Edit Investment' : 'Add Investment'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
+              {/* Preset picker — quick-fill for known instruments */}
+              {!editingInv && (
+                <div>
+                  <Label className="text-xs flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-primary" /> Quick Pick (UTT AMIS, DSE, NSE, Crypto…)
+                  </Label>
+                  <Popover open={presetOpen} onOpenChange={setPresetOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between rounded-xl mt-1 font-normal text-xs h-9"
+                      >
+                        <span className="truncate text-muted-foreground">Search known investments…</span>
+                        <ChevronsUpDown className="w-3.5 h-3.5 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Try 'UTT', 'CRDB', 'Safaricom', 'BTC'…"
+                          value={presetQuery}
+                          onValueChange={setPresetQuery}
+                        />
+                        <CommandList>
+                          <CommandEmpty>No matches — type your own below.</CommandEmpty>
+                          <CommandGroup>
+                            {searchPresets(presetQuery, 25).map((p) => (
+                              <CommandItem
+                                key={p.label}
+                                value={p.label}
+                                onSelect={() => applyPreset(p)}
+                                className="cursor-pointer"
+                              >
+                                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-medium truncate">{p.label}</span>
+                                    {p.symbol && (
+                                      <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 rounded font-mono shrink-0">
+                                        {p.symbol}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground truncate">{p.hint}</span>
+                                </div>
+                                <Check className="w-3.5 h-3.5 opacity-0 shrink-0" />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <Label className="text-xs">Name</Label>
@@ -295,6 +372,17 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
                 <div>
                   <Label className="text-xs">Purchase Date</Label>
                   <Input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} className="rounded-xl mt-1" />
+                </div>
+                <div>
+                  <Label className="text-xs">Currency</Label>
+                  <Select value={currency} onValueChange={setCurrency}>
+                    <SelectTrigger className="rounded-xl mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(['TZS','KES','UGX','RWF','USD','EUR','GBP'] as const).map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Platform</Label>
