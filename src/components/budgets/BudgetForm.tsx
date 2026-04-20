@@ -20,6 +20,7 @@ import { Plus, Loader2, Lightbulb } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
 import { emitBudgetEvent } from '@/lib/events';
 import { cn } from '@/lib/utils';
+import { useSettings } from '@/hooks/useSettings';
 import type { Category, BudgetPeriod, CurrencyCode, Transaction, SavingsGoal } from '@/types/finance';
 
 const budgetSchema = z.object({
@@ -75,6 +76,8 @@ const periods: { value: BudgetPeriod; label: string; icon: string }[] = [
 const currencies: CurrencyCode[] = ['KES', 'TZS', 'UGX', 'RWF', 'BIF', 'ETB', 'USD', 'EUR', 'GBP'];
 
 export default function BudgetForm({ categories, transactions = [], savingsGoals = [], onSuccess }: BudgetFormProps) {
+  const { settings } = useSettings();
+  const userCurrency = (settings.default_currency || 'TZS') as CurrencyCode;
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -83,7 +86,7 @@ export default function BudgetForm({ categories, transactions = [], savingsGoals
     resolver: zodResolver(budgetSchema),
     defaultValues: {
       period: 'monthly',
-      currency: 'TZS',
+      currency: userCurrency,
       start_date: todayInTz(),
     },
   });
@@ -141,6 +144,9 @@ export default function BudgetForm({ categories, transactions = [], savingsGoals
   };
 
   const applyTemplate = async (template: typeof BUDGET_TEMPLATES[0]) => {
+    if (!confirm(`Apply "${template.name}"? This will create ${template.items.length} live budgets in ${userCurrency}.`)) {
+      return;
+    }
     setLoading(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -151,14 +157,14 @@ export default function BudgetForm({ categories, transactions = [], savingsGoals
         name: item.name,
         amount: item.amount,
         period: 'monthly' as BudgetPeriod,
-        currency: 'TZS' as CurrencyCode,
+        currency: userCurrency,
         start_date: todayInTz(),
       }));
 
       const { error } = await supabase.from('budgets').insert(budgets);
       if (error) throw error;
 
-      toast.success(`Applied "${template.name}" template with ${template.items.length} budgets`);
+      toast.success(`Applied "${template.name}" — ${template.items.length} live budgets created in ${userCurrency}`);
       setShowTemplates(false);
       setOpen(false);
       onSuccess();
