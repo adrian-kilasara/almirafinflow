@@ -281,6 +281,62 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
               <DialogTitle>{editingInv ? 'Edit Investment' : 'Add Investment'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
+              {/* Preset picker — quick-fill for known instruments */}
+              {!editingInv && (
+                <div>
+                  <Label className="text-xs flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-primary" /> Quick Pick (UTT AMIS, DSE, NSE, Crypto…)
+                  </Label>
+                  <Popover open={presetOpen} onOpenChange={setPresetOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between rounded-xl mt-1 font-normal text-xs h-9"
+                      >
+                        <span className="truncate text-muted-foreground">Search known investments…</span>
+                        <ChevronsUpDown className="w-3.5 h-3.5 opacity-50 shrink-0" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Try 'UTT', 'CRDB', 'Safaricom', 'BTC'…"
+                          value={presetQuery}
+                          onValueChange={setPresetQuery}
+                        />
+                        <CommandList>
+                          <CommandEmpty>No matches — type your own below.</CommandEmpty>
+                          <CommandGroup>
+                            {searchPresets(presetQuery, 25).map((p) => (
+                              <CommandItem
+                                key={p.label}
+                                value={p.label}
+                                onSelect={() => applyPreset(p)}
+                                className="cursor-pointer"
+                              >
+                                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-medium truncate">{p.label}</span>
+                                    {p.symbol && (
+                                      <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 rounded font-mono shrink-0">
+                                        {p.symbol}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground truncate">{p.hint}</span>
+                                </div>
+                                <Check className="w-3.5 h-3.5 opacity-0 shrink-0" />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <Label className="text-xs">Name</Label>
@@ -316,6 +372,17 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
                 <div>
                   <Label className="text-xs">Purchase Date</Label>
                   <Input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} className="rounded-xl mt-1" />
+                </div>
+                <div>
+                  <Label className="text-xs">Currency</Label>
+                  <Select value={currency} onValueChange={setCurrency}>
+                    <SelectTrigger className="rounded-xl mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(['TZS','KES','UGX','RWF','USD','EUR','GBP'] as const).map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="col-span-2">
                   <Label className="text-xs">Platform</Label>
