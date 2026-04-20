@@ -7,14 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency } from '@/lib/format';
+import { searchPresets, type InvestmentPreset } from '@/data/investmentPresets';
 import {
   Plus, TrendingUp, TrendingDown, BarChart3, PieChart, Trash2, Edit,
-  MoreHorizontal, Briefcase, Bitcoin, Building2, Landmark, Gem, DollarSign
+  MoreHorizontal, Briefcase, Bitcoin, Building2, Landmark, Gem, DollarSign,
+  Sparkles, Check, ChevronsUpDown,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
