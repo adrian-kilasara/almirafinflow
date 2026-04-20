@@ -55,6 +55,7 @@ export interface UserSettings {
   dashboard_density: 'compact' | 'comfortable' | 'detailed';
   default_landing_tab: string;
   chart_preference: 'bar' | 'line' | 'area' | 'pie';
+  report_view_mode: 'simple' | 'detailed';
 
   // Advanced
   realtime_recalculation: boolean;
@@ -106,6 +107,7 @@ const defaultSettings: UserSettings = {
   dashboard_density: 'comfortable',
   default_landing_tab: 'overview',
   chart_preference: 'bar',
+  report_view_mode: 'simple',
   realtime_recalculation: true,
   performance_mode: false,
   data_cache_days: 30,
@@ -119,7 +121,7 @@ const SETTINGS_FIELDS = [
   'ai_enabled', 'ai_advice_mode', 'ai_risk_tolerance', 'insight_frequency',
   'notify_low_balance', 'notify_budget_exceeded', 'notify_debt_reminder', 'notify_goal_progress',
   'notify_risk_alerts', 'notify_weekly_summary', 'notify_monthly_report', 'low_balance_threshold',
-  'theme', 'dashboard_density', 'default_landing_tab', 'chart_preference',
+  'theme', 'dashboard_density', 'default_landing_tab', 'chart_preference', 'report_view_mode',
   'realtime_recalculation', 'performance_mode', 'data_cache_days',
 ] as const;
 

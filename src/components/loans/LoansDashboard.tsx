@@ -74,31 +74,31 @@ export default function LoansDashboard({ accounts, onRefresh }: LoansDashboardPr
         initial="hidden"
         animate="show"
         variants={{ show: { transition: { staggerChildren: 0.06 } } }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-3"
+        className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3"
       >
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="min-w-0">
           <Card className="border-expense/20 bg-expense/5">
             <CardContent className="p-3 text-center">
               <DollarSign className="w-4 h-4 mx-auto mb-1 text-expense" />
-              <p className="text-lg font-extrabold font-mono text-expense">{formatCurrency(totalDebt)}</p>
+              <p className="text-base sm:text-lg font-extrabold font-mono text-expense truncate">{formatCurrency(totalDebt)}</p>
               <p className="text-[9px] text-muted-foreground">Total Debt</p>
             </CardContent>
           </Card>
         </motion.div>
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="min-w-0">
           <Card className="border-income/20 bg-income/5">
             <CardContent className="p-3 text-center">
               <TrendingDown className="w-4 h-4 mx-auto mb-1 text-income" />
-              <p className="text-lg font-extrabold font-mono text-income">{formatCurrency(totalPaid)}</p>
+              <p className="text-base sm:text-lg font-extrabold font-mono text-income truncate">{formatCurrency(totalPaid)}</p>
               <p className="text-[9px] text-muted-foreground">Total Repaid</p>
             </CardContent>
           </Card>
         </motion.div>
-        <motion.div variants={staggerItem}>
+        <motion.div variants={staggerItem} className="min-w-0">
           <Card className="border-border/40 bg-card/60">
             <CardContent className="p-3 text-center">
               <Calendar className="w-4 h-4 mx-auto mb-1 text-primary" />
-              <p className="text-lg font-extrabold font-mono">{formatCurrency(monthlyObligations)}</p>
+              <p className="text-base sm:text-lg font-extrabold font-mono truncate">{formatCurrency(monthlyObligations)}</p>
               <p className="text-[9px] text-muted-foreground">Monthly Payments</p>
             </CardContent>
           </Card>
