@@ -141,6 +141,7 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
         current_price: parseFloat(currentPrice || purchasePrice),
         purchase_date: purchaseDate || null,
         platform: platform.trim() || null,
+        currency: (currency as any) || 'TZS',
       };
       if (editingInv) {
         await supabase.from('investments').update(payload).eq('id', editingInv.id);
