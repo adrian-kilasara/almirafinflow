@@ -102,7 +102,19 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
   const resetForm = () => {
     setName(''); setType('stocks'); setSymbol(''); setQuantity('');
     setPurchasePrice(''); setCurrentPrice(''); setPurchaseDate(''); setPlatform('');
+    setCurrency('TZS'); setPresetQuery('');
     setEditingInv(null);
+  };
+
+  const applyPreset = (preset: InvestmentPreset) => {
+    setName(preset.name);
+    setType(preset.type);
+    setSymbol(preset.symbol || '');
+    setPlatform(preset.platform || '');
+    setCurrency(preset.currency);
+    setPresetOpen(false);
+    setPresetQuery('');
+    toast.success(`Loaded ${preset.label}`);
   };
 
   const openEdit = (inv: Investment) => {
@@ -111,6 +123,7 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
     setQuantity(String(inv.quantity)); setPurchasePrice(String(inv.purchase_price));
     setCurrentPrice(String(inv.current_price)); setPurchaseDate(inv.purchase_date || '');
     setPlatform(inv.platform || '');
+    setCurrency(inv.currency || 'TZS');
     setFormOpen(true);
   };
 
