@@ -171,43 +171,77 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
     toast.success('Bill removed');
   };
 
-  const markPaid = async (bill: Bill) => {
+  const markPaid = async (bill: Bill, sourceAccountId?: string) => {
     if (!user) return;
     const today = todayInTz();
     const nextDate = calculateNextDate(today, bill.frequency);
-    
-    // If there are accounts, create an expense transaction linked to the first active account (or selected)
-    const targetAccount = accounts.find(a => a.is_active && !a.is_archived);
-    if (targetAccount) {
-      // Create expense transaction
-      const { error: txError } = await supabase.from('transactions').insert({
-        user_id: user.id,
-        account_id: targetAccount.id,
-        type: 'expense' as const,
-        amount: Number(bill.amount),
-        currency: targetAccount.currency,
-        date: today,
-        description: `${bill.name} - ${bill.frequency} payment`,
-        merchant: bill.provider || bill.name,
-        payment_method: bill.auto_pay ? 'auto_debit' : 'cash',
-        status: 'completed',
-      });
-      
-      if (!txError) {
-        // Update account balance
-        await supabase.from('accounts').update({
-          balance: Number(targetAccount.balance) - Number(bill.amount),
-        }).eq('id', targetAccount.id);
-        
-        onTransactionCreated?.();
-      }
+
+    // Determine source account: explicit pick > stored payFromAccount > first active
+    const pickedId = sourceAccountId || payFromAccount;
+    const targetAccount = pickedId
+      ? accounts.find(a => a.id === pickedId)
+      : accounts.find(a => a.is_active && !a.is_archived);
+
+    if (!targetAccount) {
+      toast.error('No account available — add an account first');
+      return;
     }
-    
+
+    // Auto-map bill category to a real expense category (create once if missing)
+    let categoryId: string | null = null;
+    try {
+      const { data: existingCats } = await supabase
+        .from('categories')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .eq('type', 'expense');
+      const catLabel = BILL_CATEGORIES.find(c => c.value === bill.category)?.label || 'Bills';
+      const existing = (existingCats || []).find(c => c.name.toLowerCase() === catLabel.toLowerCase());
+      if (existing) {
+        categoryId = existing.id;
+      } else {
+        const { data: created } = await supabase
+          .from('categories')
+          .insert({ user_id: user.id, name: catLabel, type: 'expense', is_default: false, icon: '🧾' })
+          .select('id')
+          .single();
+        categoryId = created?.id || null;
+      }
+    } catch {
+      categoryId = null;
+    }
+
+    const { error: txError } = await supabase.from('transactions').insert({
+      user_id: user.id,
+      account_id: targetAccount.id,
+      type: 'expense' as const,
+      amount: Number(bill.amount),
+      currency: targetAccount.currency,
+      date: today,
+      description: `${bill.name} — ${bill.frequency} payment`,
+      merchant: bill.provider || bill.name,
+      payment_method: bill.auto_pay ? 'auto_debit' : 'cash',
+      status: 'completed',
+      category_id: categoryId,
+      tags: ['bill-payment', bill.category],
+    });
+
+    if (txError) {
+      toast.error('Failed to record payment');
+      return;
+    }
+
+    await supabase.from('accounts').update({
+      balance: Number(targetAccount.balance) - Number(bill.amount),
+    }).eq('id', targetAccount.id);
+
     await supabase.from('bills_subscriptions').update({
       last_paid_date: today,
       next_due_date: nextDate,
     }).eq('id', bill.id);
-    toast.success(`${bill.name} marked as paid${targetAccount ? ` — deducted from ${targetAccount.name}` : ''}`);
+
+    onTransactionCreated?.();
+    toast.success(`${bill.name} paid from ${targetAccount.name}`);
     fetchBills();
   };
 
