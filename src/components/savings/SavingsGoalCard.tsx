@@ -194,6 +194,28 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };
 
+  const handleMarkComplete = async () => {
+    setLoading(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('savings_goals')
+        .update({ is_completed: true })
+        .eq('id', goal.id);
+      if (error) throw error;
+      setConfetti(true);
+      setTimeout(() => setConfetti(false), 2400);
+      await emitGoalCompletedEvent(userData.user.id, goal.name, goal.id, Number(goal.current_amount));
+      toast.success(`🎉 "${goal.name}" marked complete!`);
+      onRefresh();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     setLoading(true);
     try {
