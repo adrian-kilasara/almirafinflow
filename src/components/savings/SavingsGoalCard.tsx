@@ -24,12 +24,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import {
   MoreHorizontal, Pencil, Trash2, Plus, CheckCircle, Loader2,
-  TrendingUp, Calendar, History, ArrowDownLeft, Trophy, Clock,
+  TrendingUp, Calendar, History, ArrowDownLeft, Trophy, Clock, PartyPopper,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/format';
-import { emitSavingsEvent, emitSavingsWithdrawEvent } from '@/lib/events';
+import { emitSavingsEvent, emitSavingsWithdrawEvent, emitGoalCompletedEvent } from '@/lib/events';
 import { differenceInDays } from 'date-fns';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { SavingsGoal, Account } from '@/types/finance';
 
 const editSchema = z.object({
