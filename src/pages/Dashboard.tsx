@@ -1152,6 +1152,51 @@ export default function Dashboard() {
                   );
                 })()}
 
+                {/* Across All Accounts — Money In / Out / Net (plain English P/L) */}
+                {accounts.length > 0 && (() => {
+                  const activeIds = new Set(accounts.filter(a => a.is_active && !a.is_archived).map(a => a.id));
+                  const flowTxns = transactions.filter(t => activeIds.has(t.account_id) && !(t.tags || []).some(tag => tag === 'loan-disbursement' || tag === 'loan-repayment'));
+                  const moneyIn = flowTxns.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+                  const moneyOut = flowTxns.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+                  const net = moneyIn - moneyOut;
+                  const positive = net >= 0;
+                  const caption = positive
+                    ? `You've earned more than you've spent — keep it up! Net gain: ${formatCurrency(net)}.`
+                    : `You've spent more than you've earned by ${formatCurrency(Math.abs(net))} — let's review.`;
+                  return (
+                    <motion.div {...fadeUp(0.1)}>
+                      <Card className="border-border/50 bg-gradient-to-br from-card to-muted/10">
+                        <CardContent className="p-4 sm:p-5">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <BarChart3 className="w-3.5 h-3.5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold">Across All Accounts</p>
+                              <p className="text-[10px] text-muted-foreground">Money flowing in vs out — plain and simple</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3">
+                            <div className="p-2.5 rounded-xl bg-income/5 border border-income/10 min-w-0">
+                              <div className="flex items-center gap-1 mb-1"><TrendingUp className="w-3 h-3 text-income shrink-0" /><span className="text-[9px] uppercase tracking-wider text-muted-foreground truncate">Money In</span></div>
+                              <p className="text-sm sm:text-base font-bold font-mono text-income truncate">{formatCurrency(moneyIn)}</p>
+                            </div>
+                            <div className="p-2.5 rounded-xl bg-expense/5 border border-expense/10 min-w-0">
+                              <div className="flex items-center gap-1 mb-1"><TrendingDown className="w-3 h-3 text-expense shrink-0" /><span className="text-[9px] uppercase tracking-wider text-muted-foreground truncate">Money Out</span></div>
+                              <p className="text-sm sm:text-base font-bold font-mono text-expense truncate">{formatCurrency(moneyOut)}</p>
+                            </div>
+                            <div className={`p-2.5 rounded-xl border min-w-0 ${positive ? 'bg-income/5 border-income/10' : 'bg-expense/5 border-expense/10'}`}>
+                              <div className="flex items-center gap-1 mb-1"><Sparkles className={`w-3 h-3 shrink-0 ${positive ? 'text-income' : 'text-expense'}`} /><span className="text-[9px] uppercase tracking-wider text-muted-foreground truncate">Net Result</span></div>
+                              <p className={`text-sm sm:text-base font-bold font-mono truncate ${positive ? 'text-income' : 'text-expense'}`}>{positive ? '+' : ''}{formatCurrency(net)}</p>
+                            </div>
+                          </div>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground italic break-words">{caption}</p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })()}
+
                 <motion.div {...fadeUp(0.15)} className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
