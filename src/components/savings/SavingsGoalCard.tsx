@@ -68,6 +68,7 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [allocations, setAllocations] = useState<any[]>([]);
+  const [confetti, setConfetti] = useState(false);
 
   useEffect(() => { fetchAccounts(); }, []);
 
