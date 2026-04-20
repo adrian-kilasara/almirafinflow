@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/format';
-import { BarChart3, FileText, Download, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
+import { BarChart3, FileText, Download, Sparkles, TrendingDown, TrendingUp, Zap, Layers } from 'lucide-react';
 import type { Transaction, Account, Category, Budget, SavingsGoal } from '@/types/finance';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -136,7 +136,29 @@ ${data.actionItems.map((a, i) => `${i + 1}. ${a}`).join('\n')}
               <p className="text-[10px] text-muted-foreground">{PERIOD_DESCRIPTIONS[period]}</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {/* Simple / Detailed toggle */}
+            <LayoutGroup id="report-view-mode">
+              <div className="flex gap-1 p-1 rounded-xl bg-muted/40 border border-border/50 backdrop-blur-sm">
+                {(['simple', 'detailed'] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setViewMode(m)}
+                    className={`relative px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-colors duration-200 ${
+                      viewMode === m ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {viewMode === m && (
+                      <motion.div layoutId="report-view-pill" className="absolute inset-0 bg-primary rounded-lg shadow-sm" transition={spring} />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1">
+                      {m === 'simple' ? <Zap className="w-3 h-3" /> : <Layers className="w-3 h-3" />}
+                      <span className="capitalize">{m}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </LayoutGroup>
             <Button variant="outline" size="sm" onClick={exportToCSV} className="gap-1.5">
               <Download className="w-3.5 h-3.5" /> CSV
             </Button>
