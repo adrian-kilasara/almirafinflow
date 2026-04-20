@@ -83,6 +83,9 @@ export default function InvestmentTracker({ accounts = [], onPortfolioChange }: 
   const [currentPrice, setCurrentPrice] = useState('');
   const [purchaseDate, setPurchaseDate] = useState('');
   const [platform, setPlatform] = useState('');
+  const [currency, setCurrency] = useState<string>('TZS');
+  const [presetOpen, setPresetOpen] = useState(false);
+  const [presetQuery, setPresetQuery] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (user) fetchInvestments(); }, [user]);
