@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { motion } from 'framer-motion';
-import { Brain, TrendingUp, TrendingDown, AlertTriangle, Sparkles, Target, PiggyBank, ShoppingBag, BarChart3, Wallet } from 'lucide-react';
+import { Brain, TrendingUp, TrendingDown, AlertTriangle, Sparkles, Target, PiggyBank, ShoppingBag, BarChart3, Wallet, RefreshCw } from 'lucide-react';
 import type { Account, Transaction, Category, Budget, SavingsGoal } from '@/types/finance';
+import { todayInTz, monthRangeInTz, addDaysToKey, nowDisplayInTz } from '@/lib/datetime';
 
 interface AISmartInsightsProps {
   accounts: Account[];
@@ -21,24 +23,39 @@ interface Insight {
   priority: number;
 }
 
+// Tags that should NEVER trigger spending insights (debt servicing, scheduled bills, transfers)
+const EXCLUDED_TAGS = new Set(['loan-disbursement', 'loan-repayment', 'bill-payment', 'transfer']);
+const isDiscretionary = (t: Transaction) => !(t.tags || []).some(tg => EXCLUDED_TAGS.has(tg));
+
 export default function AISmartInsights({ accounts, transactions, categories, budgets, savingsGoals }: AISmartInsightsProps) {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refreshedAt = useMemo(() => nowDisplayInTz(), [refreshKey, transactions.length]);
+
   const insights = useMemo(() => {
     const result: Insight[] = [];
-    const now = new Date();
+    const today = todayInTz();
+    const { start: monthStart, end: monthEnd } = monthRangeInTz();
 
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-    const thisMonth = transactions.filter(t => t.date >= monthStart && t.date <= monthEnd);
-    const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
-    const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
-    const lastMonth = transactions.filter(t => t.date >= prevStart && t.date <= prevEnd);
+    // Previous month range (tz-aware)
+    const [py, pm] = monthStart.split('-').map(Number);
+    const prevMonthDate = new Date(Date.UTC(py, pm - 2, 1));
+    const prevYear = prevMonthDate.getUTCFullYear();
+    const prevMonth = prevMonthDate.getUTCMonth() + 1;
+    const prevStart = `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`;
+    const prevLastDay = new Date(Date.UTC(prevYear, prevMonth, 0)).getUTCDate();
+    const prevEnd = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(prevLastDay).padStart(2, '0')}`;
+
+    const thisMonth = transactions.filter(t => t.date >= monthStart && t.date <= monthEnd && isDiscretionary(t));
+    const lastMonth = transactions.filter(t => t.date >= prevStart && t.date <= prevEnd && isDiscretionary(t));
 
     const thisIncome = thisMonth.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
     const thisExpenses = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
     const lastExpenses = lastMonth.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
 
-    // 1. Spending comparison
-    if (lastExpenses > 0 && thisExpenses > 0) {
+    const MIN_TXNS = 5;
+
+    // 1. Spending comparison — only if both months have meaningful data
+    if (lastMonth.length >= MIN_TXNS && thisMonth.length >= MIN_TXNS && lastExpenses > 0 && thisExpenses > 0) {
       const changePct = ((thisExpenses - lastExpenses) / lastExpenses) * 100;
       if (changePct > 15) {
         result.push({ icon: TrendingUp, title: 'Spending Increase', message: `You've spent ${Math.round(changePct)}% more this month compared to last month. Review your top categories.`, type: 'warning', priority: 8 });
@@ -48,7 +65,7 @@ export default function AISmartInsights({ accounts, transactions, categories, bu
     }
 
     // 2. Savings rate
-    if (thisIncome > 0) {
+    if (thisIncome > 0 && thisMonth.length >= MIN_TXNS) {
       const savingsRate = ((thisIncome - thisExpenses) / thisIncome) * 100;
       if (savingsRate >= 20) {
         result.push({ icon: PiggyBank, title: 'Strong Savings Rate', message: `Your savings rate is ${Math.round(savingsRate)}%. You're on track for financial growth.`, type: 'positive', priority: 4 });
@@ -57,43 +74,61 @@ export default function AISmartInsights({ accounts, transactions, categories, bu
       }
     }
 
-    // 3. Weekend vs Weekday spending analysis
+    // 3. Weekend vs Weekday spending — divide by CALENDAR DAYS, not transaction counts
     const thisMonthExpenses = thisMonth.filter(t => t.type === 'expense');
-    const weekendSpend = thisMonthExpenses.filter(t => { const d = new Date(t.date).getDay(); return d === 0 || d === 6; }).reduce((s, t) => s + Number(t.amount), 0);
-    const weekdaySpend = thisMonthExpenses.filter(t => { const d = new Date(t.date).getDay(); return d >= 1 && d <= 5; }).reduce((s, t) => s + Number(t.amount), 0);
-    if (weekendSpend > 0 && weekdaySpend > 0) {
-      const weekendDays = thisMonthExpenses.filter(t => { const d = new Date(t.date).getDay(); return d === 0 || d === 6; }).length || 1;
-      const weekdayDays = thisMonthExpenses.filter(t => { const d = new Date(t.date).getDay(); return d >= 1 && d <= 5; }).length || 1;
-      const avgWeekend = weekendSpend / weekendDays;
-      const avgWeekday = weekdaySpend / weekdayDays;
-      if (avgWeekend > avgWeekday * 2) {
-        result.push({ icon: ShoppingBag, title: 'Weekend Spending Spike', message: `You spend ${Math.round((avgWeekend / avgWeekday - 1) * 100)}% more per transaction on weekends. Consider setting a weekend budget.`, type: 'warning', priority: 6 });
+    if (thisMonthExpenses.length >= MIN_TXNS) {
+      // Count calendar days from monthStart through today (or month end if past)
+      const periodEnd = today < monthEnd ? today : monthEnd;
+      let weekendCalDays = 0;
+      let weekdayCalDays = 0;
+      let cursor = monthStart;
+      while (cursor <= periodEnd) {
+        const dow = new Date(`${cursor}T12:00:00Z`).getUTCDay();
+        if (dow === 0 || dow === 6) weekendCalDays++; else weekdayCalDays++;
+        cursor = addDaysToKey(cursor, 1);
+      }
+
+      const weekendSpend = thisMonthExpenses.filter(t => { const d = new Date(`${t.date}T12:00:00Z`).getUTCDay(); return d === 0 || d === 6; }).reduce((s, t) => s + Number(t.amount), 0);
+      const weekdaySpend = thisMonthExpenses.filter(t => { const d = new Date(`${t.date}T12:00:00Z`).getUTCDay(); return d >= 1 && d <= 5; }).reduce((s, t) => s + Number(t.amount), 0);
+
+      if (weekendCalDays > 0 && weekdayCalDays > 0 && weekendSpend > 0 && weekdaySpend > 0) {
+        const avgWeekend = weekendSpend / weekendCalDays;
+        const avgWeekday = weekdaySpend / weekdayCalDays;
+        if (avgWeekend > avgWeekday * 1.5) {
+          result.push({
+            icon: ShoppingBag,
+            title: 'Weekend Spending Spike',
+            message: `You spend ${Math.round((avgWeekend / avgWeekday - 1) * 100)}% more per day on weekends (${formatCurrency(avgWeekend)}/day) than weekdays (${formatCurrency(avgWeekday)}/day).`,
+            type: 'warning',
+            priority: 6,
+          });
+        }
       }
     }
 
-    // 4. Merchant concentration (top merchant > 40% of spending)
+    // 4. Merchant concentration
     const merchantSpend: Record<string, number> = {};
     thisMonthExpenses.forEach(t => {
-      const key = t.description || 'Unknown';
+      const key = (t as any).merchant || t.description || 'Unknown';
       merchantSpend[key] = (merchantSpend[key] || 0) + Number(t.amount);
     });
     const topMerchant = Object.entries(merchantSpend).sort((a, b) => b[1] - a[1])[0];
-    if (topMerchant && thisExpenses > 0 && topMerchant[1] / thisExpenses > 0.4) {
+    if (topMerchant && thisExpenses > 0 && thisMonthExpenses.length >= MIN_TXNS && topMerchant[1] / thisExpenses > 0.4) {
       result.push({ icon: BarChart3, title: 'Merchant Concentration', message: `${Math.round((topMerchant[1] / thisExpenses) * 100)}% of your spending goes to "${topMerchant[0]}". Diversifying could reduce risk.`, type: 'warning', priority: 5 });
     }
 
-    // 5. Expense velocity (spending pace vs month progress)
-    const dayOfMonth = now.getDate();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    // 5. Spending pace (tz-aware day-of-month)
+    const dayOfMonth = Number(today.split('-')[2]);
+    const daysInMonth = Number(monthEnd.split('-')[2]);
     const monthProgress = dayOfMonth / daysInMonth;
-    if (lastExpenses > 0 && monthProgress > 0.2) {
+    if (lastMonth.length >= MIN_TXNS && lastExpenses > 0 && monthProgress > 0.2 && thisMonthExpenses.length >= MIN_TXNS) {
       const projectedSpend = thisExpenses / monthProgress;
       if (projectedSpend > lastExpenses * 1.2) {
         result.push({ icon: AlertTriangle, title: 'Spending Pace Warning', message: `At current pace, you'll spend ${formatCurrency(Math.round(projectedSpend))} this month — ${Math.round(((projectedSpend / lastExpenses) - 1) * 100)}% more than last month.`, type: 'warning', priority: 7 });
       }
     }
 
-    // 6. Income stability check
+    // 6. Income stability
     const lastIncome = lastMonth.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount), 0);
     if (lastIncome > 0 && thisIncome > 0) {
       const incomeChange = ((thisIncome - lastIncome) / lastIncome) * 100;
@@ -107,7 +142,7 @@ export default function AISmartInsights({ accounts, transactions, categories, bu
     // 7. Top spending category spike
     const thisCatSpending: Record<string, number> = {};
     const lastCatSpending: Record<string, number> = {};
-    thisMonth.filter(t => t.type === 'expense').forEach(t => {
+    thisMonthExpenses.forEach(t => {
       const cat = categories.find(c => c.id === t.category_id)?.name || 'Other';
       thisCatSpending[cat] = (thisCatSpending[cat] || 0) + Number(t.amount);
     });
@@ -118,7 +153,7 @@ export default function AISmartInsights({ accounts, transactions, categories, bu
     let biggestIncrease = { cat: '', pct: 0 };
     for (const [cat, amt] of Object.entries(thisCatSpending)) {
       const prev = lastCatSpending[cat] || 0;
-      if (prev > 0) {
+      if (prev > 1000) {
         const pct = ((amt - prev) / prev) * 100;
         if (pct > biggestIncrease.pct && pct > 20) biggestIncrease = { cat, pct };
       }
@@ -127,7 +162,7 @@ export default function AISmartInsights({ accounts, transactions, categories, bu
       result.push({ icon: TrendingUp, title: `${biggestIncrease.cat} Spike`, message: `Your ${biggestIncrease.cat.toLowerCase()} spending increased by ${Math.round(biggestIncrease.pct)}% vs last month.`, type: 'warning', priority: 6 });
     }
 
-    // 8. Budget warnings (nearing limit)
+    // 8. Budget warnings
     const nearBudget = budgets.filter(b => {
       const spent = thisMonth.filter(t => t.type === 'expense' && (b.category_id ? t.category_id === b.category_id : true)).reduce((s, t) => s + Number(t.amount), 0);
       const pct = (spent / Number(b.amount)) * 100;
@@ -146,13 +181,12 @@ export default function AISmartInsights({ accounts, transactions, categories, bu
       result.push({ icon: Target, title: 'Goal Almost Reached', message: `${nearComplete.map(g => g.name).join(', ')} ${nearComplete.length === 1 ? 'is' : 'are'} 75%+ complete. Keep it up!`, type: 'positive', priority: 4 });
     }
 
-    // Default
     if (result.length === 0) {
-      result.push({ icon: Sparkles, title: 'Getting Started', message: 'Add more transactions to unlock personalized financial insights.', type: 'neutral', priority: 0 });
+      result.push({ icon: Sparkles, title: 'Getting Started', message: 'Add at least 5 transactions this month to unlock personalized insights.', type: 'neutral', priority: 0 });
     }
 
     return result.sort((a, b) => b.priority - a.priority).slice(0, 5);
-  }, [accounts, transactions, categories, budgets, savingsGoals]);
+  }, [accounts, transactions, categories, budgets, savingsGoals, refreshKey]);
 
   const getTypeStyles = (type: Insight['type']) => {
     switch (type) {
@@ -165,13 +199,25 @@ export default function AISmartInsights({ accounts, transactions, categories, bu
   return (
     <Card className="border-primary/10">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Brain className="w-3 h-3 text-primary" />
+        <CardTitle className="flex items-center justify-between gap-2 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Brain className="w-3 h-3 text-primary" />
+            </div>
+            Smart Insights
+            <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-normal">AI-Powered</span>
           </div>
-          Smart Insights
-          <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-normal">AI-Powered</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => setRefreshKey(k => k + 1)}
+            title="Refresh insights"
+          >
+            <RefreshCw className="w-3 h-3" />
+          </Button>
         </CardTitle>
+        <p className="text-[9px] text-muted-foreground pt-0.5">Updated {refreshedAt}</p>
       </CardHeader>
       <CardContent className="space-y-2">
         {insights.map((insight, i) => {
