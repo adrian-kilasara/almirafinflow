@@ -13,23 +13,28 @@ interface BudgetListProps {
   categories: Category[];
 }
 
-function getPeriodRange(period: string) {
+function getPeriodRange(period: string, budgetStartDate?: string | null) {
   const now = new Date();
+  const budgetStart = budgetStartDate ? new Date(`${budgetStartDate}T00:00:00`) : null;
+  let start: Date, end: Date;
   switch (period) {
-    case 'daily': return { start: startOfDay(now), end: endOfDay(now) };
-    case 'weekly': return { start: startOfWeek(now), end: endOfWeek(now) };
-    case 'monthly': return { start: startOfMonth(now), end: endOfMonth(now) };
-    case 'yearly': return { start: startOfYear(now), end: endOfYear(now) };
-    default: return { start: startOfMonth(now), end: endOfMonth(now) };
+    case 'daily':   start = startOfDay(now);   end = endOfDay(now);   break;
+    case 'weekly':  start = startOfWeek(now);  end = endOfWeek(now);  break;
+    case 'monthly': start = startOfMonth(now); end = endOfMonth(now); break;
+    case 'yearly':  start = startOfYear(now);  end = endOfYear(now);  break;
+    default:        start = startOfMonth(now); end = endOfMonth(now); break;
   }
+  if (budgetStart && budgetStart > start) start = startOfDay(budgetStart);
+  return { start, end };
 }
 
 export default function BudgetList({ budgets, transactions, categories }: BudgetListProps) {
   const budgetsWithSpent = useMemo(() => {
     return budgets.map(budget => {
-      const { start, end } = getPeriodRange(budget.period);
+      const { start, end } = getPeriodRange(budget.period, (budget as any).start_date);
       const relevantTxns = transactions.filter(t => {
         if (t.type !== 'expense') return false;
+        if (t.currency !== budget.currency) return false;
         const d = parseISO(t.date);
         const inPeriod = isWithinInterval(d, { start, end });
         return budget.category_id ? inPeriod && t.category_id === budget.category_id : inPeriod;

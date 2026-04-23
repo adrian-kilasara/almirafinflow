@@ -218,6 +218,9 @@ export default function BudgetCard({ budget, transactions, categories, rolloverE
                       · {budgetData.category.icon} {budgetData.category.name}
                     </span>
                   )}
+                  <span className="text-[9px] text-muted-foreground/80 px-1.5 py-0.5 rounded bg-muted/40 border border-border/30">
+                    Counts from {format(budgetData.periodStart, 'd MMM')}
+                  </span>
                 </div>
               </div>
 
