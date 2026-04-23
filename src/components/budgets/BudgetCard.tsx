@@ -117,6 +117,7 @@ export default function BudgetCard({ budget, transactions, categories, rolloverE
       category: categories.find(c => c.id === budget.category_id),
       status, dailyRate, projectedTotal, daysUntilExceed, willExceed,
       relevantTxns, topMerchants, elapsedDays, totalDays,
+      periodStart: start, periodEnd: end,
     };
   }, [budget, transactions, categories]);
 
