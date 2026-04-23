@@ -162,40 +162,42 @@ const FloatingTransactionForm = forwardRef<HTMLDivElement, FloatingTransactionFo
 
     return (
       <>
-        {isOpen && (
-          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40" onClick={() => setIsOpen(false)} />
-        )}
-
-        <div ref={ref} className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 sm:gap-3">
+        <div ref={ref} className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 w-fit h-fit">
+          {/* Action chips — fan out above the FAB, no full-screen overlay */}
           <div className={cn(
-            "flex gap-2 sm:gap-3 transition-all duration-300",
-            isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+            "absolute bottom-full left-1/2 -translate-x-1/2 mb-3 flex items-end gap-2 sm:gap-3 transition-all duration-300",
+            isOpen ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-4 pointer-events-none"
           )}>
-            {actions.map((action) => {
+            {actions.map((action, idx) => {
               const Icon = action.icon;
+              const offsetY = idx === 1 ? 'translate-y-2' : ''; // middle slightly up for arc
               return (
-                <div key={action.type} className="flex flex-col items-center gap-1">
+                <div key={action.type} className={cn("flex flex-col items-center gap-1", offsetY)}>
                   <Button
                     onClick={() => handleOpen(action.type)}
-                    className={cn("w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg", action.color, "text-primary-foreground hover:opacity-90")}
+                    className={cn("w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-lg", action.color, "text-primary-foreground hover:opacity-90 hover:scale-105 transition-transform")}
                     size="icon"
                   >
                     <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                   </Button>
-                  <span className="text-[10px] sm:text-xs font-medium text-foreground">{action.label}</span>
+                  <span className="text-[10px] sm:text-xs font-medium text-foreground bg-background/80 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
+                    {action.label}
+                  </span>
                 </div>
               );
             })}
           </div>
 
+          {/* FAB — perfect circle, tight footprint, hover ring */}
           <Button
             onClick={() => setIsOpen(!isOpen)}
             className={cn(
-              "w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-xl transition-all duration-300",
-              "bg-primary hover:bg-primary/90",
-              isOpen && "rotate-45"
+              "w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-xl transition-all duration-300 p-0",
+              "bg-primary hover:bg-primary/90 hover:ring-4 hover:ring-primary/20",
+              isOpen && "rotate-45 ring-4 ring-primary/20"
             )}
             size="icon"
+            aria-label={isOpen ? 'Close quick actions' : 'Open quick actions'}
           >
             {isOpen ? <X className="w-6 h-6 sm:w-7 sm:h-7" /> : <Plus className="w-6 h-6 sm:w-7 sm:h-7" />}
           </Button>

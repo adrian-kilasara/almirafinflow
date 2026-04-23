@@ -6,6 +6,7 @@ import { Bot, Send, Loader2, User, Sparkles, TrendingUp, PiggyBank, ShieldCheck,
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import { useSettings } from '@/hooks/useSettings';
 import type { Account, Transaction, Category, Budget, SavingsGoal } from '@/types/finance';
 
 interface Message {

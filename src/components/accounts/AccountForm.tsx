@@ -28,6 +28,9 @@ const accountSchema = z.object({
   notes: z.string().max(500).optional(),
   min_balance_alert: z.string().optional(),
   color: z.string().optional(),
+}).refine(d => d.classification !== 'asset' || Number(d.balance) >= 0, {
+  message: 'Asset accounts cannot have a negative balance. To track debt, switch to Liability.',
+  path: ['balance'],
 });
 
 type AccountFormData = z.infer<typeof accountSchema>;
