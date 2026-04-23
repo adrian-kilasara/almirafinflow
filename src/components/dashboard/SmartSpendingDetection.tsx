@@ -3,7 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import { Brain, TrendingUp, Clock, Zap, DollarSign, AlertTriangle, Repeat, ShieldAlert } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
+import { todayInTz, addDaysToKey } from '@/lib/datetime';
 import type { Transaction, Category, Budget } from '@/types/finance';
+
+const EXCLUDED_TAGS = new Set(['loan-disbursement', 'loan-repayment', 'bill-payment', 'transfer']);
+const isDiscretionary = (t: Transaction) => !(t.tags || []).some(tg => EXCLUDED_TAGS.has(tg));
 
 interface SmartSpendingDetectionProps {
   transactions: Transaction[];
@@ -22,15 +26,13 @@ interface Pattern {
 export default function SmartSpendingDetection({ transactions, categories, budgets }: SmartSpendingDetectionProps) {
   const patterns = useMemo(() => {
     const result: Pattern[] = [];
-    const now = new Date();
+    const today = todayInTz();
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-    // Last 60 & 90 days of expenses
-    const sixtyAgo = new Date(now); sixtyAgo.setDate(sixtyAgo.getDate() - 60);
-    const ninetyAgo = new Date(now); ninetyAgo.setDate(ninetyAgo.getDate() - 90);
-    const sixtyStr = sixtyAgo.toISOString().split('T')[0];
-    const ninetyStr = ninetyAgo.toISOString().split('T')[0];
-    const recentExpenses = transactions.filter(t => t.type === 'expense' && t.date >= sixtyStr);
+    // Last 60 & 90 days of expenses (tz-aware) — exclude debt/bill/transfer noise
+    const sixtyStr = addDaysToKey(today, -60);
+    const ninetyStr = addDaysToKey(today, -90);
+    const recentExpenses = transactions.filter(t => t.type === 'expense' && t.date >= sixtyStr && isDiscretionary(t));
 
     if (recentExpenses.length < 5) {
       result.push({ icon: Brain, title: 'Building Your Profile', message: 'Add more transactions to unlock smart spending detection and personalized patterns.', type: 'insight', priority: 0 });
@@ -47,8 +49,9 @@ export default function SmartSpendingDetection({ transactions, categories, budge
       catAvg[cat].amounts.push(Number(t.amount));
     });
 
-    // Find transactions that are 3x the average for their category
-    const last7 = transactions.filter(t => t.type === 'expense' && t.date >= new Date(now.getTime() - 7 * 86400000).toISOString().split('T')[0]);
+    // Find transactions that are 3x the average for their category (tz-aware, discretionary only)
+    const sevenStr = addDaysToKey(today, -7);
+    const last7 = transactions.filter(t => t.type === 'expense' && t.date >= sevenStr && isDiscretionary(t));
     for (const t of last7) {
       const cat = categories.find(c => c.id === t.category_id)?.name || 'Other';
       const stats = catAvg[cat];
@@ -69,7 +72,7 @@ export default function SmartSpendingDetection({ transactions, categories, budge
 
     // ──── 2. SUBSCRIPTION INCREASE DETECTION ────
     const descAmounts: Record<string, { amounts: number[]; dates: string[] }> = {};
-    const ninetyExpenses = transactions.filter(t => t.type === 'expense' && t.date >= ninetyStr);
+    const ninetyExpenses = transactions.filter(t => t.type === 'expense' && t.date >= ninetyStr && isDiscretionary(t));
     ninetyExpenses.forEach(t => {
       const key = (t.description || '').toLowerCase().trim();
       if (key.length > 2) {
@@ -101,14 +104,12 @@ export default function SmartSpendingDetection({ transactions, categories, budge
       }
     }
 
-    // ──── 3. OVERSPENDING TREND (Week-over-week) ────
-    const thisWeekStart = new Date(now); thisWeekStart.setDate(thisWeekStart.getDate() - 7);
-    const lastWeekStart = new Date(now); lastWeekStart.setDate(lastWeekStart.getDate() - 14);
-    const thisWeekStr = thisWeekStart.toISOString().split('T')[0];
-    const lastWeekStr = lastWeekStart.toISOString().split('T')[0];
+    // ──── 3. OVERSPENDING TREND (Week-over-week, tz-aware, discretionary only) ────
+    const thisWeekStr = addDaysToKey(today, -7);
+    const lastWeekStr = addDaysToKey(today, -14);
 
-    const thisWeekSpend = transactions.filter(t => t.type === 'expense' && t.date >= thisWeekStr).reduce((s, t) => s + Number(t.amount), 0);
-    const lastWeekSpend = transactions.filter(t => t.type === 'expense' && t.date >= lastWeekStr && t.date < thisWeekStr).reduce((s, t) => s + Number(t.amount), 0);
+    const thisWeekSpend = transactions.filter(t => t.type === 'expense' && t.date >= thisWeekStr && isDiscretionary(t)).reduce((s, t) => s + Number(t.amount), 0);
+    const lastWeekSpend = transactions.filter(t => t.type === 'expense' && t.date >= lastWeekStr && t.date < thisWeekStr && isDiscretionary(t)).reduce((s, t) => s + Number(t.amount), 0);
 
     if (lastWeekSpend > 0 && thisWeekSpend > lastWeekSpend * 1.3) {
       const pct = Math.round(((thisWeekSpend - lastWeekSpend) / lastWeekSpend) * 100);
@@ -126,7 +127,9 @@ export default function SmartSpendingDetection({ transactions, categories, budge
     recentExpenses.forEach(t => {
       const cat = categories.find(c => c.id === t.category_id)?.name || 'Other';
       if (!catDaySpend[cat]) catDaySpend[cat] = Array(7).fill(0);
-      catDaySpend[cat][new Date(t.date).getDay()] += Number(t.amount);
+      // tz-safe day-of-week via UTC noon anchor on the date key
+      const dow = new Date(`${t.date}T12:00:00Z`).getUTCDay();
+      catDaySpend[cat][dow] += Number(t.amount);
     });
 
     for (const [cat, days] of Object.entries(catDaySpend)) {
@@ -165,12 +168,13 @@ export default function SmartSpendingDetection({ transactions, categories, budge
       result.push({ icon: Repeat, title: 'Recurring Expense Detected', message: `"${recurring[0][0]}" appears ${recurring[0][1]} times in 60 days. Consider adding it as a recurring bill.`, type: 'automation', priority: 5 });
     }
 
-    // ──── 7. SAVINGS OPPORTUNITY ────
+    // ──── 7. SAVINGS OPPORTUNITY (tz-aware, discretionary only) ────
+    const thirtyStr = addDaysToKey(today, -30);
     const last30Income = transactions
-      .filter(t => t.type === 'income' && t.date >= new Date(now.getTime() - 30 * 86400000).toISOString().split('T')[0])
+      .filter(t => t.type === 'income' && t.date >= thirtyStr && isDiscretionary(t))
       .reduce((s, t) => s + Number(t.amount), 0);
     const last30Expense = recentExpenses
-      .filter(t => t.date >= new Date(now.getTime() - 30 * 86400000).toISOString().split('T')[0])
+      .filter(t => t.date >= thirtyStr)
       .reduce((s, t) => s + Number(t.amount), 0);
 
     if (last30Income > 0) {
