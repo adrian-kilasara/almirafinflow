@@ -20,7 +20,7 @@ import {
 import { toast } from 'sonner';
 import { MoreHorizontal, Pencil, Trash2, Loader2, AlertTriangle, Eye, Zap, Calendar, TrendingDown } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/format';
-import { isWithinInterval, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, differenceInDays } from 'date-fns';
+import { isWithinInterval, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, differenceInDays, format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Budget, Transaction, Category } from '@/types/finance';
 
@@ -40,15 +40,27 @@ interface BudgetCardProps {
   index?: number;
 }
 
-function getPeriodRange(period: string) {
+function getPeriodRange(period: string, budgetStartDate?: string | null) {
   const now = new Date();
+  // Parse YYYY-MM-DD safely (no UTC slip)
+  const budgetStart = budgetStartDate
+    ? new Date(`${budgetStartDate}T00:00:00`)
+    : null;
+
+  let start: Date, end: Date, totalDays: number;
   switch (period) {
-    case 'daily': return { start: startOfDay(now), end: endOfDay(now), totalDays: 1 };
-    case 'weekly': return { start: startOfWeek(now), end: endOfWeek(now), totalDays: 7 };
-    case 'monthly': return { start: startOfMonth(now), end: endOfMonth(now), totalDays: differenceInDays(endOfMonth(now), startOfMonth(now)) + 1 };
-    case 'yearly': return { start: startOfYear(now), end: endOfYear(now), totalDays: 365 };
-    default: return { start: startOfMonth(now), end: endOfMonth(now), totalDays: 30 };
+    case 'daily':   start = startOfDay(now);   end = endOfDay(now);   totalDays = 1; break;
+    case 'weekly':  start = startOfWeek(now);  end = endOfWeek(now);  totalDays = 7; break;
+    case 'monthly': start = startOfMonth(now); end = endOfMonth(now); totalDays = differenceInDays(endOfMonth(now), startOfMonth(now)) + 1; break;
+    case 'yearly':  start = startOfYear(now);  end = endOfYear(now);  totalDays = 365; break;
+    default:        start = startOfMonth(now); end = endOfMonth(now); totalDays = 30; break;
   }
+  // ✅ Honor budget start_date — never count txns from before this budget existed
+  if (budgetStart && budgetStart > start) {
+    start = startOfDay(budgetStart);
+    totalDays = Math.max(1, differenceInDays(end, start) + 1);
+  }
+  return { start, end, totalDays };
 }
 
 export default function BudgetCard({ budget, transactions, categories, rolloverEnabled = false, onRefresh, index = 0 }: BudgetCardProps) {
@@ -62,12 +74,14 @@ export default function BudgetCard({ budget, transactions, categories, rolloverE
   });
 
   const budgetData = useMemo(() => {
-    const { start, end, totalDays } = getPeriodRange(budget.period);
+    const { start, end, totalDays } = getPeriodRange(budget.period, (budget as any).start_date);
     const now = new Date();
     const elapsedDays = Math.max(1, differenceInDays(now, start) + 1);
 
     const relevantTxns = transactions.filter(t => {
       if (t.type !== 'expense') return false;
+      // Currency must match — never sum TZS into a USD budget
+      if (t.currency !== budget.currency) return false;
       const d = parseISO(t.date);
       const inPeriod = isWithinInterval(d, { start, end });
       return budget.category_id ? inPeriod && t.category_id === budget.category_id : inPeriod;
