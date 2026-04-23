@@ -469,9 +469,6 @@ export default function Dashboard() {
                   <DropdownMenuItem onClick={() => navigate('/settings')} className="gap-2 rounded-lg cursor-pointer text-xs">
                     <Settings className="w-3.5 h-3.5" /> Settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActiveTab('learn')} className="gap-2 rounded-lg cursor-pointer text-xs">
-                    <GraduationCap className="w-3.5 h-3.5" /> Financial Education
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="gap-2 rounded-lg cursor-pointer text-xs text-destructive focus:text-destructive">
                     <LogOut className="w-3.5 h-3.5" /> Sign Out

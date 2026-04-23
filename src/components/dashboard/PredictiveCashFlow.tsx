@@ -1,18 +1,23 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { TrendingDown, AlertTriangle, Calendar, Activity, CalendarClock, PiggyBank } from 'lucide-react';
+import { TrendingDown, AlertTriangle, Calendar, Activity, CalendarClock, Info } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/integrations/supabase/client';
 import type { Account, Transaction } from '@/types/finance';
 import { todayInTz, addDaysToKey } from '@/lib/datetime';
+import { useSettings } from '@/hooks/useSettings';
 
 interface PredictiveCashFlowProps {
   accounts: Account[];
   transactions: Transaction[];
 }
 
+const EXCLUDED_TAGS = new Set(['loan-disbursement', 'loan-repayment', 'transfer']);
+const isDiscretionaryFlow = (t: Transaction) => !(t.tags || []).some(tg => EXCLUDED_TAGS.has(tg));
+
 export default function PredictiveCashFlow({ accounts, transactions }: PredictiveCashFlowProps) {
+  const { settings } = useSettings();
   const [bills, setBills] = useState<any[]>([]);
   const [recurringSchedules, setRecurringSchedules] = useState<any[]>([]);
 
@@ -28,18 +33,43 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
 
   const predictions = useMemo(() => {
     const today = todayInTz();
-    const totalBalance = accounts.reduce((s, a) => s + Number(a.balance), 0);
+    const userCurrency = settings.default_currency;
+    const lowBalanceThreshold = settings.low_balance_threshold;
 
-    // Average daily spend/income over last 30 days (tz-aware)
+    // ✅ ASSETS ONLY — liabilities never count as positive runway
+    const assetAccounts = accounts.filter(a =>
+      a.classification === 'asset' && a.is_active && !a.is_archived
+    );
+    // Only include accounts in the user's default currency (no FX mixing)
+    const myCurrencyAssets = assetAccounts.filter(a => a.currency === userCurrency);
+    const totalBalance = myCurrencyAssets.reduce((s, a) => s + Number(a.balance), 0);
+    const otherCurrencyCount = assetAccounts.length - myCurrencyAssets.length;
+
+    // Discretionary flows in user's currency only
+    const myAssetIds = new Set(myCurrencyAssets.map(a => a.id));
+    const filtered = transactions.filter(t =>
+      myAssetIds.has(t.account_id) && t.currency === userCurrency && isDiscretionaryFlow(t)
+    );
+
+    // Average over the actual span of data (capped at 30 days), never 30 if only 5 days exist
     const thirtyStr = addDaysToKey(today, -30);
-    const last30Expenses = transactions.filter(t => t.type === 'expense' && t.date >= thirtyStr);
-    const last30Income = transactions.filter(t => t.type === 'income' && t.date >= thirtyStr);
+    const last30Expenses = filtered.filter(t => t.type === 'expense' && t.date >= thirtyStr);
+    const last30Income = filtered.filter(t => t.type === 'income' && t.date >= thirtyStr);
+    const allDates = new Set([...last30Expenses, ...last30Income].map(t => t.date));
+    const dataDays = Math.max(1, Math.min(30, allDates.size || 1));
+
     const totalExpenses30 = last30Expenses.reduce((s, t) => s + Number(t.amount), 0);
     const totalIncome30 = last30Income.reduce((s, t) => s + Number(t.amount), 0);
-    const avgDailyExpense = totalExpenses30 / 30;
-    const avgDailyIncome = totalIncome30 / 30;
+    const avgDailyExpense = totalExpenses30 / dataDays;
+    const avgDailyIncome = totalIncome30 / dataDays;
 
-    // Build daily projections including known future events
+    // Bills + recurring schedules — currency-filtered
+    const myCurrencyBills = bills.filter((b: any) => (b.currency || userCurrency) === userCurrency);
+    const myCurrencySchedules = recurringSchedules.filter((s: any) => {
+      const tplCur = (s.template_data as any)?.currency;
+      return !tplCur || tplCur === userCurrency;
+    });
+
     const projections: { day: number; date: string; balance: number; events: string[] }[] = [];
     let projBalance = totalBalance;
     let lowBalanceDay: string | null = null;
@@ -51,34 +81,31 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
       const displayDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
       const events: string[] = [];
 
-      // Base daily flow
       projBalance += (avgDailyIncome - avgDailyExpense);
 
-      // Known bill due dates
-      bills.forEach(b => {
+      myCurrencyBills.forEach((b: any) => {
         if (b.next_due_date === dateStr) {
           projBalance -= Number(b.amount);
-          events.push(`📋 ${b.name} -${formatCurrency(Number(b.amount))}`);
+          events.push(`📋 ${b.name} -${formatCurrency(Number(b.amount), userCurrency)}`);
         }
       });
 
-      // Recurring schedules
-      recurringSchedules.forEach(s => {
+      myCurrencySchedules.forEach((s: any) => {
         if (s.next_run_date === dateStr) {
           const template = s.template_data as any;
           const amount = Number(template?.amount || 0);
           const type = template?.type || s.type;
-          if (type === 'expense') { projBalance -= amount; events.push(`🔄 Recurring -${formatCurrency(amount)}`); }
-          else if (type === 'income') { projBalance += amount; events.push(`🔄 Recurring +${formatCurrency(amount)}`); }
+          if (type === 'expense') { projBalance -= amount; events.push(`🔄 Recurring -${formatCurrency(amount, userCurrency)}`); }
+          else if (type === 'income') { projBalance += amount; events.push(`🔄 Recurring +${formatCurrency(amount, userCurrency)}`); }
         }
       });
 
       projections.push({ day: i, date: displayDate, balance: projBalance, events });
-      if (projBalance < 10000 && !lowBalanceDay) lowBalanceDay = displayDate;
+      if (projBalance < lowBalanceThreshold && !lowBalanceDay) lowBalanceDay = displayDate;
       if (projBalance <= 0 && !zeroDay) zeroDay = displayDate;
     }
 
-    // Day-of-week spending patterns (tz-aware via date key)
+    // Day-of-week pattern
     const daySpending = Array(7).fill(0);
     const dayCounts = Array(7).fill(0);
     last30Expenses.forEach(t => {
@@ -89,30 +116,46 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
     const spendingPattern = dayNames.map((name, i) => ({ day: name, avg: dayCounts[i] > 0 ? daySpending[i] / dayCounts[i] : 0 }));
     const peakSpendDay = spendingPattern.reduce((a, b) => a.avg > b.avg ? a : b);
 
-    // Runway
     const runway = avgDailyExpense > avgDailyIncome
       ? Math.round(totalBalance / (avgDailyExpense - avgDailyIncome)) : null;
-
-    // Upcoming known events count
     const upcomingEvents = projections.filter(p => p.events.length > 0).length;
 
-    return { totalBalance, avgDailyExpense, avgDailyIncome, avgDailyNet: avgDailyIncome - avgDailyExpense, projections, lowBalanceDay, zeroDay, peakSpendDay, runway, upcomingEvents };
-  }, [accounts, transactions, bills, recurringSchedules]);
+    return {
+      totalBalance, avgDailyExpense, avgDailyIncome,
+      avgDailyNet: avgDailyIncome - avgDailyExpense,
+      projections, lowBalanceDay, zeroDay, peakSpendDay, runway, upcomingEvents,
+      dataDays, billsCount: myCurrencyBills.length, schedCount: myCurrencySchedules.length,
+      currency: userCurrency, otherCurrencyCount,
+    };
+  }, [accounts, transactions, bills, recurringSchedules, settings.default_currency, settings.low_balance_threshold]);
 
   const minProjectedBalance = Math.min(...predictions.projections.map(p => p.balance));
   const maxProjectedBalance = Math.max(...predictions.projections.map(p => p.balance), predictions.totalBalance);
-  const range = maxProjectedBalance - Math.min(minProjectedBalance, 0);
+  const range = Math.max(1, maxProjectedBalance - Math.min(minProjectedBalance, 0));
 
   return (
     <Card className="border-primary/10">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Activity className="w-3 h-3 text-primary" />
+        <CardTitle className="flex items-center justify-between gap-2 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Activity className="w-3 h-3 text-primary" />
+            </div>
+            Predictive Cash Flow
+            <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-normal">{predictions.currency} · 30d</span>
           </div>
-          Predictive Cash Flow
-          <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-normal">30-day forecast</span>
+          <div
+            className="flex items-center gap-1 text-[9px] text-muted-foreground"
+            title={`Based on ${predictions.dataDays} days of data · ${predictions.billsCount} bills · ${predictions.schedCount} recurring`}
+          >
+            <Info className="w-3 h-3" /> {predictions.dataDays}d data
+          </div>
         </CardTitle>
+        {predictions.otherCurrencyCount > 0 && (
+          <p className="text-[9px] text-muted-foreground pt-0.5">
+            +{predictions.otherCurrencyCount} other-currency account{predictions.otherCurrencyCount === 1 ? '' : 's'} excluded
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Alerts */}
@@ -130,7 +173,7 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
             <TrendingDown className="w-4 h-4 text-[hsl(var(--warning))] shrink-0" />
             <div>
               <p className="text-xs font-bold">Low Balance Predicted</p>
-              <p className="text-[10px] text-muted-foreground">Balance may drop below threshold by <span className="font-semibold text-foreground">{predictions.lowBalanceDay}</span></p>
+              <p className="text-[10px] text-muted-foreground">Balance may drop below {formatCurrency(settings.low_balance_threshold, predictions.currency)} by <span className="font-semibold text-foreground">{predictions.lowBalanceDay}</span></p>
             </div>
           </motion.div>
         )}
@@ -138,9 +181,9 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
         {/* Stats row */}
         <div className="grid grid-cols-5 gap-1.5">
           {[
-            { label: 'Daily In', value: formatCurrency(predictions.avgDailyIncome), color: 'text-income' },
-            { label: 'Daily Out', value: formatCurrency(predictions.avgDailyExpense), color: 'text-expense' },
-            { label: 'Net/Day', value: `${predictions.avgDailyNet >= 0 ? '+' : ''}${formatCurrency(predictions.avgDailyNet)}`, color: predictions.avgDailyNet >= 0 ? 'text-income' : 'text-expense' },
+            { label: 'Daily In', value: formatCurrency(predictions.avgDailyIncome, predictions.currency), color: 'text-income' },
+            { label: 'Daily Out', value: formatCurrency(predictions.avgDailyExpense, predictions.currency), color: 'text-expense' },
+            { label: 'Net/Day', value: `${predictions.avgDailyNet >= 0 ? '+' : ''}${formatCurrency(predictions.avgDailyNet, predictions.currency)}`, color: predictions.avgDailyNet >= 0 ? 'text-income' : 'text-expense' },
             { label: 'Peak Day', value: predictions.peakSpendDay.day, color: 'text-primary' },
             { label: 'Events', value: String(predictions.upcomingEvents), color: 'text-[hsl(var(--warning))]' },
           ].map((s, i) => (
@@ -151,7 +194,7 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
           ))}
         </div>
 
-        {/* Mini projection chart with event markers */}
+        {/* Projection chart */}
         <div className="relative h-24 rounded-xl bg-muted/10 border border-border/20 overflow-hidden p-2">
           <svg width="100%" height="100%" viewBox="0 0 300 80" preserveAspectRatio="none">
             <defs>
@@ -184,7 +227,6 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
               })()}
               fill="none" stroke="hsl(var(--primary))" strokeWidth="2"
             />
-            {/* Event markers */}
             {predictions.projections.map((p, i) => {
               if (p.events.length === 0) return null;
               const x = (i / 29) * 300;
@@ -202,7 +244,6 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
           </div>
         </div>
 
-        {/* Upcoming known events */}
         {predictions.projections.filter(p => p.events.length > 0).slice(0, 3).map((p, i) => (
           <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.08 }}
             className="flex items-center gap-2 p-2 rounded-lg bg-muted/20">
@@ -211,7 +252,6 @@ export default function PredictiveCashFlow({ accounts, transactions }: Predictiv
           </motion.div>
         ))}
 
-        {/* Runway */}
         {predictions.runway !== null && (
           <div className="flex items-center gap-2 p-2.5 rounded-xl bg-muted/20">
             <Calendar className="w-3.5 h-3.5 text-muted-foreground" />

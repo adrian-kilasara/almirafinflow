@@ -6,6 +6,7 @@ import { Bot, Send, Loader2, User, Sparkles, TrendingUp, PiggyBank, ShieldCheck,
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import { useSettings } from '@/hooks/useSettings';
 import type { Account, Transaction, Category, Budget, SavingsGoal } from '@/types/finance';
 
 interface Message {
@@ -44,11 +45,23 @@ export default function AIFinancialCoach({
   budgets = [],
   savingsGoals = [],
 }: AIFinancialCoachProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { settings } = useSettings();
+  const CHAT_KEY = 'finflow:coach:chat';
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const raw = localStorage.getItem(CHAT_KEY);
+      return raw ? (JSON.parse(raw) as Message[]) : [];
+    } catch { return []; }
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Persist chat across reloads
+  useEffect(() => {
+    try { localStorage.setItem(CHAT_KEY, JSON.stringify(messages)); } catch { /* ignore */ }
+  }, [messages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -96,7 +109,9 @@ export default function AIFinancialCoach({
 
     return {
       netWorth,
-      currency: 'TZS',
+      currency: settings.default_currency,
+      riskTolerance: settings.ai_risk_tolerance,
+      adviceMode: settings.ai_advice_mode,
       monthlyIncome,
       monthlyExpenses,
       netCashFlow: monthlyIncome - monthlyExpenses,
@@ -115,7 +130,7 @@ export default function AIFinancialCoach({
       budgetStatus,
       savingsProgress,
     };
-  }, [accounts, transactions, categories, budgets, savingsGoals]);
+  }, [accounts, transactions, categories, budgets, savingsGoals, settings.default_currency, settings.ai_risk_tolerance, settings.ai_advice_mode]);
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
@@ -216,6 +231,7 @@ export default function AIFinancialCoach({
   const clearChat = () => {
     setMessages([]);
     setStreamingContent('');
+    try { localStorage.removeItem(CHAT_KEY); } catch { /* ignore */ }
   };
 
   return (
