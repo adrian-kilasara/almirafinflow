@@ -172,10 +172,9 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
     toast.success('Bill removed');
   };
 
-  const markPaid = async (bill: Bill, sourceAccountId?: string) => {
+  const markPaid = async (bill: Bill, sourceAccountId?: string, cycles: number = 1) => {
     if (!user) return;
-    const today = todayInTz();
-    const nextDate = calculateNextDate(today, bill.frequency);
+    const safeCycles = Math.max(1, Math.min(12, Math.floor(cycles)));
 
     // Determine source account: explicit pick > stored payFromAccount > first active
     const pickedId = sourceAccountId || payFromAccount;
@@ -185,6 +184,18 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
 
     if (!targetAccount) {
       toast.error('No account available — add an account first');
+      return;
+    }
+
+    // Currency-match guard — protects against silent FX drift
+    if (targetAccount.currency !== bill.currency) {
+      toast.error(`Currency mismatch: bill is in ${bill.currency}, ${targetAccount.name} is ${targetAccount.currency}`);
+      return;
+    }
+
+    const totalCost = Number(bill.amount) * safeCycles;
+    if (Number(targetAccount.balance) < totalCost) {
+      toast.error(`Insufficient balance in ${targetAccount.name} for ${safeCycles} cycle${safeCycles > 1 ? 's' : ''}`);
       return;
     }
 
@@ -212,49 +223,63 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
       categoryId = null;
     }
 
-    const { error: txError } = await supabase.from('transactions').insert({
-      user_id: user.id,
-      account_id: targetAccount.id,
-      type: 'expense' as const,
-      amount: Number(bill.amount),
-      currency: targetAccount.currency,
-      date: today,
-      description: `${bill.name} — ${bill.frequency} payment`,
-      merchant: bill.provider || bill.name,
-      payment_method: bill.auto_pay ? 'auto_debit' : 'cash',
-      status: 'completed',
-      category_id: categoryId,
-      tags: ['bill-payment', bill.category],
+    // Build N transactions, one per cycle (dated at each cycle's due date)
+    const startDate = bill.next_due_date || todayInTz();
+    const txRows = Array.from({ length: safeCycles }, (_, i) => {
+      const cycleDate = i === 0 ? startDate : calculateNextDate(startDate, bill.frequency, i);
+      return {
+        user_id: user.id,
+        account_id: targetAccount.id,
+        type: 'expense' as const,
+        amount: Number(bill.amount),
+        currency: bill.currency,
+        date: cycleDate,
+        description: `${bill.name} — ${bill.frequency} payment${safeCycles > 1 ? ` (${i + 1}/${safeCycles})` : ''}`,
+        merchant: bill.provider || bill.name,
+        payment_method: bill.auto_pay ? 'auto_debit' : 'cash',
+        status: 'completed' as const,
+        category_id: categoryId,
+        tags: ['bill-payment', bill.category],
+      };
     });
 
+    const { error: txError } = await supabase.from('transactions').insert(txRows);
     if (txError) {
       toast.error('Failed to record payment');
       return;
     }
 
     await supabase.from('accounts').update({
-      balance: Number(targetAccount.balance) - Number(bill.amount),
+      balance: Number(targetAccount.balance) - totalCost,
     }).eq('id', targetAccount.id);
 
+    // Advance next_due_date by N cycles, set last_paid_date to today
+    const today = todayInTz();
+    const newNextDue = calculateNextDate(startDate, bill.frequency, safeCycles);
     await supabase.from('bills_subscriptions').update({
       last_paid_date: today,
-      next_due_date: nextDate,
+      next_due_date: newNextDue,
     }).eq('id', bill.id);
 
     onTransactionCreated?.();
-    toast.success(`${bill.name} paid from ${targetAccount.name}`);
+    toast.success(
+      safeCycles > 1
+        ? `${bill.name}: ${safeCycles} cycles paid (${formatCurrency(totalCost, bill.currency)}) from ${targetAccount.name}`
+        : `${bill.name} paid from ${targetAccount.name}`
+    );
     fetchBills();
   };
 
-  const calculateNextDate = (from: string, freq: string): string => {
+  const calculateNextDate = (from: string, freq: string, cycles: number = 1): string => {
     // Use noon UTC to avoid TZ drift when adding months/years
     const d = new Date(`${from}T12:00:00Z`);
+    const n = Math.max(1, Math.floor(cycles));
     switch (freq) {
-      case 'weekly': d.setUTCDate(d.getUTCDate() + 7); break;
-      case 'biweekly': d.setUTCDate(d.getUTCDate() + 14); break;
-      case 'monthly': d.setUTCMonth(d.getUTCMonth() + 1); break;
-      case 'quarterly': d.setUTCMonth(d.getUTCMonth() + 3); break;
-      case 'yearly': d.setUTCFullYear(d.getUTCFullYear() + 1); break;
+      case 'weekly': d.setUTCDate(d.getUTCDate() + 7 * n); break;
+      case 'biweekly': d.setUTCDate(d.getUTCDate() + 14 * n); break;
+      case 'monthly': d.setUTCMonth(d.getUTCMonth() + n); break;
+      case 'quarterly': d.setUTCMonth(d.getUTCMonth() + 3 * n); break;
+      case 'yearly': d.setUTCFullYear(d.getUTCFullYear() + n); break;
     }
     return d.toISOString().slice(0, 10);
   };
