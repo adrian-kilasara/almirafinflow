@@ -12,7 +12,7 @@ import {
   LogOut, Sparkles, Target, CreditCard, BarChart3,
   Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle,
   User, ChevronDown, X, Archive, CalendarClock, Briefcase, ScrollText, Landmark,
-  ArrowUpRight, ArrowDownRight, Activity, Zap
+  ArrowUpRight, ArrowDownRight, Activity, Zap, Search, Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
@@ -60,8 +60,12 @@ const PredictiveCashFlow = lazy(() => import('@/components/dashboard/PredictiveC
 const SmartSpendingDetection = lazy(() => import('@/components/dashboard/SmartSpendingDetection'));
 const ActivityLog = lazy(() => import('@/components/activity/ActivityLog'));
 const CalendarSummary = lazy(() => import('@/components/dashboard/CalendarSummary'));
+const FinancialCalculators = lazy(() => import('@/components/education/FinancialCalculators'));
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
+import {
+  CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem
+} from '@/components/ui/command';
 
 const TabFallback = () => (
   <div className="space-y-4 py-4">
@@ -140,6 +144,7 @@ export default function Dashboard() {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
     const el = tabRefs.current[activeTab];
@@ -147,6 +152,18 @@ export default function Dashboard() {
       setIndicatorStyle({ left: el.offsetLeft, width: el.offsetWidth });
     }
   }, [activeTab]);
+
+  // ⌘K / Ctrl+K — open Command Palette
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setPaletteOpen(open => !open);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -436,6 +453,26 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPaletteOpen(true)}
+                className="hidden sm:flex items-center gap-2 rounded-xl px-2.5 h-9 hover:bg-muted/60 text-muted-foreground"
+                title="Quick search (⌘K)"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span className="text-[11px] hidden lg:inline">Search</span>
+                <kbd className="hidden lg:inline-flex h-5 items-center gap-0.5 rounded border border-border/60 bg-muted/40 px-1.5 font-mono text-[9px] text-muted-foreground">⌘K</kbd>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setPaletteOpen(true)}
+                className="sm:hidden h-9 w-9 rounded-xl"
+                title="Quick search"
+              >
+                <Search className="w-4 h-4" />
+              </Button>
               <CategoryManager onSuccess={fetchData} />
               <NotificationCenter />
               <DropdownMenu>
@@ -1384,6 +1421,9 @@ export default function Dashboard() {
           <TabsContent value="learn" className="space-y-6">
           <Suspense fallback={<TabFallback />}>
             <FinancialLessons transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} accounts={accounts} />
+            <div className="mt-6">
+              <FinancialCalculators />
+            </div>
           </Suspense>
           </TabsContent>
 
@@ -1458,6 +1498,63 @@ export default function Dashboard() {
 
       {/* Floating Action Button */}
       <FloatingTransactionForm accounts={accounts} categories={categories} onSuccess={fetchData} />
+
+      {/* ⌘K Command Palette */}
+      <CommandDialog open={paletteOpen} onOpenChange={setPaletteOpen}>
+        <CommandInput placeholder="Search tabs, actions, accounts…" />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandGroup heading="Navigate">
+            {navItems.map(item => {
+              const Icon = item.icon;
+              return (
+                <CommandItem
+                  key={item.id}
+                  value={`go ${item.label}`}
+                  onSelect={() => { setActiveTab(item.id); setPaletteOpen(false); }}
+                >
+                  <Icon className="mr-2 h-4 w-4" />
+                  <span>{item.label}</span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+          <CommandGroup heading="Quick Actions">
+            <CommandItem value="add expense" onSelect={() => { setTransactionFormType('expense'); setShowTransactionForm(true); setPaletteOpen(false); }}>
+              <Plus className="mr-2 h-4 w-4 text-expense" /> Add Expense
+            </CommandItem>
+            <CommandItem value="add income" onSelect={() => { setTransactionFormType('income'); setShowTransactionForm(true); setPaletteOpen(false); }}>
+              <Plus className="mr-2 h-4 w-4 text-income" /> Add Income
+            </CommandItem>
+            <CommandItem value="transfer" onSelect={() => { setTransactionFormType('transfer'); setShowTransactionForm(true); setPaletteOpen(false); }}>
+              <ArrowUpRight className="mr-2 h-4 w-4 text-primary" /> New Transfer
+            </CommandItem>
+            <CommandItem value="open settings" onSelect={() => { navigate('/settings'); setPaletteOpen(false); }}>
+              <Settings className="mr-2 h-4 w-4" /> Open Settings
+            </CommandItem>
+            <CommandItem value="sign out" onSelect={() => { handleSignOut(); setPaletteOpen(false); }}>
+              <LogOut className="mr-2 h-4 w-4 text-destructive" /> Sign Out
+            </CommandItem>
+          </CommandGroup>
+          {accounts.length > 0 && (
+            <CommandGroup heading="Accounts">
+              {accounts.slice(0, 8).map(a => (
+                <CommandItem
+                  key={a.id}
+                  value={`account ${a.name}`}
+                  onSelect={() => { setSelectedAccount(a); setActiveTab('accounts'); setPaletteOpen(false); }}
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span className="flex-1">{a.name}</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {formatCurrency(Number(a.balance), a.currency)}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </CommandDialog>
     </div>
   );
 }

@@ -99,6 +99,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
   const [provider, setProvider] = useState('');
   const [notes, setNotes] = useState('');
   const [payFromAccount, setPayFromAccount] = useState('');
+  const [payCycles, setPayCycles] = useState<number>(1);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (user) fetchBills(); }, [user]);
@@ -172,10 +173,9 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
     toast.success('Bill removed');
   };
 
-  const markPaid = async (bill: Bill, sourceAccountId?: string) => {
+  const markPaid = async (bill: Bill, sourceAccountId?: string, cycles: number = 1) => {
     if (!user) return;
-    const today = todayInTz();
-    const nextDate = calculateNextDate(today, bill.frequency);
+    const safeCycles = Math.max(1, Math.min(12, Math.floor(cycles)));
 
     // Determine source account: explicit pick > stored payFromAccount > first active
     const pickedId = sourceAccountId || payFromAccount;
@@ -185,6 +185,18 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
 
     if (!targetAccount) {
       toast.error('No account available — add an account first');
+      return;
+    }
+
+    // Currency-match guard — protects against silent FX drift
+    if (targetAccount.currency !== bill.currency) {
+      toast.error(`Currency mismatch: bill is in ${bill.currency}, ${targetAccount.name} is ${targetAccount.currency}`);
+      return;
+    }
+
+    const totalCost = Number(bill.amount) * safeCycles;
+    if (Number(targetAccount.balance) < totalCost) {
+      toast.error(`Insufficient balance in ${targetAccount.name} for ${safeCycles} cycle${safeCycles > 1 ? 's' : ''}`);
       return;
     }
 
@@ -212,49 +224,63 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
       categoryId = null;
     }
 
-    const { error: txError } = await supabase.from('transactions').insert({
-      user_id: user.id,
-      account_id: targetAccount.id,
-      type: 'expense' as const,
-      amount: Number(bill.amount),
-      currency: targetAccount.currency,
-      date: today,
-      description: `${bill.name} — ${bill.frequency} payment`,
-      merchant: bill.provider || bill.name,
-      payment_method: bill.auto_pay ? 'auto_debit' : 'cash',
-      status: 'completed',
-      category_id: categoryId,
-      tags: ['bill-payment', bill.category],
+    // Build N transactions, one per cycle (dated at each cycle's due date)
+    const startDate = bill.next_due_date || todayInTz();
+    const txRows = Array.from({ length: safeCycles }, (_, i) => {
+      const cycleDate = i === 0 ? startDate : calculateNextDate(startDate, bill.frequency, i);
+      return {
+        user_id: user.id,
+        account_id: targetAccount.id,
+        type: 'expense' as const,
+        amount: Number(bill.amount),
+        currency: bill.currency,
+        date: cycleDate,
+        description: `${bill.name} — ${bill.frequency} payment${safeCycles > 1 ? ` (${i + 1}/${safeCycles})` : ''}`,
+        merchant: bill.provider || bill.name,
+        payment_method: bill.auto_pay ? 'auto_debit' : 'cash',
+        status: 'completed' as const,
+        category_id: categoryId,
+        tags: ['bill-payment', bill.category],
+      };
     });
 
+    const { error: txError } = await supabase.from('transactions').insert(txRows as any);
     if (txError) {
       toast.error('Failed to record payment');
       return;
     }
 
     await supabase.from('accounts').update({
-      balance: Number(targetAccount.balance) - Number(bill.amount),
+      balance: Number(targetAccount.balance) - totalCost,
     }).eq('id', targetAccount.id);
 
+    // Advance next_due_date by N cycles, set last_paid_date to today
+    const today = todayInTz();
+    const newNextDue = calculateNextDate(startDate, bill.frequency, safeCycles);
     await supabase.from('bills_subscriptions').update({
       last_paid_date: today,
-      next_due_date: nextDate,
+      next_due_date: newNextDue,
     }).eq('id', bill.id);
 
     onTransactionCreated?.();
-    toast.success(`${bill.name} paid from ${targetAccount.name}`);
+    toast.success(
+      safeCycles > 1
+        ? `${bill.name}: ${safeCycles} cycles paid (${formatCurrency(totalCost, bill.currency)}) from ${targetAccount.name}`
+        : `${bill.name} paid from ${targetAccount.name}`
+    );
     fetchBills();
   };
 
-  const calculateNextDate = (from: string, freq: string): string => {
+  const calculateNextDate = (from: string, freq: string, cycles: number = 1): string => {
     // Use noon UTC to avoid TZ drift when adding months/years
     const d = new Date(`${from}T12:00:00Z`);
+    const n = Math.max(1, Math.floor(cycles));
     switch (freq) {
-      case 'weekly': d.setUTCDate(d.getUTCDate() + 7); break;
-      case 'biweekly': d.setUTCDate(d.getUTCDate() + 14); break;
-      case 'monthly': d.setUTCMonth(d.getUTCMonth() + 1); break;
-      case 'quarterly': d.setUTCMonth(d.getUTCMonth() + 3); break;
-      case 'yearly': d.setUTCFullYear(d.getUTCFullYear() + 1); break;
+      case 'weekly': d.setUTCDate(d.getUTCDate() + 7 * n); break;
+      case 'biweekly': d.setUTCDate(d.getUTCDate() + 14 * n); break;
+      case 'monthly': d.setUTCMonth(d.getUTCMonth() + n); break;
+      case 'quarterly': d.setUTCMonth(d.getUTCMonth() + 3 * n); break;
+      case 'yearly': d.setUTCFullYear(d.getUTCFullYear() + n); break;
     }
     return d.toISOString().slice(0, 10);
   };
@@ -480,30 +506,60 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
                             <CheckCircle className="w-3 h-3 text-income" /> Pay
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent align="end" className="w-64 p-3 space-y-2">
+                        <PopoverContent align="end" className="w-72 p-3 space-y-2.5">
                           <p className="text-xs font-semibold">Pay {bill.name}</p>
                           <p className="text-[10px] text-muted-foreground">
-                            {formatCurrency(Number(bill.amount))} will be deducted from the selected account.
+                            {formatCurrency(Number(bill.amount) * payCycles, bill.currency as any)} total
+                            {payCycles > 1 ? ` (${payCycles} × ${bill.frequency})` : ''} will be deducted.
                           </p>
+
+                          {/* Pay-forward stepper */}
+                          <div className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-muted/40 border border-border/40">
+                            <span className="text-[10px] font-medium text-muted-foreground">Pay forward</span>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                type="button" variant="ghost" size="icon"
+                                className="h-6 w-6 rounded-md"
+                                onClick={() => setPayCycles(c => Math.max(1, c - 1))}
+                                disabled={payCycles <= 1}
+                              >−</Button>
+                              <span className="text-xs font-bold font-mono w-6 text-center">{payCycles}</span>
+                              <Button
+                                type="button" variant="ghost" size="icon"
+                                className="h-6 w-6 rounded-md"
+                                onClick={() => setPayCycles(c => Math.min(12, c + 1))}
+                                disabled={payCycles >= 12}
+                              >+</Button>
+                              <span className="text-[9px] text-muted-foreground ml-1 capitalize">{bill.frequency}</span>
+                            </div>
+                          </div>
+
                           <Select onValueChange={setPayFromAccount} value={payFromAccount}>
                             <SelectTrigger className="rounded-lg h-8 text-xs">
                               <SelectValue placeholder="Pay from…" />
                             </SelectTrigger>
                             <SelectContent>
-                              {accounts.filter(a => a.is_active && !a.is_archived).map(a => (
-                                <SelectItem key={a.id} value={a.id}>
-                                  {a.name} ({formatCurrency(Number(a.balance), a.currency)})
-                                </SelectItem>
-                              ))}
+                              {accounts
+                                .filter(a => a.is_active && !a.is_archived && a.currency === bill.currency)
+                                .map(a => (
+                                  <SelectItem key={a.id} value={a.id}>
+                                    {a.name} ({formatCurrency(Number(a.balance), a.currency)})
+                                  </SelectItem>
+                                ))}
+                              {accounts.filter(a => a.is_active && !a.is_archived && a.currency === bill.currency).length === 0 && (
+                                <div className="p-2 text-[10px] text-muted-foreground">
+                                  No active {bill.currency} accounts.
+                                </div>
+                              )}
                             </SelectContent>
                           </Select>
                           <Button
                             size="sm"
                             className="w-full h-8 text-xs"
-                            onClick={() => markPaid(bill, payFromAccount)}
-                            disabled={!payFromAccount && accounts.filter(a => a.is_active && !a.is_archived).length === 0}
+                            onClick={() => { markPaid(bill, payFromAccount, payCycles); setPayCycles(1); }}
+                            disabled={!payFromAccount}
                           >
-                            Confirm Payment
+                            Confirm Payment{payCycles > 1 ? ` × ${payCycles}` : ''}
                           </Button>
                         </PopoverContent>
                       </Popover>
