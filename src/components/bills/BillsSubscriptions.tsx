@@ -243,7 +243,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
       };
     });
 
-    const { error: txError } = await supabase.from('transactions').insert(txRows);
+    const { error: txError } = await supabase.from('transactions').insert(txRows as any);
     if (txError) {
       toast.error('Failed to record payment');
       return;
