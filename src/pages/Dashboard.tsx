@@ -60,6 +60,7 @@ const PredictiveCashFlow = lazy(() => import('@/components/dashboard/PredictiveC
 const SmartSpendingDetection = lazy(() => import('@/components/dashboard/SmartSpendingDetection'));
 const ActivityLog = lazy(() => import('@/components/activity/ActivityLog'));
 const CalendarSummary = lazy(() => import('@/components/dashboard/CalendarSummary'));
+const FinancialCalculators = lazy(() => import('@/components/education/FinancialCalculators'));
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
 
@@ -1384,6 +1385,9 @@ export default function Dashboard() {
           <TabsContent value="learn" className="space-y-6">
           <Suspense fallback={<TabFallback />}>
             <FinancialLessons transactions={transactions} categories={categories} budgets={budgets} savingsGoals={savingsGoals} accounts={accounts} />
+            <div className="mt-6">
+              <FinancialCalculators />
+            </div>
           </Suspense>
           </TabsContent>
 
