@@ -12,7 +12,7 @@ import {
   LogOut, Sparkles, Target, CreditCard, BarChart3,
   Receipt, Folder, Menu, GraduationCap, Settings, AlertTriangle,
   User, ChevronDown, X, Archive, CalendarClock, Briefcase, ScrollText, Landmark,
-  ArrowUpRight, ArrowDownRight, Activity, Zap
+  ArrowUpRight, ArrowDownRight, Activity, Zap, Search, Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ACCOUNT_TYPE_ICONS } from '@/types/finance';
@@ -63,6 +63,9 @@ const CalendarSummary = lazy(() => import('@/components/dashboard/CalendarSummar
 const FinancialCalculators = lazy(() => import('@/components/education/FinancialCalculators'));
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
+import {
+  CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem
+} from '@/components/ui/command';
 
 const TabFallback = () => (
   <div className="space-y-4 py-4">
