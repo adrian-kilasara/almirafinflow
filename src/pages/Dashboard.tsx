@@ -141,6 +141,7 @@ export default function Dashboard() {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
     const el = tabRefs.current[activeTab];
@@ -148,6 +149,18 @@ export default function Dashboard() {
       setIndicatorStyle({ left: el.offsetLeft, width: el.offsetWidth });
     }
   }, [activeTab]);
+
+  // ⌘K / Ctrl+K — open Command Palette
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setPaletteOpen(open => !open);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
