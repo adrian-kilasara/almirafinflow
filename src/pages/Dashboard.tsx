@@ -1498,6 +1498,63 @@ export default function Dashboard() {
 
       {/* Floating Action Button */}
       <FloatingTransactionForm accounts={accounts} categories={categories} onSuccess={fetchData} />
+
+      {/* ⌘K Command Palette */}
+      <CommandDialog open={paletteOpen} onOpenChange={setPaletteOpen}>
+        <CommandInput placeholder="Search tabs, actions, accounts…" />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandGroup heading="Navigate">
+            {navItems.map(item => {
+              const Icon = item.icon;
+              return (
+                <CommandItem
+                  key={item.id}
+                  value={`go ${item.label}`}
+                  onSelect={() => { setActiveTab(item.id); setPaletteOpen(false); }}
+                >
+                  <Icon className="mr-2 h-4 w-4" />
+                  <span>{item.label}</span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+          <CommandGroup heading="Quick Actions">
+            <CommandItem value="add expense" onSelect={() => { setTransactionFormType('expense'); setShowTransactionForm(true); setPaletteOpen(false); }}>
+              <Plus className="mr-2 h-4 w-4 text-expense" /> Add Expense
+            </CommandItem>
+            <CommandItem value="add income" onSelect={() => { setTransactionFormType('income'); setShowTransactionForm(true); setPaletteOpen(false); }}>
+              <Plus className="mr-2 h-4 w-4 text-income" /> Add Income
+            </CommandItem>
+            <CommandItem value="transfer" onSelect={() => { setTransactionFormType('transfer'); setShowTransactionForm(true); setPaletteOpen(false); }}>
+              <ArrowUpRight className="mr-2 h-4 w-4 text-primary" /> New Transfer
+            </CommandItem>
+            <CommandItem value="open settings" onSelect={() => { navigate('/settings'); setPaletteOpen(false); }}>
+              <Settings className="mr-2 h-4 w-4" /> Open Settings
+            </CommandItem>
+            <CommandItem value="sign out" onSelect={() => { handleSignOut(); setPaletteOpen(false); }}>
+              <LogOut className="mr-2 h-4 w-4 text-destructive" /> Sign Out
+            </CommandItem>
+          </CommandGroup>
+          {accounts.length > 0 && (
+            <CommandGroup heading="Accounts">
+              {accounts.slice(0, 8).map(a => (
+                <CommandItem
+                  key={a.id}
+                  value={`account ${a.name}`}
+                  onSelect={() => { setSelectedAccount(a); setActiveTab('accounts'); setPaletteOpen(false); }}
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span className="flex-1">{a.name}</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {formatCurrency(Number(a.balance), a.currency)}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </CommandDialog>
     </div>
   );
 }
