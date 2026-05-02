@@ -99,6 +99,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
   const [provider, setProvider] = useState('');
   const [notes, setNotes] = useState('');
   const [payFromAccount, setPayFromAccount] = useState('');
+  const [payCycles, setPayCycles] = useState<number>(1);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (user) fetchBills(); }, [user]);
@@ -505,30 +506,60 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
                             <CheckCircle className="w-3 h-3 text-income" /> Pay
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent align="end" className="w-64 p-3 space-y-2">
+                        <PopoverContent align="end" className="w-72 p-3 space-y-2.5">
                           <p className="text-xs font-semibold">Pay {bill.name}</p>
                           <p className="text-[10px] text-muted-foreground">
-                            {formatCurrency(Number(bill.amount))} will be deducted from the selected account.
+                            {formatCurrency(Number(bill.amount) * payCycles, bill.currency)} total
+                            {payCycles > 1 ? ` (${payCycles} × ${bill.frequency})` : ''} will be deducted.
                           </p>
+
+                          {/* Pay-forward stepper */}
+                          <div className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-muted/40 border border-border/40">
+                            <span className="text-[10px] font-medium text-muted-foreground">Pay forward</span>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                type="button" variant="ghost" size="icon"
+                                className="h-6 w-6 rounded-md"
+                                onClick={() => setPayCycles(c => Math.max(1, c - 1))}
+                                disabled={payCycles <= 1}
+                              >−</Button>
+                              <span className="text-xs font-bold font-mono w-6 text-center">{payCycles}</span>
+                              <Button
+                                type="button" variant="ghost" size="icon"
+                                className="h-6 w-6 rounded-md"
+                                onClick={() => setPayCycles(c => Math.min(12, c + 1))}
+                                disabled={payCycles >= 12}
+                              >+</Button>
+                              <span className="text-[9px] text-muted-foreground ml-1 capitalize">{bill.frequency}</span>
+                            </div>
+                          </div>
+
                           <Select onValueChange={setPayFromAccount} value={payFromAccount}>
                             <SelectTrigger className="rounded-lg h-8 text-xs">
                               <SelectValue placeholder="Pay from…" />
                             </SelectTrigger>
                             <SelectContent>
-                              {accounts.filter(a => a.is_active && !a.is_archived).map(a => (
-                                <SelectItem key={a.id} value={a.id}>
-                                  {a.name} ({formatCurrency(Number(a.balance), a.currency)})
-                                </SelectItem>
-                              ))}
+                              {accounts
+                                .filter(a => a.is_active && !a.is_archived && a.currency === bill.currency)
+                                .map(a => (
+                                  <SelectItem key={a.id} value={a.id}>
+                                    {a.name} ({formatCurrency(Number(a.balance), a.currency)})
+                                  </SelectItem>
+                                ))}
+                              {accounts.filter(a => a.is_active && !a.is_archived && a.currency === bill.currency).length === 0 && (
+                                <div className="p-2 text-[10px] text-muted-foreground">
+                                  No active {bill.currency} accounts.
+                                </div>
+                              )}
                             </SelectContent>
                           </Select>
                           <Button
                             size="sm"
                             className="w-full h-8 text-xs"
-                            onClick={() => markPaid(bill, payFromAccount)}
-                            disabled={!payFromAccount && accounts.filter(a => a.is_active && !a.is_archived).length === 0}
+                            onClick={() => { markPaid(bill, payFromAccount, payCycles); setPayCycles(1); }}
+                            disabled={!payFromAccount}
                           >
-                            Confirm Payment
+                            Confirm Payment{payCycles > 1 ? ` × ${payCycles}` : ''}
                           </Button>
                         </PopoverContent>
                       </Popover>
