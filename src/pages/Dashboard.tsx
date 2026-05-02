@@ -453,6 +453,26 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPaletteOpen(true)}
+                className="hidden sm:flex items-center gap-2 rounded-xl px-2.5 h-9 hover:bg-muted/60 text-muted-foreground"
+                title="Quick search (⌘K)"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span className="text-[11px] hidden lg:inline">Search</span>
+                <kbd className="hidden lg:inline-flex h-5 items-center gap-0.5 rounded border border-border/60 bg-muted/40 px-1.5 font-mono text-[9px] text-muted-foreground">⌘K</kbd>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setPaletteOpen(true)}
+                className="sm:hidden h-9 w-9 rounded-xl"
+                title="Quick search"
+              >
+                <Search className="w-4 h-4" />
+              </Button>
               <CategoryManager onSuccess={fetchData} />
               <NotificationCenter />
               <DropdownMenu>
