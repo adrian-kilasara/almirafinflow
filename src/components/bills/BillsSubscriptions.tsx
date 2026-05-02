@@ -509,7 +509,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
                         <PopoverContent align="end" className="w-72 p-3 space-y-2.5">
                           <p className="text-xs font-semibold">Pay {bill.name}</p>
                           <p className="text-[10px] text-muted-foreground">
-                            {formatCurrency(Number(bill.amount) * payCycles, bill.currency)} total
+                            {formatCurrency(Number(bill.amount) * payCycles, bill.currency as any)} total
                             {payCycles > 1 ? ` (${payCycles} × ${bill.frequency})` : ''} will be deducted.
                           </p>
 
