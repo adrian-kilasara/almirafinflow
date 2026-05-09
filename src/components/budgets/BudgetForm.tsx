@@ -144,7 +144,7 @@ export default function BudgetForm({ categories, transactions = [], savingsGoals
   };
 
   const applyTemplate = async (template: typeof BUDGET_TEMPLATES[0]) => {
-    if (!confirm(`Apply "${template.name}"? This will create ${template.items.length} live budgets in ${userCurrency}.`)) {
+    if (!confirm(`Apply "${template.name}"? This will create ${template.items.length} live budgets in ${userCurrency} and reset any existing over-budget alerts.`)) {
       return;
     }
     setLoading(true);
@@ -164,7 +164,14 @@ export default function BudgetForm({ categories, transactions = [], savingsGoals
       const { error } = await supabase.from('budgets').insert(budgets);
       if (error) throw error;
 
-      toast.success(`Applied "${template.name}" — ${template.items.length} live budgets created in ${userCurrency}`);
+      // Clear stale over-budget notifications so the system reflects the fresh template
+      await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userData.user.id)
+        .in('type', ['budget_exceeded', 'warning']);
+
+      toast.success(`Applied "${template.name}" — ${template.items.length} live budgets created in ${userCurrency}. Over-budget alerts reset.`);
       setShowTemplates(false);
       setOpen(false);
       onSuccess();
