@@ -362,7 +362,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
       >
         {[
           { label: 'Active Bills', value: String(summary.total), icon: Receipt, color: 'text-primary' },
-          { label: 'Monthly Cost', value: formatCurrency(summary.monthly), icon: TrendingUp, color: 'text-expense' },
+          { label: 'Monthly Cost', value: formatCurrency(summary.monthly, baseCurrency), icon: TrendingUp, color: 'text-expense' },
           { label: 'Due This Week', value: String(summary.upcoming), icon: CalendarClock, color: 'text-[hsl(var(--warning))]' },
           { label: 'Overdue', value: String(summary.overdue), icon: AlertTriangle, color: summary.overdue > 0 ? 'text-expense' : 'text-income' },
         ].map((stat) => {
@@ -626,11 +626,11 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Annual Subscription Cost</p>
-                  <p className="text-xl font-bold font-mono text-expense">{formatCurrency(summary.yearly)}</p>
+                  <p className="text-xl font-bold font-mono text-expense">{formatCurrency(summary.yearly, baseCurrency)}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Average</p>
-                  <p className="text-xl font-bold font-mono">{formatCurrency(summary.monthly)}</p>
+                  <p className="text-xl font-bold font-mono">{formatCurrency(summary.monthly, baseCurrency)}</p>
                 </div>
               </div>
             </CardContent>
