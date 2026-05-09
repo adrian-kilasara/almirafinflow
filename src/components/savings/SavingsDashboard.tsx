@@ -9,6 +9,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { SavingsGoal, Transaction, Account } from '@/types/finance';
 import SavingsGoalForm from './SavingsGoalForm';
 import SavingsGoalCard from './SavingsGoalCard';
+import { useSettings } from '@/hooks/useSettings';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { convertTo } from '@/lib/currency';
 
 interface SavingsDashboardProps {
   savingsGoals: SavingsGoal[];
@@ -21,12 +24,24 @@ const spring = { type: 'spring' as const, stiffness: 400, damping: 30 };
 const stagger = { staggerChildren: 0.06, delayChildren: 0.1 };
 
 export default function SavingsDashboard({ savingsGoals, transactions, accounts, onRefresh }: SavingsDashboardProps) {
+  const { settings } = useSettings();
+  const { rates } = useExchangeRates();
+  const baseCurrency = settings.default_currency;
+
   const stats = useMemo(() => {
-    const totalTarget = savingsGoals.reduce((s, g) => s + Number(g.target_amount), 0);
-    const totalSaved = savingsGoals.reduce((s, g) => s + Number(g.current_amount), 0);
+    // Convert every goal to base currency for accurate aggregate totals
+    const totalTarget = savingsGoals.reduce(
+      (s, g) => s + convertTo(Number(g.target_amount), g.currency || baseCurrency, baseCurrency, rates),
+      0
+    );
+    const totalSaved = savingsGoals.reduce(
+      (s, g) => s + convertTo(Number(g.current_amount), g.currency || baseCurrency, baseCurrency, rates),
+      0
+    );
     const completed = savingsGoals.filter(g => g.is_completed).length;
     const active = savingsGoals.filter(g => !g.is_completed);
     const overallPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
+    const distinctCurrencies = Array.from(new Set(savingsGoals.map(g => g.currency || baseCurrency)));
 
     const upcoming = active
       .filter(g => g.target_date)
@@ -39,13 +54,18 @@ export default function SavingsDashboard({ savingsGoals, transactions, accounts,
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthStart = d.toISOString().split('T')[0];
       const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0];
-      const income = transactions.filter(t => t.type === 'income' && t.date >= monthStart && t.date <= monthEnd).reduce((s, t) => s + Number(t.amount), 0);
-      const expenses = transactions.filter(t => t.type === 'expense' && t.date >= monthStart && t.date <= monthEnd).reduce((s, t) => s + Number(t.amount), 0);
+      const inMonth = transactions.filter(t => t.date >= monthStart && t.date <= monthEnd && !t.is_deleted);
+      const income = inMonth
+        .filter(t => t.type === 'income')
+        .reduce((s, t) => s + convertTo(Number(t.amount), t.currency || baseCurrency, baseCurrency, rates), 0);
+      const expenses = inMonth
+        .filter(t => t.type === 'expense')
+        .reduce((s, t) => s + convertTo(Number(t.amount), t.currency || baseCurrency, baseCurrency, rates), 0);
       monthlySaved.push({ month: d.toLocaleDateString('en', { month: 'short' }), amount: Math.max(income - expenses, 0) });
     }
 
-    return { totalTarget, totalSaved, completed, active, overallPct, upcoming, monthlySaved, total: savingsGoals.length };
-  }, [savingsGoals, transactions]);
+    return { totalTarget, totalSaved, completed, active, overallPct, upcoming, monthlySaved, total: savingsGoals.length, distinctCurrencies };
+  }, [savingsGoals, transactions, rates, baseCurrency]);
 
   const exportCSV = () => {
     const header = 'Goal,Target,Saved,Progress,Status,Target Date\n';
