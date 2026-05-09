@@ -1558,11 +1558,11 @@ export default function Dashboard() {
               {transactions.slice(0, 30).map(t => (
                 <CommandItem
                   key={t.id}
-                  value={`tx ${t.description || ''} ${t.merchant || ''} ${t.amount} ${t.currency}`}
+                  value={`tx ${t.description || ''} ${(t as any).merchant || ''} ${t.amount} ${t.currency}`}
                   onSelect={() => { setActiveTab('transactions'); setPaletteOpen(false); }}
                 >
                   <Receipt className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <span className="flex-1 truncate">{t.description || t.merchant || 'Transaction'}</span>
+                  <span className="flex-1 truncate">{t.description || (t as any).merchant || 'Transaction'}</span>
                   <span className={`text-[10px] font-mono ${t.type === 'income' ? 'text-income' : 'text-expense'}`}>
                     {t.type === 'income' ? '+' : '-'}{formatCurrency(Number(t.amount), t.currency as any)}
                   </span>
