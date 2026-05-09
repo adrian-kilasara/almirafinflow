@@ -32,6 +32,10 @@ function getPeriodRange(period: string, budgetStartDate?: string | null) {
 }
 
 export default function BudgetList({ budgets, transactions, categories }: BudgetListProps) {
+  const { settings } = useSettings();
+  const { rates } = useExchangeRates();
+  const baseCurrency = settings.default_currency;
+
   const budgetsWithSpent = useMemo(() => {
     return budgets.map(budget => {
       const { start, end } = getPeriodRange(budget.period, (budget as any).start_date);
@@ -53,13 +57,21 @@ export default function BudgetList({ budgets, transactions, categories }: Budget
     });
   }, [budgets, transactions, categories]);
 
-  const totalBudget = budgets.reduce((s, b) => s + Number(b.amount), 0);
-  const totalSpent = budgetsWithSpent.reduce((s, b) => s + b.spent, 0);
+  // Convert each budget into base currency for cross-currency totals
+  const totalBudget = budgetsWithSpent.reduce(
+    (s, b) => s + convertTo(Number(b.amount), b.currency || baseCurrency, baseCurrency, rates),
+    0
+  );
+  const totalSpent = budgetsWithSpent.reduce(
+    (s, b) => s + convertTo(b.spent, b.currency || baseCurrency, baseCurrency, rates),
+    0
+  );
   const totalRemaining = totalBudget - totalSpent;
   const overallPercent = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
   const overBudgetCount = budgetsWithSpent.filter(b => b.isOverBudget).length;
   const safeCount = budgetsWithSpent.filter(b => b.status === 'safe').length;
   const warningCount = budgetsWithSpent.filter(b => b.status === 'warning').length;
+  const distinctCurrencies = Array.from(new Set(budgets.map(b => b.currency || baseCurrency)));
 
   const overallColor = overallPercent >= 100 ? 'hsl(var(--expense))' : overallPercent >= 70 ? 'hsl(var(--warning))' : 'hsl(var(--income))';
 
