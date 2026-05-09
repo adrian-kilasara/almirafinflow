@@ -159,21 +159,26 @@ export default function BudgetList({ budgets, transactions, categories }: Budget
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
                     className="p-3 rounded-xl bg-muted/20 border border-border/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mb-1">Total Budget</p>
-                    <p className="text-lg font-bold font-mono">{formatCurrency(totalBudget)}</p>
+                    <p className="text-lg font-bold font-mono">{formatCurrency(totalBudget, baseCurrency)}</p>
                   </motion.div>
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                     className="p-3 rounded-xl bg-muted/20 border border-border/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mb-1">Total Spent</p>
-                    <p className="text-lg font-bold font-mono" style={{ color: overallColor }}>{formatCurrency(totalSpent)}</p>
+                    <p className="text-lg font-bold font-mono" style={{ color: overallColor }}>{formatCurrency(totalSpent, baseCurrency)}</p>
                   </motion.div>
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
                     className="p-3 rounded-xl bg-muted/20 border border-border/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mb-1">Remaining</p>
                     <p className={`text-lg font-bold font-mono ${totalRemaining >= 0 ? 'text-income' : 'text-expense'}`}>
-                      {formatCurrency(totalRemaining)}
+                      {formatCurrency(totalRemaining, baseCurrency)}
                     </p>
                   </motion.div>
                 </div>
+                {distinctCurrencies.length > 1 && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Totals shown in <span className="font-semibold text-primary">{baseCurrency}</span> · converted from {distinctCurrencies.join(', ')}
+                  </p>
+                )}
 
                 {/* Status pills */}
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
