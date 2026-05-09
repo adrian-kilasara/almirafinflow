@@ -6,6 +6,9 @@ import { Wallet, Download, TrendingUp, TrendingDown, BarChart3, Shield, AlertTri
 import { motion } from 'framer-motion';
 import type { Budget, Transaction, Category } from '@/types/finance';
 import { isWithinInterval, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { useSettings } from '@/hooks/useSettings';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { convertTo } from '@/lib/currency';
 
 interface BudgetListProps {
   budgets: Budget[];
@@ -29,6 +32,10 @@ function getPeriodRange(period: string, budgetStartDate?: string | null) {
 }
 
 export default function BudgetList({ budgets, transactions, categories }: BudgetListProps) {
+  const { settings } = useSettings();
+  const { rates } = useExchangeRates();
+  const baseCurrency = settings.default_currency;
+
   const budgetsWithSpent = useMemo(() => {
     return budgets.map(budget => {
       const { start, end } = getPeriodRange(budget.period, (budget as any).start_date);
@@ -50,13 +57,21 @@ export default function BudgetList({ budgets, transactions, categories }: Budget
     });
   }, [budgets, transactions, categories]);
 
-  const totalBudget = budgets.reduce((s, b) => s + Number(b.amount), 0);
-  const totalSpent = budgetsWithSpent.reduce((s, b) => s + b.spent, 0);
+  // Convert each budget into base currency for cross-currency totals
+  const totalBudget = budgetsWithSpent.reduce(
+    (s, b) => s + convertTo(Number(b.amount), b.currency || baseCurrency, baseCurrency, rates),
+    0
+  );
+  const totalSpent = budgetsWithSpent.reduce(
+    (s, b) => s + convertTo(b.spent, b.currency || baseCurrency, baseCurrency, rates),
+    0
+  );
   const totalRemaining = totalBudget - totalSpent;
   const overallPercent = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
   const overBudgetCount = budgetsWithSpent.filter(b => b.isOverBudget).length;
   const safeCount = budgetsWithSpent.filter(b => b.status === 'safe').length;
   const warningCount = budgetsWithSpent.filter(b => b.status === 'warning').length;
+  const distinctCurrencies = Array.from(new Set(budgets.map(b => b.currency || baseCurrency)));
 
   const overallColor = overallPercent >= 100 ? 'hsl(var(--expense))' : overallPercent >= 70 ? 'hsl(var(--warning))' : 'hsl(var(--income))';
 
@@ -144,21 +159,26 @@ export default function BudgetList({ budgets, transactions, categories }: Budget
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
                     className="p-3 rounded-xl bg-muted/20 border border-border/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mb-1">Total Budget</p>
-                    <p className="text-lg font-bold font-mono">{formatCurrency(totalBudget)}</p>
+                    <p className="text-lg font-bold font-mono">{formatCurrency(totalBudget, baseCurrency)}</p>
                   </motion.div>
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                     className="p-3 rounded-xl bg-muted/20 border border-border/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mb-1">Total Spent</p>
-                    <p className="text-lg font-bold font-mono" style={{ color: overallColor }}>{formatCurrency(totalSpent)}</p>
+                    <p className="text-lg font-bold font-mono" style={{ color: overallColor }}>{formatCurrency(totalSpent, baseCurrency)}</p>
                   </motion.div>
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
                     className="p-3 rounded-xl bg-muted/20 border border-border/20">
                     <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium mb-1">Remaining</p>
                     <p className={`text-lg font-bold font-mono ${totalRemaining >= 0 ? 'text-income' : 'text-expense'}`}>
-                      {formatCurrency(totalRemaining)}
+                      {formatCurrency(totalRemaining, baseCurrency)}
                     </p>
                   </motion.div>
                 </div>
+                {distinctCurrencies.length > 1 && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Totals shown in <span className="font-semibold text-primary">{baseCurrency}</span> · converted from {distinctCurrencies.join(', ')}
+                  </p>
+                )}
 
                 {/* Status pills */}
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}

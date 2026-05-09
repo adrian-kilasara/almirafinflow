@@ -31,6 +31,8 @@ import { emitSavingsEvent, emitSavingsWithdrawEvent, emitGoalCompletedEvent } fr
 import { differenceInDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { SavingsGoal, Account } from '@/types/finance';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { convertTo } from '@/lib/currency';
 
 const editSchema = z.object({
   name: z.string().min(1).max(100),
@@ -66,6 +68,7 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { rates } = useExchangeRates();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [allocations, setAllocations] = useState<any[]>([]);
   const [confetti, setConfetti] = useState(false);
@@ -143,17 +146,25 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
-      const amount = Number(data.amount);
+      const amountInGoal = Number(data.amount);
       const account = accounts.find(a => a.id === data.account_id);
       if (!account) throw new Error('Account not found');
-      if (Number(account.balance) < amount) throw new Error('Insufficient balance');
+      // Cross-currency: convert goal amount to account currency for balance check + deduction
+      const fxRate = account.currency !== goal.currency
+        ? convertTo(1, goal.currency, account.currency, rates)
+        : 1;
+      const amountInAccount = amountInGoal * fxRate;
+      if (Number(account.balance) < amountInAccount) throw new Error('Insufficient balance');
+      const fxNote = account.currency !== goal.currency
+        ? `\n[FX] ${amountInGoal} ${goal.currency} = ${amountInAccount.toFixed(2)} ${account.currency} @ ${fxRate.toFixed(6)}`
+        : '';
       const { error: allocError } = await supabase.from('savings_allocations').insert({
         user_id: userData.user.id, savings_goal_id: goal.id, account_id: data.account_id,
-        amount, currency: goal.currency, notes: data.notes || null,
+        amount: amountInGoal, currency: goal.currency, notes: (data.notes || '') + fxNote || null,
       });
       if (allocError) throw allocError;
-      await supabase.from('accounts').update({ balance: Number(account.balance) - amount }).eq('id', data.account_id);
-      const newAmount = Number(goal.current_amount) + amount;
+      await supabase.from('accounts').update({ balance: Number(account.balance) - amountInAccount }).eq('id', data.account_id);
+      const newAmount = Number(goal.current_amount) + amountInGoal;
       if (newAmount >= Number(goal.target_amount)) {
         await supabase.from('savings_goals').update({ is_completed: true }).eq('id', goal.id);
         toast.success('🎉 Goal completed!');
@@ -164,7 +175,7 @@ export default function SavingsGoalCard({ goal, onRefresh, index = 0 }: SavingsG
         if (milestone) toast.success(`🏆 ${milestone}% milestone reached!`);
         else toast.success('Funds allocated!');
       }
-      await emitSavingsEvent(userData.user.id, goal.name, amount, newAmount, Number(goal.target_amount), goal.id);
+      await emitSavingsEvent(userData.user.id, goal.name, amountInGoal, newAmount, Number(goal.target_amount), goal.id);
       setAddFundsOpen(false); addFundsForm.reset(); onRefresh();
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };

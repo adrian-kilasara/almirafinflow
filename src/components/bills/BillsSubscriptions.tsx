@@ -24,6 +24,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Account } from '@/types/finance';
+import { useSettings } from '@/hooks/useSettings';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { convertTo } from '@/lib/currency';
+import { FXConverter } from '@/components/shared/FXConverter';
 
 interface Bill {
   id: string;
@@ -82,11 +86,16 @@ interface BillsProps {
 
 export default function BillsSubscriptions({ accounts = [], onTransactionCreated }: BillsProps) {
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const { rates } = useExchangeRates();
+  const baseCurrency = settings.default_currency;
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'upcoming'>('all');
+  // Per-bill FX rate override (when paying from a different-currency account)
+  const [fxRates, setFxRates] = useState<Record<string, number>>({});
 
   // Form state
   const [name, setName] = useState('');
@@ -188,14 +197,15 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
       return;
     }
 
-    // Currency-match guard — protects against silent FX drift
-    if (targetAccount.currency !== bill.currency) {
-      toast.error(`Currency mismatch: bill is in ${bill.currency}, ${targetAccount.name} is ${targetAccount.currency}`);
-      return;
-    }
+    // Cross-currency payment supported via FX. Original bill currency + rate stored in tags for audit.
+    const fxRate = targetAccount.currency !== bill.currency
+      ? (fxRates[bill.id] ?? convertTo(1, bill.currency, targetAccount.currency, rates))
+      : 1;
 
-    const totalCost = Number(bill.amount) * safeCycles;
-    if (Number(targetAccount.balance) < totalCost) {
+    const totalCostInBillCurrency = Number(bill.amount) * safeCycles;
+    const totalCostInAccountCurrency = totalCostInBillCurrency * fxRate;
+
+    if (Number(targetAccount.balance) < totalCostInAccountCurrency) {
       toast.error(`Insufficient balance in ${targetAccount.name} for ${safeCycles} cycle${safeCycles > 1 ? 's' : ''}`);
       return;
     }
@@ -226,21 +236,26 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
 
     // Build N transactions, one per cycle (dated at each cycle's due date)
     const startDate = bill.next_due_date || todayInTz();
+    const fxTags = targetAccount.currency !== bill.currency
+      ? [`fx:original=${Number(bill.amount)} ${bill.currency}`, `fx:rate=${fxRate.toFixed(6)}`]
+      : [];
     const txRows = Array.from({ length: safeCycles }, (_, i) => {
       const cycleDate = i === 0 ? startDate : calculateNextDate(startDate, bill.frequency, i);
+      // Always written in source-account currency for account integrity
+      const amountInAccount = Number(bill.amount) * fxRate;
       return {
         user_id: user.id,
         account_id: targetAccount.id,
         type: 'expense' as const,
-        amount: Number(bill.amount),
-        currency: bill.currency,
+        amount: amountInAccount,
+        currency: targetAccount.currency,
         date: cycleDate,
         description: `${bill.name} — ${bill.frequency} payment${safeCycles > 1 ? ` (${i + 1}/${safeCycles})` : ''}`,
         merchant: bill.provider || bill.name,
         payment_method: bill.auto_pay ? 'auto_debit' : 'cash',
         status: 'completed' as const,
         category_id: categoryId,
-        tags: ['bill-payment', bill.category],
+        tags: ['bill-payment', bill.category, ...fxTags],
       };
     });
 
@@ -251,7 +266,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
     }
 
     await supabase.from('accounts').update({
-      balance: Number(targetAccount.balance) - totalCost,
+      balance: Number(targetAccount.balance) - totalCostInAccountCurrency,
     }).eq('id', targetAccount.id);
 
     // Advance next_due_date by N cycles, set last_paid_date to today
@@ -265,7 +280,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
     onTransactionCreated?.();
     toast.success(
       safeCycles > 1
-        ? `${bill.name}: ${safeCycles} cycles paid (${formatCurrency(totalCost, bill.currency)}) from ${targetAccount.name}`
+        ? `${bill.name}: ${safeCycles} cycles paid (${formatCurrency(totalCostInAccountCurrency, targetAccount.currency as any)}) from ${targetAccount.name}`
         : `${bill.name} paid from ${targetAccount.name}`
     );
     fetchBills();
@@ -301,18 +316,18 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
 
   const getCatInfo = (cat: string) => BILL_CATEGORIES.find(c => c.value === cat) || BILL_CATEGORIES[BILL_CATEGORIES.length - 1];
 
-  // Summary stats
+  // Summary stats — converted to base currency for cross-currency aggregation
   const summary = useMemo(() => {
     const active = bills.filter(b => b.is_active);
     const monthly = active.reduce((sum, b) => {
-      const amt = Number(b.amount);
+      const amtInBase = convertTo(Number(b.amount), b.currency || baseCurrency, baseCurrency, rates);
       switch (b.frequency) {
-        case 'weekly': return sum + amt * 4.33;
-        case 'biweekly': return sum + amt * 2.17;
-        case 'monthly': return sum + amt;
-        case 'quarterly': return sum + amt / 3;
-        case 'yearly': return sum + amt / 12;
-        default: return sum + amt;
+        case 'weekly': return sum + amtInBase * 4.33;
+        case 'biweekly': return sum + amtInBase * 2.17;
+        case 'monthly': return sum + amtInBase;
+        case 'quarterly': return sum + amtInBase / 3;
+        case 'yearly': return sum + amtInBase / 12;
+        default: return sum + amtInBase;
       }
     }, 0);
     const yearly = monthly * 12;
@@ -324,8 +339,9 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
       const days = getDaysUntilDue(b.next_due_date);
       return days !== null && days < 0;
     });
-    return { total: active.length, monthly, yearly, upcoming: upcoming.length, overdue: overdue.length };
-  }, [bills]);
+    const distinctCurrencies = Array.from(new Set(active.map(b => b.currency || baseCurrency)));
+    return { total: active.length, monthly, yearly, upcoming: upcoming.length, overdue: overdue.length, distinctCurrencies };
+  }, [bills, rates, baseCurrency]);
 
   const filteredBills = useMemo(() => {
     let result = bills;
@@ -346,7 +362,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
       >
         {[
           { label: 'Active Bills', value: String(summary.total), icon: Receipt, color: 'text-primary' },
-          { label: 'Monthly Cost', value: formatCurrency(summary.monthly), icon: TrendingUp, color: 'text-expense' },
+          { label: 'Monthly Cost', value: formatCurrency(summary.monthly, baseCurrency), icon: TrendingUp, color: 'text-expense' },
           { label: 'Due This Week', value: String(summary.upcoming), icon: CalendarClock, color: 'text-[hsl(var(--warning))]' },
           { label: 'Overdue', value: String(summary.overdue), icon: AlertTriangle, color: summary.overdue > 0 ? 'text-expense' : 'text-income' },
         ].map((stat) => {
@@ -536,23 +552,37 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
 
                           <Select onValueChange={setPayFromAccount} value={payFromAccount}>
                             <SelectTrigger className="rounded-lg h-8 text-xs">
-                              <SelectValue placeholder="Pay from…" />
+                              <SelectValue placeholder="Pay from any account…" />
                             </SelectTrigger>
                             <SelectContent>
                               {accounts
-                                .filter(a => a.is_active && !a.is_archived && a.currency === bill.currency)
+                                .filter(a => a.is_active && !a.is_archived)
                                 .map(a => (
                                   <SelectItem key={a.id} value={a.id}>
                                     {a.name} ({formatCurrency(Number(a.balance), a.currency)})
+                                    {a.currency !== bill.currency ? ` · FX` : ''}
                                   </SelectItem>
                                 ))}
-                              {accounts.filter(a => a.is_active && !a.is_archived && a.currency === bill.currency).length === 0 && (
+                              {accounts.filter(a => a.is_active && !a.is_archived).length === 0 && (
                                 <div className="p-2 text-[10px] text-muted-foreground">
-                                  No active {bill.currency} accounts.
+                                  No active accounts.
                                 </div>
                               )}
                             </SelectContent>
                           </Select>
+                          {(() => {
+                            const acc = accounts.find(a => a.id === payFromAccount);
+                            if (!acc || acc.currency === bill.currency) return null;
+                            return (
+                              <FXConverter
+                                amount={Number(bill.amount) * payCycles}
+                                fromCurrency={bill.currency}
+                                toCurrency={acc.currency}
+                                rate={fxRates[bill.id]}
+                                onRateChange={(r) => setFxRates(prev => ({ ...prev, [bill.id]: r }))}
+                              />
+                            );
+                          })()}
                           <Button
                             size="sm"
                             className="w-full h-8 text-xs"
@@ -610,11 +640,11 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Annual Subscription Cost</p>
-                  <p className="text-xl font-bold font-mono text-expense">{formatCurrency(summary.yearly)}</p>
+                  <p className="text-xl font-bold font-mono text-expense">{formatCurrency(summary.yearly, baseCurrency)}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Average</p>
-                  <p className="text-xl font-bold font-mono">{formatCurrency(summary.monthly)}</p>
+                  <p className="text-xl font-bold font-mono">{formatCurrency(summary.monthly, baseCurrency)}</p>
                 </div>
               </div>
             </CardContent>

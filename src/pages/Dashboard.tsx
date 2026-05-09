@@ -1499,9 +1499,9 @@ export default function Dashboard() {
       {/* Floating Action Button */}
       <FloatingTransactionForm accounts={accounts} categories={categories} onSuccess={fetchData} />
 
-      {/* ⌘K Command Palette */}
+      {/* ⌘K Global Command Palette — searches across all data */}
       <CommandDialog open={paletteOpen} onOpenChange={setPaletteOpen}>
-        <CommandInput placeholder="Search tabs, actions, accounts…" />
+        <CommandInput placeholder="Search anything: accounts, transactions, budgets, savings, bills, lessons…" />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Navigate">
@@ -1520,28 +1520,28 @@ export default function Dashboard() {
             })}
           </CommandGroup>
           <CommandGroup heading="Quick Actions">
-            <CommandItem value="add expense" onSelect={() => { setTransactionFormType('expense'); setShowTransactionForm(true); setPaletteOpen(false); }}>
+            <CommandItem value="add expense new" onSelect={() => { setTransactionFormType('expense'); setShowTransactionForm(true); setPaletteOpen(false); }}>
               <Plus className="mr-2 h-4 w-4 text-expense" /> Add Expense
             </CommandItem>
-            <CommandItem value="add income" onSelect={() => { setTransactionFormType('income'); setShowTransactionForm(true); setPaletteOpen(false); }}>
+            <CommandItem value="add income new" onSelect={() => { setTransactionFormType('income'); setShowTransactionForm(true); setPaletteOpen(false); }}>
               <Plus className="mr-2 h-4 w-4 text-income" /> Add Income
             </CommandItem>
-            <CommandItem value="transfer" onSelect={() => { setTransactionFormType('transfer'); setShowTransactionForm(true); setPaletteOpen(false); }}>
+            <CommandItem value="transfer new" onSelect={() => { setTransactionFormType('transfer'); setShowTransactionForm(true); setPaletteOpen(false); }}>
               <ArrowUpRight className="mr-2 h-4 w-4 text-primary" /> New Transfer
             </CommandItem>
             <CommandItem value="open settings" onSelect={() => { navigate('/settings'); setPaletteOpen(false); }}>
               <Settings className="mr-2 h-4 w-4" /> Open Settings
             </CommandItem>
-            <CommandItem value="sign out" onSelect={() => { handleSignOut(); setPaletteOpen(false); }}>
+            <CommandItem value="sign out logout" onSelect={() => { handleSignOut(); setPaletteOpen(false); }}>
               <LogOut className="mr-2 h-4 w-4 text-destructive" /> Sign Out
             </CommandItem>
           </CommandGroup>
           {accounts.length > 0 && (
             <CommandGroup heading="Accounts">
-              {accounts.slice(0, 8).map(a => (
+              {accounts.slice(0, 12).map(a => (
                 <CommandItem
                   key={a.id}
-                  value={`account ${a.name}`}
+                  value={`account ${a.name} ${a.type} ${a.currency}`}
                   onSelect={() => { setSelectedAccount(a); setActiveTab('accounts'); setPaletteOpen(false); }}
                 >
                   <CreditCard className="mr-2 h-4 w-4" />
@@ -1549,6 +1549,70 @@ export default function Dashboard() {
                   <span className="text-[10px] text-muted-foreground font-mono">
                     {formatCurrency(Number(a.balance), a.currency)}
                   </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+          {transactions.length > 0 && (
+            <CommandGroup heading="Transactions (recent)">
+              {transactions.slice(0, 30).map(t => (
+                <CommandItem
+                  key={t.id}
+                  value={`tx ${t.description || ''} ${(t as any).merchant || ''} ${t.amount} ${t.currency}`}
+                  onSelect={() => { setActiveTab('transactions'); setPaletteOpen(false); }}
+                >
+                  <Receipt className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <span className="flex-1 truncate">{t.description || (t as any).merchant || 'Transaction'}</span>
+                  <span className={`text-[10px] font-mono ${t.type === 'income' ? 'text-income' : 'text-expense'}`}>
+                    {t.type === 'income' ? '+' : '-'}{formatCurrency(Number(t.amount), t.currency as any)}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+          {budgets.length > 0 && (
+            <CommandGroup heading="Budgets">
+              {budgets.map(b => (
+                <CommandItem
+                  key={b.id}
+                  value={`budget ${b.name} ${b.period} ${b.currency}`}
+                  onSelect={() => { setActiveTab('budgets'); setPaletteOpen(false); }}
+                >
+                  <Target className="mr-2 h-4 w-4 text-primary" />
+                  <span className="flex-1 truncate">{b.name}</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">{formatCurrency(Number(b.amount), b.currency as any)}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+          {savingsGoals.length > 0 && (
+            <CommandGroup heading="Savings Goals">
+              {savingsGoals.map(g => (
+                <CommandItem
+                  key={g.id}
+                  value={`savings goal ${g.name} ${g.currency}`}
+                  onSelect={() => { setActiveTab('savings'); setPaletteOpen(false); }}
+                >
+                  <Activity className="mr-2 h-4 w-4 text-income" />
+                  <span className="flex-1 truncate">{g.name}</span>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {formatCurrency(Number(g.current_amount), g.currency as any)} / {formatCurrency(Number(g.target_amount), g.currency as any)}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+          {categories.length > 0 && (
+            <CommandGroup heading="Categories">
+              {categories.slice(0, 20).map(c => (
+                <CommandItem
+                  key={c.id}
+                  value={`category ${c.name} ${c.type}`}
+                  onSelect={() => { setActiveTab('transactions'); setPaletteOpen(false); }}
+                >
+                  <span className="mr-2 text-base">{c.icon || '🏷️'}</span>
+                  <span className="flex-1 truncate">{c.name}</span>
+                  <span className="text-[10px] text-muted-foreground capitalize">{c.type}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
