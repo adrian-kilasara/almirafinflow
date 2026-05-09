@@ -316,18 +316,18 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
 
   const getCatInfo = (cat: string) => BILL_CATEGORIES.find(c => c.value === cat) || BILL_CATEGORIES[BILL_CATEGORIES.length - 1];
 
-  // Summary stats
+  // Summary stats — converted to base currency for cross-currency aggregation
   const summary = useMemo(() => {
     const active = bills.filter(b => b.is_active);
     const monthly = active.reduce((sum, b) => {
-      const amt = Number(b.amount);
+      const amtInBase = convertTo(Number(b.amount), b.currency || baseCurrency, baseCurrency, rates);
       switch (b.frequency) {
-        case 'weekly': return sum + amt * 4.33;
-        case 'biweekly': return sum + amt * 2.17;
-        case 'monthly': return sum + amt;
-        case 'quarterly': return sum + amt / 3;
-        case 'yearly': return sum + amt / 12;
-        default: return sum + amt;
+        case 'weekly': return sum + amtInBase * 4.33;
+        case 'biweekly': return sum + amtInBase * 2.17;
+        case 'monthly': return sum + amtInBase;
+        case 'quarterly': return sum + amtInBase / 3;
+        case 'yearly': return sum + amtInBase / 12;
+        default: return sum + amtInBase;
       }
     }, 0);
     const yearly = monthly * 12;
@@ -339,8 +339,9 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
       const days = getDaysUntilDue(b.next_due_date);
       return days !== null && days < 0;
     });
-    return { total: active.length, monthly, yearly, upcoming: upcoming.length, overdue: overdue.length };
-  }, [bills]);
+    const distinctCurrencies = Array.from(new Set(active.map(b => b.currency || baseCurrency)));
+    return { total: active.length, monthly, yearly, upcoming: upcoming.length, overdue: overdue.length, distinctCurrencies };
+  }, [bills, rates, baseCurrency]);
 
   const filteredBills = useMemo(() => {
     let result = bills;
