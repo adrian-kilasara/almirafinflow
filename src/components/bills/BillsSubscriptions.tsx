@@ -24,6 +24,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Account } from '@/types/finance';
+import { useSettings } from '@/hooks/useSettings';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { convertTo } from '@/lib/currency';
+import { FXConverter } from '@/components/shared/FXConverter';
 
 interface Bill {
   id: string;
@@ -82,11 +86,16 @@ interface BillsProps {
 
 export default function BillsSubscriptions({ accounts = [], onTransactionCreated }: BillsProps) {
   const { user } = useAuth();
+  const { settings } = useSettings();
+  const { rates } = useExchangeRates();
+  const baseCurrency = settings.default_currency;
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'upcoming'>('all');
+  // Per-bill FX rate override (when paying from a different-currency account)
+  const [fxRates, setFxRates] = useState<Record<string, number>>({});
 
   // Form state
   const [name, setName] = useState('');
