@@ -280,7 +280,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
     onTransactionCreated?.();
     toast.success(
       safeCycles > 1
-        ? `${bill.name}: ${safeCycles} cycles paid (${formatCurrency(totalCost, bill.currency)}) from ${targetAccount.name}`
+        ? `${bill.name}: ${safeCycles} cycles paid (${formatCurrency(totalCostInAccountCurrency, targetAccount.currency as any)}) from ${targetAccount.name}`
         : `${bill.name} paid from ${targetAccount.name}`
     );
     fetchBills();
