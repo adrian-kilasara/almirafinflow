@@ -552,23 +552,37 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
 
                           <Select onValueChange={setPayFromAccount} value={payFromAccount}>
                             <SelectTrigger className="rounded-lg h-8 text-xs">
-                              <SelectValue placeholder="Pay from…" />
+                              <SelectValue placeholder="Pay from any account…" />
                             </SelectTrigger>
                             <SelectContent>
                               {accounts
-                                .filter(a => a.is_active && !a.is_archived && a.currency === bill.currency)
+                                .filter(a => a.is_active && !a.is_archived)
                                 .map(a => (
                                   <SelectItem key={a.id} value={a.id}>
                                     {a.name} ({formatCurrency(Number(a.balance), a.currency)})
+                                    {a.currency !== bill.currency ? ` · FX` : ''}
                                   </SelectItem>
                                 ))}
-                              {accounts.filter(a => a.is_active && !a.is_archived && a.currency === bill.currency).length === 0 && (
+                              {accounts.filter(a => a.is_active && !a.is_archived).length === 0 && (
                                 <div className="p-2 text-[10px] text-muted-foreground">
-                                  No active {bill.currency} accounts.
+                                  No active accounts.
                                 </div>
                               )}
                             </SelectContent>
                           </Select>
+                          {(() => {
+                            const acc = accounts.find(a => a.id === payFromAccount);
+                            if (!acc || acc.currency === bill.currency) return null;
+                            return (
+                              <FXConverter
+                                amount={Number(bill.amount) * payCycles}
+                                fromCurrency={bill.currency}
+                                toCurrency={acc.currency}
+                                rate={fxRates[bill.id]}
+                                onRateChange={(r) => setFxRates(prev => ({ ...prev, [bill.id]: r }))}
+                              />
+                            );
+                          })()}
                           <Button
                             size="sm"
                             className="w-full h-8 text-xs"
