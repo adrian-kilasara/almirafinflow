@@ -149,8 +149,8 @@ export default function SavingsDashboard({ savingsGoals, transactions, accounts,
                 {/* Stats Grid */}
                 <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
                   {[
-                    { label: 'Total Target', value: formatCurrency(stats.totalTarget), icon: Target, color: 'text-primary' },
-                    { label: 'Total Saved', value: formatCurrency(stats.totalSaved), icon: PiggyBank, color: 'text-income' },
+                    { label: 'Total Target', value: formatCurrency(stats.totalTarget, baseCurrency), icon: Target, color: 'text-primary' },
+                    { label: 'Total Saved', value: formatCurrency(stats.totalSaved, baseCurrency), icon: PiggyBank, color: 'text-income' },
                     { label: 'Completed', value: `${stats.completed}/${stats.total}`, icon: Trophy, color: 'text-[hsl(var(--warning))]' },
                     { label: 'Active', value: `${stats.active.length}`, icon: Zap, color: 'text-primary' },
                   ].map((stat, i) => (
