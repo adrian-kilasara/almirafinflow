@@ -6,6 +6,9 @@ import { Wallet, Download, TrendingUp, TrendingDown, BarChart3, Shield, AlertTri
 import { motion } from 'framer-motion';
 import type { Budget, Transaction, Category } from '@/types/finance';
 import { isWithinInterval, parseISO, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { useSettings } from '@/hooks/useSettings';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { convertTo } from '@/lib/currency';
 
 interface BudgetListProps {
   budgets: Budget[];
