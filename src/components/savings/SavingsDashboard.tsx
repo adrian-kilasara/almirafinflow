@@ -168,13 +168,18 @@ export default function SavingsDashboard({ savingsGoals, transactions, accounts,
                   ))}
                 </div>
               </div>
+              {stats.distinctCurrencies.length > 1 && (
+                <p className="mt-3 text-[10px] text-muted-foreground text-center">
+                  Totals shown in <span className="font-semibold text-primary">{baseCurrency}</span> · converted from {stats.distinctCurrencies.length} currencies ({stats.distinctCurrencies.join(', ')})
+                </p>
+              )}
             </CardContent>
           </Card>
         </motion.div>
       )}
 
-      {/* Monthly Savings Trend */}
-      {savingsGoals.length > 0 && stats.monthlySaved.some(m => m.amount > 0) && (
+      {/* Monthly Savings Trend — always render so months are visible even at 0 */}
+      {savingsGoals.length > 0 && (
         <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}>
           <Card>
             <CardHeader className="pb-2">
