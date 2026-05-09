@@ -197,14 +197,15 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
       return;
     }
 
-    // Currency-match guard — protects against silent FX drift
-    if (targetAccount.currency !== bill.currency) {
-      toast.error(`Currency mismatch: bill is in ${bill.currency}, ${targetAccount.name} is ${targetAccount.currency}`);
-      return;
-    }
+    // Cross-currency payment supported via FX. Original bill currency + rate stored in tags for audit.
+    const fxRate = targetAccount.currency !== bill.currency
+      ? (fxRates[bill.id] ?? convertTo(1, bill.currency, targetAccount.currency, rates))
+      : 1;
 
-    const totalCost = Number(bill.amount) * safeCycles;
-    if (Number(targetAccount.balance) < totalCost) {
+    const totalCostInBillCurrency = Number(bill.amount) * safeCycles;
+    const totalCostInAccountCurrency = totalCostInBillCurrency * fxRate;
+
+    if (Number(targetAccount.balance) < totalCostInAccountCurrency) {
       toast.error(`Insufficient balance in ${targetAccount.name} for ${safeCycles} cycle${safeCycles > 1 ? 's' : ''}`);
       return;
     }
@@ -235,21 +236,26 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
 
     // Build N transactions, one per cycle (dated at each cycle's due date)
     const startDate = bill.next_due_date || todayInTz();
+    const fxTags = targetAccount.currency !== bill.currency
+      ? [`fx:original=${Number(bill.amount)} ${bill.currency}`, `fx:rate=${fxRate.toFixed(6)}`]
+      : [];
     const txRows = Array.from({ length: safeCycles }, (_, i) => {
       const cycleDate = i === 0 ? startDate : calculateNextDate(startDate, bill.frequency, i);
+      // Always written in source-account currency for account integrity
+      const amountInAccount = Number(bill.amount) * fxRate;
       return {
         user_id: user.id,
         account_id: targetAccount.id,
         type: 'expense' as const,
-        amount: Number(bill.amount),
-        currency: bill.currency,
+        amount: amountInAccount,
+        currency: targetAccount.currency,
         date: cycleDate,
         description: `${bill.name} — ${bill.frequency} payment${safeCycles > 1 ? ` (${i + 1}/${safeCycles})` : ''}`,
         merchant: bill.provider || bill.name,
         payment_method: bill.auto_pay ? 'auto_debit' : 'cash',
         status: 'completed' as const,
         category_id: categoryId,
-        tags: ['bill-payment', bill.category],
+        tags: ['bill-payment', bill.category, ...fxTags],
       };
     });
 
@@ -260,7 +266,7 @@ export default function BillsSubscriptions({ accounts = [], onTransactionCreated
     }
 
     await supabase.from('accounts').update({
-      balance: Number(targetAccount.balance) - totalCost,
+      balance: Number(targetAccount.balance) - totalCostInAccountCurrency,
     }).eq('id', targetAccount.id);
 
     // Advance next_due_date by N cycles, set last_paid_date to today
