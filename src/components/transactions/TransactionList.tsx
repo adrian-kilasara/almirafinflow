@@ -577,8 +577,28 @@ export default function TransactionList({ transactions, categories, accounts, on
                                 <><span className="text-border">·</span><span className={statusCfg.color}>{statusCfg.label}</span></>
                               )}
                               {txn.receipt_url && (
-                                <><span className="text-border">·</span><a href={txn.receipt_url} target="_blank" rel="noopener" className="text-primary flex items-center gap-0.5"><FileText className="w-2.5 h-2.5" /></a></>
+                                <><span className="text-border">·</span>
+                                <button
+                                  type="button"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const raw = String(txn.receipt_url);
+                                    // Back-compat: old rows stored a full public URL; new rows store the path.
+                                    const path = raw.startsWith('http')
+                                      ? raw.split('/receipts/')[1]?.split('?')[0]
+                                      : raw;
+                                    if (!path) return;
+                                    const { data, error } = await supabase.storage
+                                      .from('receipts')
+                                      .createSignedUrl(path, 60 * 5);
+                                    if (error || !data?.signedUrl) return;
+                                    window.open(data.signedUrl, '_blank', 'noopener');
+                                  }}
+                                  className="text-primary flex items-center gap-0.5 hover:underline"
+                                  aria-label="View receipt"
+                                ><FileText className="w-2.5 h-2.5" /></button></>
                               )}
+
                             </div>
                             {transaction.tags && transaction.tags.length > 0 && (
                               <div className="flex gap-1 mt-0.5 flex-wrap">
