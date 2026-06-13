@@ -245,6 +245,62 @@ export default function DataManagementSettings() {
         </Card>
       </motion.div>
 
+      {/* Clear ALL data */}
+      <motion.div variants={stagger.item}>
+        <Card className="overflow-hidden border-destructive/40">
+          <CardContent className="pt-5 pb-5 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <AlertOctagon className="w-4 h-4 text-destructive" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-destructive">Clear ALL Data</p>
+                <p className="text-[9px] text-muted-foreground">Wipes every financial record, category, badge, lesson progress and setting. Your sign-in account remains.</p>
+              </div>
+            </div>
+            <AlertDialog onOpenChange={(o) => { if (!o) setWipeConfirm(''); }}>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" disabled={wipingAll} className="rounded-xl border-destructive/40 text-destructive">
+                  {wipingAll ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <AlertOctagon className="w-4 h-4 mr-2" />}
+                  Clear ALL Data
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Wipe every record?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This deletes transactions, transfers, accounts, budgets, savings goals, bills, investments,
+                    loans, categories, notifications, streaks, badges, lesson progress, transaction rules and
+                    settings. Your login account stays so you can start fresh. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2">
+                  <Label htmlFor="wipe-confirm" className="text-xs">Type <span className="font-bold text-destructive">DELETE</span> to confirm</Label>
+                  <Input
+                    id="wipe-confirm"
+                    value={wipeConfirm}
+                    onChange={(e) => setWipeConfirm(e.target.value)}
+                    placeholder="DELETE"
+                    autoComplete="off"
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClearAllData}
+                    disabled={wipeConfirm !== 'DELETE'}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Wipe Everything
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+
       {/* Delete */}
       <motion.div variants={stagger.item}>
         <Card className="overflow-hidden border-destructive/30">
