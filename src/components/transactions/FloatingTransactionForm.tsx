@@ -88,9 +88,10 @@ const FloatingTransactionForm = forwardRef<HTMLDivElement, FloatingTransactionFo
           const path = `${userData.user.id}/${Date.now()}.${ext}`;
           const { error: uploadErr } = await supabase.storage.from('receipts').upload(path, receiptFile);
           if (uploadErr) throw uploadErr;
-          const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
-          receiptUrl = urlData.publicUrl;
+          // Private bucket — store path; viewer signs URL on demand.
+          receiptUrl = path;
         }
+
 
         const { error } = await supabase.from('transactions').insert({
           user_id: userData.user.id,

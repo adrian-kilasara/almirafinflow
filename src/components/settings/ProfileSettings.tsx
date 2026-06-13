@@ -133,13 +133,17 @@ export default function ProfileSettings() {
       const path = `${user.id}/avatar.${ext}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('receipts')
+        .from('avatars')
         .upload(path, file, { upsert: true, contentType: file.type });
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
-      const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      // Private bucket → use a long-lived signed URL (1 year)
+      const { data: signed, error: signErr } = await supabase.storage
+        .from('avatars')
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signErr || !signed?.signedUrl) throw signErr ?? new Error('Could not sign URL');
+      const avatarUrl = `${signed.signedUrl}#t=${Date.now()}`;
 
       await updateSettings({ avatar_url: avatarUrl });
       toast.success('Profile picture updated');
@@ -149,6 +153,7 @@ export default function ProfileSettings() {
       setUploading(false);
     }
   }, [user, updateSettings]);
+
 
   const handleSave = async () => {
     if (username && (username.length > 30 || !/^[a-zA-Z0-9._-]+$/.test(username))) {

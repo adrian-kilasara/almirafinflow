@@ -12,10 +12,26 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Auth: require shared secret OR service-role JWT. This function uses the
+  // service role key and must never be callable anonymously from the internet.
+  const internalSecret = Deno.env.get("INTERNAL_CRON_SECRET");
+  const providedSecret = req.headers.get("x-internal-secret");
+  const authHeader = req.headers.get("authorization") ?? "";
+  const expectedServiceJwt = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`;
+  const secretOk = !!internalSecret && providedSecret === internalSecret;
+  const jwtOk = authHeader === expectedServiceJwt;
+  if (!secretOk && !jwtOk) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
 
     // Find all active recurring schedules that are due
     const today = new Date().toISOString().split("T")[0];
