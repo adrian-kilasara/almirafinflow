@@ -8,9 +8,13 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Tab-scoped session: refresh keeps the user logged in, but closing the tab
+// or browser drops the session. Combined with the 5-min idle logout in
+// useIdleLogout, this gives strong account protection without breaking
+// in-tab navigation.
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: sessionStorage,
     persistSession: true,
     autoRefreshToken: true,
   }
