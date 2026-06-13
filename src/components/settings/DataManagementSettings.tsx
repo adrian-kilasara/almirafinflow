@@ -4,13 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { Download, Trash2, Loader2, Database, RotateCcw, FileJson, FileSpreadsheet } from 'lucide-react';
+import { Download, Trash2, Loader2, Database, RotateCcw, FileJson, FileSpreadsheet, AlertOctagon } from 'lucide-react';
+import { logActivity } from '@/lib/activityLogger';
 
 const stagger = {
   container: { hidden: {}, show: { transition: { staggerChildren: 0.06 } } },
