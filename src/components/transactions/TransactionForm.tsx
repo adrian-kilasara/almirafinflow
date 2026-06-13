@@ -108,15 +108,16 @@ export default function TransactionForm({ accounts, categories, onSuccess }: Tra
       const currency = selectedAccount?.currency || 'KES';
       let receiptUrl: string | null = null;
 
-      // Upload receipt if provided
+      // Upload receipt if provided. Bucket is private — store the storage path,
+      // not a public URL. The viewer creates a short-lived signed URL on demand.
       if (receiptFile) {
         const ext = receiptFile.name.split('.').pop();
         const path = `${userData.user.id}/${Date.now()}.${ext}`;
         const { error: uploadErr } = await supabase.storage.from('receipts').upload(path, receiptFile);
         if (uploadErr) throw uploadErr;
-        const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
-        receiptUrl = urlData.publicUrl;
+        receiptUrl = path;
       }
+
 
       const { error } = await supabase.from('transactions').insert({
         user_id: userData.user.id,
