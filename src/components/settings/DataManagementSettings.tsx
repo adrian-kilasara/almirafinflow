@@ -29,6 +29,42 @@ export default function DataManagementSettings() {
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [wipingAll, setWipingAll] = useState(false);
+  const [wipeConfirm, setWipeConfirm] = useState('');
+
+  const handleClearAllData = async () => {
+    if (!user || wipeConfirm !== 'DELETE') return;
+    setWipingAll(true);
+    try {
+      await logActivity(user.id, 'data_wipe_started', 'settings', { scope: 'all_except_auth' });
+      // Order matters: dependents first
+      const tables = [
+        'transaction_history','savings_allocations','loan_payments','reconciliation_sessions',
+        'transactions','transfers','budgets','savings_goals','bills_subscriptions',
+        'investments','recurring_schedules','transaction_rules','financial_tips',
+        'notifications','user_streaks','user_badges','user_lesson_progress',
+        'account_audit_log','accounts','categories','activity_logs',
+      ] as const;
+      const results = await Promise.allSettled(
+        tables.map((t) => (supabase.from(t as any) as any).delete().eq('user_id', user.id))
+      );
+      const failed = results
+        .map((r, i) => (r.status === 'rejected' ? tables[i] : null))
+        .filter(Boolean);
+      // Reset user_settings to defaults by deleting; trigger recreates on next signin
+      await (supabase.from('user_settings') as any).delete().eq('user_id', user.id);
+      if (failed.length) {
+        toast.warning(`Wiped, but ${failed.length} table(s) failed: ${failed.join(', ')}`);
+      } else {
+        toast.success('All data wiped. Your account is intact.');
+      }
+      setWipeConfirm('');
+    } catch (e: any) {
+      toast.error(e.message || 'Wipe failed');
+    } finally {
+      setWipingAll(false);
+    }
+  };
 
   const handleExportJSON = async () => {
     if (!user) return;
