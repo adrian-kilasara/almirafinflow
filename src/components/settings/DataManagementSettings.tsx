@@ -4,13 +4,16 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { Download, Trash2, Loader2, Database, RotateCcw, FileJson, FileSpreadsheet } from 'lucide-react';
+import { Download, Trash2, Loader2, Database, RotateCcw, FileJson, FileSpreadsheet, AlertOctagon } from 'lucide-react';
+import { logActivity } from '@/lib/activityLogger';
 
 const stagger = {
   container: { hidden: {}, show: { transition: { staggerChildren: 0.06 } } },
@@ -26,6 +29,42 @@ export default function DataManagementSettings() {
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [wipingAll, setWipingAll] = useState(false);
+  const [wipeConfirm, setWipeConfirm] = useState('');
+
+  const handleClearAllData = async () => {
+    if (!user || wipeConfirm !== 'DELETE') return;
+    setWipingAll(true);
+    try {
+      await logActivity(user.id, 'data_wipe_started', 'settings', { scope: 'all_except_auth' });
+      // Order matters: dependents first
+      const tables = [
+        'transaction_history','savings_allocations','loan_payments','reconciliation_sessions',
+        'transactions','transfers','budgets','savings_goals','bills_subscriptions',
+        'investments','recurring_schedules','transaction_rules','financial_tips',
+        'notifications','user_streaks','user_badges','user_lesson_progress',
+        'account_audit_log','accounts','categories','activity_logs',
+      ] as const;
+      const results = await Promise.allSettled(
+        tables.map((t) => (supabase.from(t as any) as any).delete().eq('user_id', user.id))
+      );
+      const failed = results
+        .map((r, i) => (r.status === 'rejected' ? tables[i] : null))
+        .filter(Boolean);
+      // Reset user_settings to defaults by deleting; trigger recreates on next signin
+      await (supabase.from('user_settings') as any).delete().eq('user_id', user.id);
+      if (failed.length) {
+        toast.warning(`Wiped, but ${failed.length} table(s) failed: ${failed.join(', ')}`);
+      } else {
+        toast.success('All data wiped. Your account is intact.');
+      }
+      setWipeConfirm('');
+    } catch (e: any) {
+      toast.error(e.message || 'Wipe failed');
+    } finally {
+      setWipingAll(false);
+    }
+  };
 
   const handleExportJSON = async () => {
     if (!user) return;
@@ -205,6 +244,62 @@ export default function DataManagementSettings() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Clear ALL data */}
+      <motion.div variants={stagger.item}>
+        <Card className="overflow-hidden border-destructive/40">
+          <CardContent className="pt-5 pb-5 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center">
+                <AlertOctagon className="w-4 h-4 text-destructive" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-destructive">Clear ALL Data</p>
+                <p className="text-[9px] text-muted-foreground">Wipes every financial record, category, badge, lesson progress and setting. Your sign-in account remains.</p>
+              </div>
+            </div>
+            <AlertDialog onOpenChange={(o) => { if (!o) setWipeConfirm(''); }}>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" disabled={wipingAll} className="rounded-xl border-destructive/40 text-destructive">
+                  {wipingAll ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <AlertOctagon className="w-4 h-4 mr-2" />}
+                  Clear ALL Data
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Wipe every record?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This deletes transactions, transfers, accounts, budgets, savings goals, bills, investments,
+                    loans, categories, notifications, streaks, badges, lesson progress, transaction rules and
+                    settings. Your login account stays so you can start fresh. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2">
+                  <Label htmlFor="wipe-confirm" className="text-xs">Type <span className="font-bold text-destructive">DELETE</span> to confirm</Label>
+                  <Input
+                    id="wipe-confirm"
+                    value={wipeConfirm}
+                    onChange={(e) => setWipeConfirm(e.target.value)}
+                    placeholder="DELETE"
+                    autoComplete="off"
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClearAllData}
+                    disabled={wipeConfirm !== 'DELETE'}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Wipe Everything
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      </motion.div>
+
 
       {/* Delete */}
       <motion.div variants={stagger.item}>

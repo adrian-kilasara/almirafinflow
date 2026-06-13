@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SettingsProvider } from "@/hooks/useSettings";
 import { useThemeEffect } from "@/hooks/useTheme";
+import { useIdleLogout } from "@/hooks/useIdleLogout";
+import { useAuth } from "@/hooks/useAuth";
 
 // Eagerly load Dashboard (main landing page)
 import Dashboard from "./pages/Dashboard";
@@ -19,6 +21,12 @@ const Install = lazy(() => import("./pages/Install"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
+
+function IdleGuard({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  useIdleLogout(!!user);
+  return <>{children}</>;
+}
 
 function ThemeApplicator({ children }: { children: React.ReactNode }) {
   useThemeEffect();
@@ -40,16 +48,18 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Suspense fallback={<PageFallback />}>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/install" element={<Install />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
+              <IdleGuard>
+                <Suspense fallback={<PageFallback />}>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/install" element={<Install />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </IdleGuard>
             </BrowserRouter>
           </TooltipProvider>
         </ThemeApplicator>
